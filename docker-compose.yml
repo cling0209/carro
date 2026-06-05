@@ -1,0 +1,88 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8081:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - carro
+
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8081
+      APP_TIMEZONE: America/Santiago
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carro
+      DB_USERNAME: carro
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      TRANSBANK_RETURN_URL: http://localhost:8081/checkout/webpay/return
+      L5_SWAGGER_GENERATE_ALWAYS: "false"
+      PRODUCT_IMAGE_BASE_URL: https://www.romulo.cl/allproducts/imagenes/productos
+      PRODUCT_IMAGE_FILENAME_PATTERN: "{codigo}_medium.jpg"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - carro
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: carro
+      POSTGRES_USER: carro
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carro -d carro"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - carro
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - carro
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8026:8025"
+      - "1026:1025"
+    networks:
+      - carro
+
+volumes:
+  postgres_data:
+
+networks:
+  carro:
+    driver: bridge

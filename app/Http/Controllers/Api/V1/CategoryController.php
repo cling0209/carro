@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\Http\Controllers\Controller;
+use App\Http\Traits\ApiResponse;
+use App\Models\Category;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use OpenApi\Attributes as OA;
+
+#[OA\Tag(name: 'Categories')]
+class CategoryController extends Controller
+{
+    use ApiResponse;
+
+    #[OA\Get(path: '/api/v1/categories', summary: 'Listar categorías', tags: ['Categories'])]
+    #[OA\Response(response: 200, description: 'OK')]
+    public function index(): JsonResponse
+    {
+        $categories = Category::where('is_active', true)
+            ->with(['children' => fn ($q) => $q->where('is_active', true)])
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->get();
+
+        return $this->success($categories);
+    }
+
+    #[OA\Post(path: '/api/v1/admin/categories', summary: 'Crear categoría (admin)', tags: ['Admin'], security: [['sanctum' => []]])]
+    #[OA\Response(response: 200, description: 'OK')]
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'parent_id' => ['nullable', 'exists:categories,id'],
+            'name' => ['required', 'string', 'max:120'],
+            'slug' => ['nullable', 'string', 'max:120', 'unique:categories,slug'],
+            'description' => ['nullable', 'string'],
+            'sort_order' => ['integer', 'min:0'],
+            'is_active' => ['boolean'],
+        ]);
+
+        $data['slug'] = $data['slug'] ?? Str::slug($data['name']);
+
+        $category = Category::create($data);
+
+        return $this->success($category, [], 201);
+    }
+
+    #[OA\Put(path: '/api/v1/admin/categories/{id}', summary: 'Actualizar categoría', tags: ['Admin'], security: [['sanctum' => []]])]
+    #[OA\Response(response: 200, description: 'OK')]
+    public function update(Request $request, Category $category): JsonResponse
+    {
+        $data = $request->validate([
+            'parent_id' => ['nullable', 'exists:categories,id'],
+            'name' => ['sometimes', 'string', 'max:120'],
+            'slug' => ['sometimes', 'string', 'max:120', 'unique:categories,slug,'.$category->id],
+            'description' => ['nullable', 'string'],
+            'sort_order' => ['integer', 'min:0'],
+            'is_active' => ['boolean'],
+        ]);
+
+        $category->update($data);
+
+        return $this->success($category->fresh());
+    }
+
+    #[OA\Delete(path: '/api/v1/admin/categories/{id}', summary: 'Eliminar categoría', tags: ['Admin'], security: [['sanctum' => []]])]
+    #[OA\Response(response: 200, description: 'OK')]
+    public function destroy(Category $category): JsonResponse
+    {
+        $category->delete();
+
+        return $this->success(['deleted' => true]);
+    }
+}

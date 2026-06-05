@@ -1,0 +1,9 @@
+[
+  {"region": "Región Metropolitana de Santiago", "comunas": ["Santiago", "Providencia", "Las Condes", "Ñuñoa", "Maipú", "Puente Alto", "La Florida"]},
+  {"region": "Región de Valparaíso", "comunas": ["Valparaíso", "Viña del Mar", "Quilpué", "Villa Alemana", "San Antonio"]},
+  {"region": "Región del Biobío", "comunas": ["Concepción", "Talcahuano", "Chillán", "Los Ángeles"]},
+  {"region": "Región de La Araucanía", "comunas": ["Temuco", "Villarrica", "Padre Las Casas"]},
+  {"region": "Región de Los Lagos", "comunas": ["Puerto Montt", "Osorno", "Puerto Varas"]},
+  {"region": "Magallanes y la Antártica Chilena", "comunas": ["Punta Arenas", "Puerto Natales"]},
+  {"region": "Aysén del General Carlos Ibáñez del Campo", "comunas": ["Coyhaique", "Aysén"]}
+]
