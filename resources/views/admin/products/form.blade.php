@@ -49,7 +49,7 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="form-text">El slug de la categoría define la carpeta de la imagen en Romulo.</div>
+                                <div class="form-text">El slug de la categoría define la carpeta de la imagen.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Precio *</label>
@@ -110,7 +110,7 @@
                     <p class="small text-muted">Según base URL + slug de categoría + SKU configurados.</p>
                     @if($product->exists)
                         <x-product-image :product="$product" variant="admin-preview" />
-                        <code class="d-block small mt-2 text-break">{{ product_image($product) ?: '— sin URL —' }}</code>
+                        <code class="d-block small mt-2 text-break admin-image-url">{{ product_image($product) ?: '— sin URL —' }}</code>
                     @else
                         <p class="small text-muted mb-0">Guarda el producto para ver la URL generada.</p>
                     @endif

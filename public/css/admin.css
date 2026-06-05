@@ -80,3 +80,14 @@
     border: none;
     border-radius: 1rem;
 }
+
+.admin-image-url {
+    color: #fff;
+    background: transparent;
+    user-select: all;
+}
+
+.admin-image-url::selection {
+    color: #0f172a;
+    background: #bfdbfe;
+}
