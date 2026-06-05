@@ -14,9 +14,12 @@
         document.body.classList.remove('is-loading');
     }
 
+    window.PageLoader = { show: showLoader, hide: hideLoader };
+
     document.addEventListener('click', (event) => {
         const link = event.target.closest('a');
         if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+        if (link.dataset.noLoader !== undefined) return;
         const href = link.getAttribute('href');
         if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
         if (link.origin !== window.location.origin) return;
@@ -25,6 +28,8 @@
 
     document.addEventListener('submit', (event) => {
         if (event.defaultPrevented) return;
+        const form = event.target;
+        if (form instanceof HTMLFormElement && form.dataset.noLoader !== undefined) return;
         showLoader();
     });
 

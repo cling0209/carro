@@ -10,9 +10,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="{{ asset('css/shop.css') }}" rel="stylesheet">
     <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/page-loader.css') }}" rel="stylesheet">
     @stack('head')
 </head>
 <body class="admin-body">
+<x-page-loader />
 @if(auth()->check() && auth()->user()->isAdmin())
 <nav class="navbar navbar-dark admin-navbar">
     <div class="container-fluid">
@@ -65,6 +67,7 @@
 <main class="admin-main">@yield('content')</main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ asset('js/page-loader.js') }}" defer></script>
 <script src="{{ asset('js/product-image.js') }}" defer></script>
 @stack('scripts')
 </body>

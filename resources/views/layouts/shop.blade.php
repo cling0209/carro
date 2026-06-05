@@ -11,71 +11,11 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="{{ asset('css/shop.css') }}" rel="stylesheet">
-    <style>
-        #page-loader {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            background: rgba(15, 23, 42, 0.45);
-            backdrop-filter: blur(6px);
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transition: opacity 0.2s ease, visibility 0.2s ease;
-        }
-        #page-loader.is-active {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-        }
-        #page-loader .page-loader__panel {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-            padding: 2rem 2.75rem;
-            background: #fff;
-            border-radius: 1.25rem;
-            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
-            text-align: center;
-        }
-        #page-loader .page-loader__media {
-            width: 72px;
-            height: 72px;
-            object-fit: contain;
-        }
-        #page-loader .page-loader__text {
-            margin: 0;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #1d4ed8;
-            letter-spacing: 0.02em;
-        }
-        body.is-loading {
-            overflow: hidden;
-        }
-    </style>
+    <link href="{{ asset('css/page-loader.css') }}" rel="stylesheet">
     @stack('head')
 </head>
 <body class="shop-body">
-<div id="page-loader" aria-hidden="true" aria-live="polite" role="status">
-    <div class="page-loader__panel">
-        <img
-            src="{{ asset('images/loading.gif') }}"
-            data-fallback="{{ asset('images/loading.svg') }}"
-            class="page-loader__media"
-            alt=""
-            width="72"
-            height="72"
-            onerror="if (!this.dataset.fallbackUsed) { this.dataset.fallbackUsed='1'; this.src=this.dataset.fallback; }"
-        >
-        <p class="page-loader__text">Cargando...</p>
-    </div>
-</div>
+<x-page-loader />
 <nav class="navbar navbar-expand-lg shop-navbar sticky-top">
     <div class="container">
         <a class="navbar-brand fw-bold" href="{{ route('home') }}">
@@ -150,7 +90,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-<script src="{{ asset('js/shop-loader.js') }}" defer></script>
+<script src="{{ asset('js/page-loader.js') }}" defer></script>
 <script src="{{ asset('js/product-image.js') }}" defer></script>
 @stack('scripts')
 </body>
