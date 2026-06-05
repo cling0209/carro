@@ -28,6 +28,7 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item"><a class="nav-link" href="{{ route('home') }}">Inicio</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('catalog') }}">Catálogo</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('about') }}">Quiénes somos</a></li>
             </ul>
             <form class="d-flex me-3 flex-grow-1 flex-lg-grow-0" action="{{ route('catalog') }}" method="get" style="max-width: 320px;">
                 <input class="form-control form-control-sm rounded-pill" type="search" name="q" placeholder="Buscar productos..." value="{{ request('q') }}">
@@ -85,6 +86,7 @@
                 <h6 class="fw-semibold">Enlaces</h6>
                 <ul class="list-unstyled mb-0">
                     <li><a href="{{ route('catalog') }}">Catálogo</a></li>
+                    <li><a href="{{ route('about') }}">Quiénes somos</a></li>
                     <li><a href="{{ route('cart.index') }}">Mi carro</a></li>
                 </ul>
             </div>

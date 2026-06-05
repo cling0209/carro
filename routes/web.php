@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [ShopController::class, 'home'])->name('home');
 Route::get('/catalogo', [ShopController::class, 'catalog'])->name('catalog');
+Route::get('/quienes-somos', [ShopController::class, 'about'])->name('about');
 Route::get('/producto/{slug}', [ShopController::class, 'show'])->name('product.show');
 
 Route::get('/carro', [CartWebController::class, 'index'])->name('cart.index');

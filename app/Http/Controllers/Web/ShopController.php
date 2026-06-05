@@ -57,6 +57,13 @@ class ShopController extends Controller
         ]);
     }
 
+    public function about(Request $request): View
+    {
+        return view('shop.about', [
+            'cartCount' => $this->cartCount($request),
+        ]);
+    }
+
     public function show(Request $request, string $slug): View
     {
         $product = Product::active()
