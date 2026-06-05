@@ -140,13 +140,13 @@
                     </div>
                     <div class="d-flex justify-content-between fs-5 fw-bold mb-4 border-top pt-3">
                         <span>Total</span>
-                        <span class="text-primary" id="summary-total">{{ clp($formatted['subtotal']) }}</span>
+                        <span class="text-primary" id="summary-total">—</span>
                     </div>
                     <div id="shipping-error" class="alert alert-warning small d-none"></div>
                     <div class="alert alert-info small">
                         <i class="bi bi-credit-card"></i> Serás redirigido a <strong>Webpay Plus</strong> para pagar con tarjeta de crédito o débito.
                     </div>
-                    <button type="submit" class="btn btn-primary btn-lg rounded-pill w-100" id="checkout-submit">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
                     </button>
                 </div>
@@ -216,19 +216,21 @@ async function quoteShipping() {
 
     if (!region) {
         summaryShipping.textContent = 'Selecciona región y comuna';
-        summaryTotal.textContent = formatClp(subtotalAmount);
-        checkoutSubmit.disabled = false;
+        summaryTotal.textContent = '—';
+        checkoutSubmit.disabled = true;
         return;
     }
 
     if (!isRmRegion(region) && !comuna) {
         summaryShipping.textContent = 'Selecciona comuna';
-        summaryTotal.textContent = formatClp(subtotalAmount);
+        summaryTotal.textContent = '—';
         checkoutSubmit.disabled = true;
         return;
     }
 
+    checkoutSubmit.disabled = true;
     summaryShipping.textContent = 'Calculando...';
+    summaryTotal.textContent = '—';
 
     try {
         const params = new URLSearchParams({ region });
@@ -247,7 +249,7 @@ async function quoteShipping() {
         checkoutSubmit.disabled = false;
     } catch (error) {
         summaryShipping.textContent = '—';
-        summaryTotal.textContent = formatClp(subtotalAmount);
+        summaryTotal.textContent = '—';
         shippingError.textContent = error.message;
         shippingError.classList.remove('d-none');
         checkoutSubmit.disabled = true;
