@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Web\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Web\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Web\Admin\ShippingController as AdminShippingController;
@@ -40,6 +41,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('productos/{product}/editar', [AdminProductController::class, 'edit'])->name('products.edit');
         Route::put('productos/{product}', [AdminProductController::class, 'update'])->name('products.update');
         Route::delete('productos/{product}', [AdminProductController::class, 'destroy'])->name('products.destroy');
+
+        Route::get('categorias', [AdminCategoryController::class, 'index'])->name('categories.index');
+        Route::get('categorias/nueva', [AdminCategoryController::class, 'create'])->name('categories.create');
+        Route::post('categorias', [AdminCategoryController::class, 'store'])->name('categories.store');
+        Route::get('categorias/{category}/editar', [AdminCategoryController::class, 'edit'])->name('categories.edit');
+        Route::put('categorias/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
+        Route::delete('categorias/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
 
         Route::get('ventas', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('ventas/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
