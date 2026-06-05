@@ -17,7 +17,7 @@ class ShippingSetting extends Model
 
     public static function getValue(string $key, mixed $default = null): mixed
     {
-        $settings = Cache::remember('shipping_settings', 300, fn () => self::query()->pluck('value', 'key'));
+        $settings = collect(Cache::remember('shipping_settings', 300, fn () => self::query()->pluck('value', 'key')->all()));
 
         if (! $settings->has($key)) {
             return $default;
