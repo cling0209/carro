@@ -72,14 +72,17 @@ class Product extends Model
     {
         $base = rtrim((string) config('products.image_base_url'), '/');
 
-        if ($base === '' || ! $this->familia || ! $this->sku) {
+        $this->loadMissing('category');
+        $folder = $this->category?->slug;
+
+        if ($base === '' || ! $folder || ! $this->sku) {
             return null;
         }
 
         $pattern = (string) config('products.image_filename_pattern', '{codigo}_medium.jpg');
         $filename = str_replace('{codigo}', $this->sku, $pattern);
 
-        return $base.'/'.trim($this->familia, '/').'/'.ltrim($filename, '/');
+        return $base.'/'.trim($folder, '/').'/'.ltrim($filename, '/');
     }
 
     public function scopeActive(Builder $query): Builder
@@ -102,7 +105,9 @@ class Product extends Model
             $q->where('name', 'ilike', "%{$term}%")
                 ->orWhere('description', 'ilike', "%{$term}%")
                 ->orWhere('sku', 'ilike', "%{$term}%")
-                ->orWhere('familia', 'ilike', "%{$term}%");
+                ->orWhereHas('category', fn (Builder $cat) => $cat
+                    ->where('name', 'ilike', "%{$term}%")
+                    ->orWhere('slug', 'ilike', "%{$term}%"));
         });
     }
 }

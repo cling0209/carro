@@ -40,21 +40,16 @@
                                 @error('sku')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Familia (carpeta imagen)</label>
-                                <input type="text" name="familia" class="form-control @error('familia') is-invalid @enderror"
-                                       value="{{ old('familia', $product->familia) }}" placeholder="electronica">
-                                @error('familia')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            </div>
-                            <div class="col-md-4">
                                 <label class="form-label">Categoría</label>
                                 <select name="category_id" class="form-select">
                                     <option value="">Sin categoría</option>
                                     @foreach($categories as $cat)
                                         <option value="{{ $cat->id }}" @selected(old('category_id', $product->category_id) == $cat->id)>
-                                            {{ $cat->name }}
+                                            {{ $cat->name }} ({{ $cat->slug }})
                                         </option>
                                     @endforeach
                                 </select>
+                                <div class="form-text">El slug de la categoría define la carpeta de la imagen en Romulo.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Precio *</label>
@@ -112,7 +107,7 @@
             <div class="card admin-card">
                 <div class="card-body">
                     <h2 class="h6 fw-bold">Vista previa imagen</h2>
-                    <p class="small text-muted">Según base URL + familia + SKU configurados.</p>
+                    <p class="small text-muted">Según base URL + slug de categoría + SKU configurados.</p>
                     @if($product->exists)
                         <x-product-image :product="$product" variant="admin-preview" />
                         <code class="d-block small mt-2 text-break">{{ product_image($product) ?: '— sin URL —' }}</code>

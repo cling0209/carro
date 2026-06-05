@@ -123,7 +123,6 @@ class ProductController extends Controller
         return $request->validate([
             'category_id' => ['nullable', 'exists:categories,id'],
             'sku' => ['required', 'string', 'max:60', $uniqueSku],
-            'familia' => ['nullable', 'string', 'max:120'],
             'name' => ['required', 'string', 'max:200'],
             'slug' => ['nullable', 'string', 'max:200', 'unique:products,slug'.($id ? ','.$id : '')],
             'description' => ['nullable', 'string'],

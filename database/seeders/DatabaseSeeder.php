@@ -49,26 +49,26 @@ class DatabaseSeeder extends Seeder
             'sort_order' => 3,
         ]);
 
-        $this->seedProduct($electronica->id, 'electronica', 'AUD-001', 'Audífonos Bluetooth Pro', 'audifonos-bluetooth-pro', 29990, 39990, 45, 0.35, true, [
+        $this->seedProduct($electronica->id, 'AUD-001', 'Audífonos Bluetooth Pro', 'audifonos-bluetooth-pro', 29990, 39990, 45, 0.35, true, [
             ['name' => 'Color', 'value' => 'Negro'],
             ['name' => 'Conectividad', 'value' => 'Bluetooth 5.3'],
         ]);
 
-        $this->seedProduct($electronica->id, 'electronica', 'TAB-002', 'Tablet 10" Full HD', 'tablet-10-full-hd', 149990, null, 20, 0.55, true, [
+        $this->seedProduct($electronica->id, 'TAB-002', 'Tablet 10" Full HD', 'tablet-10-full-hd', 149990, null, 20, 0.55, true, [
             ['name' => 'Pantalla', 'value' => '10.1"'],
             ['name' => 'Almacenamiento', 'value' => '128 GB'],
         ]);
 
-        $this->seedProduct($hogar->id, 'hogar', 'CAF-003', 'Cafetera Espresso Automática', 'cafetera-espresso', 89990, 109990, 15, 4.2, false, [
+        $this->seedProduct($hogar->id, 'CAF-003', 'Cafetera Espresso Automática', 'cafetera-espresso', 89990, 109990, 15, 4.2, false, [
             ['name' => 'Presión', 'value' => '15 bar'],
         ]);
 
-        $this->seedProduct($moda->id, 'moda', 'POL-004', 'Polera Algodón Premium', 'polera-algodon-premium', 12990, 15990, 100, 0.25, true, [
+        $this->seedProduct($moda->id, 'POL-004', 'Polera Algodón Premium', 'polera-algodon-premium', 12990, 15990, 100, 0.25, true, [
             ['name' => 'Talla', 'value' => 'M'],
             ['name' => 'Material', 'value' => '100% Algodón'],
         ]);
 
-        $this->seedProduct($moda->id, 'moda', 'ZAP-005', 'Zapatillas Urban Runner', 'zapatillas-urban-runner', 45990, null, 35, 0.8, true, [
+        $this->seedProduct($moda->id, 'ZAP-005', 'Zapatillas Urban Runner', 'zapatillas-urban-runner', 45990, null, 35, 0.8, true, [
             ['name' => 'Talla', 'value' => '42'],
             ['name' => 'Color', 'value' => 'Blanco'],
         ]);
@@ -76,7 +76,6 @@ class DatabaseSeeder extends Seeder
 
     protected function seedProduct(
         int $categoryId,
-        string $familia,
         string $sku,
         string $name,
         string $slug,
@@ -90,7 +89,6 @@ class DatabaseSeeder extends Seeder
         $product = Product::create([
             'category_id' => $categoryId,
             'sku' => $sku,
-            'familia' => $familia,
             'name' => $name,
             'slug' => $slug,
             'description' => "Descripción de {$name}. Producto de demostración Carro.",

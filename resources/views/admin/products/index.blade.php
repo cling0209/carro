@@ -19,7 +19,7 @@
             <form method="get" class="row g-2 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small">Buscar</label>
-                    <input type="search" name="q" class="form-control" placeholder="Nombre, SKU, familia..."
+                    <input type="search" name="q" class="form-control" placeholder="Nombre, SKU, categoría..."
                            value="{{ request('q') }}">
                 </div>
                 <div class="col-md-3">
@@ -49,7 +49,6 @@
                         <th></th>
                         <th>SKU</th>
                         <th>Producto</th>
-                        <th>Familia</th>
                         <th>Categoría</th>
                         <th>Precio</th>
                         <th>Stock</th>
@@ -68,8 +67,12 @@
                                 <div class="fw-semibold">{{ $product->name }}</div>
                                 <small class="text-muted">{{ $product->slug }}</small>
                             </td>
-                            <td>{{ $product->familia ?? '—' }}</td>
-                            <td>{{ $product->category?->name ?? '—' }}</td>
+                            <td>
+                                {{ $product->category?->name ?? '—' }}
+                                @if($product->category?->slug)
+                                    <small class="text-muted d-block"><code>{{ $product->category->slug }}</code></small>
+                                @endif
+                            </td>
                             <td>{{ clp($product->price) }}</td>
                             <td>{{ $product->stock }}</td>
                             <td>
@@ -98,7 +101,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-5">No hay productos.</td>
+                            <td colspan="8" class="text-center text-muted py-5">No hay productos.</td>
                         </tr>
                     @endforelse
                 </tbody>
