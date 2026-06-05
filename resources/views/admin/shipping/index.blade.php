@@ -12,9 +12,9 @@
     </div>
 
     <div class="row g-4">
-        <div class="col-lg-4">
+        <div class="col-12 col-xl-4">
             <div class="card admin-card">
-                <div class="card-header bg-white fw-semibold">Tarifas generales</div>
+                <div class="card-header bg-white fw-semibold">Tarifas generales (RM)</div>
                 <div class="card-body">
                     <form method="post" action="{{ route('admin.shipping.settings') }}">
                         @csrf
@@ -41,17 +41,21 @@
             </div>
         </div>
 
-        <div class="col-lg-8">
-            <div class="card admin-card mb-4">
+        <div class="col-12">
+            <div class="card admin-card">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold">Tramos por peso (regiones)</span>
+                    <span class="fw-semibold">Tramos por peso (otras regiones)</span>
                     <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#rateModal"
                             onclick="openRateModal()">
                         <i class="bi bi-plus-lg"></i> Nuevo tramo
                     </button>
                 </div>
+                <div class="card-body border-bottom py-3 text-muted small">
+                    Fuera de la Región Metropolitana el costo depende del peso total del carrito.
+                    Puedes editar, agregar o desactivar tramos según necesites.
+                </div>
                 <div class="table-responsive">
-                    <table class="table mb-0 align-middle">
+                    <table class="table mb-0 align-middle admin-table">
                         <thead>
                             <tr>
                                 <th>Etiqueta</th>
@@ -167,7 +171,7 @@
 @push('scripts')
 <script>
 const rateStoreUrl = @json(route('admin.shipping.rates.store'));
-const rateUpdateUrlTemplate = @json(route('admin.shipping.rates.update', ['rate' => '__ID__']));
+const rateUpdateUrlTemplate = @json(route('admin.shipping.rates.update', ['rate' => 0]));
 
 function openRateModal(rate = null) {
     const form = document.getElementById('rateForm');
@@ -175,7 +179,7 @@ function openRateModal(rate = null) {
     document.getElementById('rateModalTitle').textContent = rate ? 'Editar tramo' : 'Nuevo tramo';
 
     if (rate) {
-        form.action = rateUpdateUrlTemplate.replace('__ID__', rate.id);
+        form.action = rateUpdateUrlTemplate.replace(/\/0$/, '/' + rate.id);
         method.value = 'PUT';
         document.getElementById('rateLabel').value = rate.label;
         document.getElementById('rateMin').value = rate.min_weight_kg;

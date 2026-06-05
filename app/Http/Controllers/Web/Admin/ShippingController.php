@@ -13,6 +13,8 @@ class ShippingController extends Controller
 {
     public function index(): View
     {
+        ShippingWeightRate::seedDefaultsIfEmpty();
+
         return view('admin.shipping.index', [
             'rmFlatRate' => ShippingSetting::getFloat('rm_flat_rate', 3990),
             'defaultProductWeight' => ShippingSetting::getFloat('default_product_weight_kg', 1.0),
