@@ -47,7 +47,7 @@
                     <h2 class="h5 fw-bold mb-3">Dirección de envío</h2>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Destinatario *</label>
+                            <label class="form-label">Destinatario (quien recibe la compra) *</label>
                             <input type="text" name="recipient_name" class="form-control @error('recipient_name') is-invalid @enderror"
                                    value="{{ $defaults['recipient_name'] }}" required>
                             @error('recipient_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -138,7 +138,6 @@
                         <span>Envío</span>
                         <span id="summary-shipping">Selecciona región y comuna</span>
                     </div>
-                    <div id="shipping-detail" class="small text-muted mb-3 d-none"></div>
                     <div class="d-flex justify-content-between fs-5 fw-bold mb-4 border-top pt-3">
                         <span>Total</span>
                         <span class="text-primary" id="summary-total">{{ clp($formatted['subtotal']) }}</span>
@@ -168,7 +167,6 @@ const subtotalAmount = {{ (float) $formatted['subtotal'] }};
 
 const summaryShipping = document.getElementById('summary-shipping');
 const summaryTotal = document.getElementById('summary-total');
-const shippingDetail = document.getElementById('shipping-detail');
 const shippingError = document.getElementById('shipping-error');
 const checkoutSubmit = document.getElementById('checkout-submit');
 
@@ -215,7 +213,6 @@ async function quoteShipping() {
     const region = regionSelect.value;
     const comuna = comunaSelect.value;
     shippingError.classList.add('d-none');
-    shippingDetail.classList.add('d-none');
 
     if (!region) {
         summaryShipping.textContent = 'Selecciona región y comuna';
@@ -247,17 +244,6 @@ async function quoteShipping() {
 
         summaryShipping.textContent = formatClp(data.shipping.amount);
         summaryTotal.textContent = formatClp(data.total);
-
-        let detail = data.shipping.rate_label;
-        if (data.shipping.zone === 'rm') {
-            detail = 'Tarifa fija Región Metropolitana';
-        } else if (data.shipping.zone === 'regions' && data.shipping.metadata) {
-            const meta = data.shipping.metadata;
-            detail = `${meta.comuna}: fija ${formatClp(meta.region_flat_rate)} + tramo ${formatClp(meta.weight_tramo_amount)}`;
-            detail += ` · ${Number(data.shipping.total_weight_kg).toFixed(2)} kg`;
-        }
-        shippingDetail.textContent = detail;
-        shippingDetail.classList.remove('d-none');
         checkoutSubmit.disabled = false;
     } catch (error) {
         summaryShipping.textContent = '—';
