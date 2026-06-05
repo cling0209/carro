@@ -52,16 +52,23 @@
                                 <div class="form-text">El slug de la categoría define la carpeta de la imagen.</div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Precio *</label>
+                                <label class="form-label">Precio de venta *</label>
                                 <input type="number" name="price" min="0" step="1"
                                        class="form-control @error('price') is-invalid @enderror"
                                        value="{{ old('price', $product->price) }}" required>
+                                <div class="form-text">Lo que paga el cliente en el carrito y checkout.</div>
                                 @error('price')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Precio comparación</label>
                                 <input type="number" name="compare_at_price" min="0" step="1" class="form-control"
-                                       value="{{ old('compare_at_price', $product->compare_at_price) }}">
+                                       value="{{ old('compare_at_price', $product->compare_at_price) }}"
+                                       placeholder="Opcional">
+                                <div class="form-text">
+                                    Precio anterior o de referencia. Solo se muestra en la tienda si es
+                                    <strong>mayor</strong> que el precio de venta: aparece tachado, badge «Oferta»
+                                    y el cliente paga el precio de venta. Si es igual, menor o vacío, no se usa.
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Stock *</label>
