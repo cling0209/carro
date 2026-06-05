@@ -46,6 +46,7 @@ class CheckoutController extends Controller
     {
         $data = $request->validate([
             'region' => ['required', 'string', 'max:80'],
+            'comuna' => ['nullable', 'string', 'max:80'],
         ]);
 
         try {
@@ -56,7 +57,11 @@ class CheckoutController extends Controller
                 return response()->json(['message' => 'El carrito está vacío.'], 422);
             }
 
-            $quote = $this->shippingService->quote($cart, $data['region']);
+            $quote = $this->shippingService->quote(
+                $cart,
+                $data['region'],
+                $data['comuna'] ?? null,
+            );
 
             return response()->json([
                 'subtotal' => $formatted['subtotal'],

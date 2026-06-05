@@ -54,6 +54,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('envios', [AdminShippingController::class, 'index'])->name('shipping.index');
         Route::put('envios', [AdminShippingController::class, 'updateSettings'])->name('shipping.settings');
+        Route::put('envios/regiones', [AdminShippingController::class, 'updateRegionRates'])->name('shipping.regions');
         Route::post('envios/tramos', [AdminShippingController::class, 'storeRate'])->name('shipping.rates.store');
         Route::put('envios/tramos/{rate}', [AdminShippingController::class, 'updateRate'])->name('shipping.rates.update');
         Route::delete('envios/tramos/{rate}', [AdminShippingController::class, 'destroyRate'])->name('shipping.rates.destroy');

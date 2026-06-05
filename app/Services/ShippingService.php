@@ -5,8 +5,9 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ShippingComunaWeightRate;
+use App\Models\ShippingRegionRate;
 use App\Models\ShippingSetting;
-use App\Models\ShippingWeightRate;
 use Illuminate\Support\Str;
 
 class ShippingService
@@ -17,9 +18,9 @@ class ShippingService
 
     public const RATE_FLAT_RM = 'flat_rm';
 
-    public const RATE_WEIGHT_BAND = 'weight_band';
+    public const RATE_REGION_FLAT_PLUS_WEIGHT = 'region_flat_plus_weight';
 
-    public function quote(Cart $cart, string $region): array
+    public function quote(Cart $cart, string $region, ?string $comuna = null): array
     {
         $cart->loadMissing('items.product');
 
@@ -39,32 +40,58 @@ class ShippingService
                 'total_weight_kg' => $totalWeight,
                 'rate_type' => self::RATE_FLAT_RM,
                 'rate_label' => 'Tarifa fija Región Metropolitana',
-                'weight_rate_id' => null,
+                'comuna_weight_rate_id' => null,
                 'metadata' => [
                     'region' => $region,
+                    'comuna' => $comuna,
                     'rm_flat_rate' => $amount,
                     'items' => $weightBreakdown['items'],
                 ],
             ];
         }
 
-        $rate = $this->findWeightRate($totalWeight);
+        $comuna = trim((string) $comuna);
 
-        if (! $rate) {
+        if ($comuna === '') {
+            throw new \InvalidArgumentException('Selecciona una comuna para calcular el envío.');
+        }
+
+        if (! ShippingComunaWeightRate::isValidComuna($region, $comuna)) {
+            throw new \InvalidArgumentException('La comuna seleccionada no es válida para la región.');
+        }
+
+        $regionFlatRate = ShippingRegionRate::flatRateForRegion($region);
+
+        if ($regionFlatRate === null) {
             throw new \InvalidArgumentException(
-                'No hay tarifa de envío configurada para el peso total de '.number_format($totalWeight, 2, ',', '.').' kg.'
+                'No hay tarifa fija configurada para la región seleccionada.'
             );
         }
 
+        $rate = ShippingComunaWeightRate::findForComunaAndWeight($region, $comuna, $totalWeight);
+
+        if (! $rate) {
+            throw new \InvalidArgumentException(
+                'No hay tarifa de envío configurada para '.$comuna.' con peso total de '
+                .number_format($totalWeight, 2, ',', '.').' kg.'
+            );
+        }
+
+        $weightTramoAmount = (float) $rate->price;
+        $amount = round($regionFlatRate + $weightTramoAmount, 2);
+
         return [
-            'amount' => round((float) $rate->price, 2),
+            'amount' => $amount,
             'zone' => self::ZONE_REGIONS,
             'total_weight_kg' => $totalWeight,
-            'rate_type' => self::RATE_WEIGHT_BAND,
-            'rate_label' => $rate->label,
-            'weight_rate_id' => $rate->id,
+            'rate_type' => self::RATE_REGION_FLAT_PLUS_WEIGHT,
+            'rate_label' => 'Fija región + '.$rate->label.' ('.$comuna.')',
+            'comuna_weight_rate_id' => $rate->id,
             'metadata' => [
                 'region' => $region,
+                'comuna' => $comuna,
+                'region_flat_rate' => $regionFlatRate,
+                'weight_tramo_amount' => $weightTramoAmount,
                 'weight_rate' => [
                     'id' => $rate->id,
                     'label' => $rate->label,
@@ -122,15 +149,5 @@ class ShippingService
         }
 
         return max(0, (float) $product->weight_kg);
-    }
-
-    protected function findWeightRate(float $totalWeightKg): ?ShippingWeightRate
-    {
-        return ShippingWeightRate::query()
-            ->active()
-            ->orderBy('sort_order')
-            ->orderBy('min_weight_kg')
-            ->get()
-            ->first(fn (ShippingWeightRate $rate) => $rate->matchesWeight($totalWeightKg));
     }
 }

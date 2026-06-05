@@ -37,7 +37,11 @@ class OrderService
                 $subtotal += $item->unit_price * $item->quantity;
             }
 
-            $quote = $this->shippingService->quote($cart, $shipping['region'] ?? '');
+            $quote = $this->shippingService->quote(
+                $cart,
+                $shipping['region'] ?? '',
+                $shipping['comuna'] ?? null,
+            );
             $shippingAmount = $quote['amount'];
             $total = round($subtotal + $shippingAmount, 2);
 
@@ -51,7 +55,8 @@ class OrderService
                 'shipping_total_weight_kg' => $quote['total_weight_kg'],
                 'shipping_rate_type' => $quote['rate_type'],
                 'shipping_rate_label' => $quote['rate_label'],
-                'shipping_weight_rate_id' => $quote['weight_rate_id'],
+                'shipping_weight_rate_id' => null,
+                'shipping_comuna_weight_rate_id' => $quote['comuna_weight_rate_id'],
                 'shipping_metadata' => $quote['metadata'],
                 'total' => $total,
                 'shipping_recipient_name' => $shipping['recipient_name'],

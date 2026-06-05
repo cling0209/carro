@@ -7,14 +7,14 @@
     <div class="mb-4">
         <h1 class="h3 fw-bold mb-1">Configuración de envíos</h1>
         <p class="text-muted mb-0">
-            Región Metropolitana: tarifa fija. Otras regiones: según peso total del carrito.
+            RM: tarifa fija. Otras regiones: tarifa fija regional + adicional por tramo de peso según la comuna.
         </p>
     </div>
 
     <div class="row g-4">
         <div class="col-12 col-xl-4">
             <div class="card admin-card">
-                <div class="card-header bg-white fw-semibold">Tarifas generales (RM)</div>
+                <div class="card-header bg-white fw-semibold">Tarifa fija RM</div>
                 <div class="card-body">
                     <form method="post" action="{{ route('admin.shipping.settings') }}">
                         @csrf
@@ -25,7 +25,7 @@
                                    class="form-control @error('rm_flat_rate') is-invalid @enderror"
                                    value="{{ old('rm_flat_rate', $rmFlatRate) }}" required>
                             @error('rm_flat_rate')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            <div class="form-text">Aplica a Región Metropolitana de Santiago.</div>
+                            <div class="form-text">Monto único para toda la Región Metropolitana.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Peso por defecto producto (kg) *</label>
@@ -35,7 +35,7 @@
                             @error('default_product_weight_kg')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             <div class="form-text">Si un producto no tiene peso definido.</div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Guardar configuración</button>
+                        <button type="submit" class="btn btn-primary">Guardar RM</button>
                     </form>
                 </div>
             </div>
@@ -43,16 +43,97 @@
 
         <div class="col-12">
             <div class="card admin-card">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold">Tramos por peso (otras regiones)</span>
-                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#rateModal"
-                            onclick="openRateModal()">
-                        <i class="bi bi-plus-lg"></i> Nuevo tramo
-                    </button>
-                </div>
+                <div class="card-header bg-white fw-semibold">Tarifa fija por región (fuera de RM)</div>
                 <div class="card-body border-bottom py-3 text-muted small">
-                    Fuera de la Región Metropolitana el costo depende del peso total del carrito.
-                    Puedes editar, agregar o desactivar tramos según necesites.
+                    Monto base de cada región. Se suma el tramo de peso de la comuna elegida en el checkout.
+                </div>
+                <form method="post" action="{{ route('admin.shipping.regions') }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="table-responsive">
+                        <table class="table mb-0 align-middle admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Región</th>
+                                    <th class="text-end" style="width: 180px">Tarifa fija (CLP)</th>
+                                    <th class="text-center" style="width: 100px">Activa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($regionRates as $regionRate)
+                                    <tr>
+                                        <td>{{ $regionRate->region }}</td>
+                                        <td class="text-end">
+                                            <input type="number" name="regions[{{ $regionRate->id }}][flat_rate]"
+                                                   min="0" step="1" class="form-control form-control-sm text-end"
+                                                   value="{{ old('regions.'.$regionRate->id.'.flat_rate', $regionRate->flat_rate) }}"
+                                                   required>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="checkbox" class="form-check-input"
+                                                   name="regions[{{ $regionRate->id }}][is_active]" value="1"
+                                                   @checked(old('regions.'.$regionRate->id.'.is_active', $regionRate->is_active))>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-4">
+                                            No hay regiones configuradas.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    @if($regionRates->isNotEmpty())
+                        <div class="card-body border-top">
+                            <button type="submit" class="btn btn-primary">Guardar tarifas regionales</button>
+                        </div>
+                    @endif
+                </form>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card admin-card">
+                <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span class="fw-semibold">Tramos por peso por comuna</span>
+                    @if($selectedRegion && $selectedComuna)
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#rateModal"
+                                onclick="openRateModal()">
+                            <i class="bi bi-plus-lg"></i> Nuevo tramo
+                        </button>
+                    @endif
+                </div>
+                <div class="card-body border-bottom">
+                    <form method="get" action="{{ route('admin.shipping.index') }}" class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label class="form-label">Región</label>
+                            <select name="region" id="adminRegion" class="form-select" onchange="this.form.submit()">
+                                @foreach($regionComunas as $regionName => $comunas)
+                                    <option value="{{ $regionName }}" @selected($selectedRegion === $regionName)>
+                                        {{ $regionName }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Comuna</label>
+                            <select name="comuna" id="adminComuna" class="form-select" onchange="this.form.submit()">
+                                @foreach($regionComunas[$selectedRegion] ?? [] as $comunaName)
+                                    <option value="{{ $comunaName }}" @selected($selectedComuna === $comunaName)>
+                                        {{ $comunaName }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </form>
+                    @if($selectedRegion && $selectedComuna)
+                        <p class="text-muted small mb-0 mt-3">
+                            Tramos para <strong>{{ $selectedComuna }}</strong> ({{ $selectedRegion }}).
+                            El adicional se suma a la tarifa fija de la región.
+                        </p>
+                    @endif
                 </div>
                 <div class="table-responsive">
                     <table class="table mb-0 align-middle admin-table">
@@ -60,14 +141,14 @@
                             <tr>
                                 <th>Etiqueta</th>
                                 <th>Rango (kg)</th>
-                                <th class="text-end">Precio</th>
+                                <th class="text-end">Adicional (CLP)</th>
                                 <th class="text-center">Orden</th>
                                 <th class="text-center">Activo</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($rates as $rate)
+                            @forelse($comunaRates as $rate)
                                 <tr>
                                     <td>{{ $rate->label }}</td>
                                     <td>
@@ -104,7 +185,11 @@
                             @empty
                                 <tr>
                                     <td colspan="6" class="text-center text-muted py-4">
-                                        No hay tramos configurados. Agrega al menos uno para envíos fuera de RM.
+                                        @if($selectedComuna)
+                                            No hay tramos para esta comuna.
+                                        @else
+                                            Selecciona región y comuna.
+                                        @endif
                                     </td>
                                 </tr>
                             @endforelse
@@ -122,6 +207,8 @@
             <form id="rateForm" method="post" action="{{ route('admin.shipping.rates.store') }}">
                 @csrf
                 <input type="hidden" name="_method" id="rateFormMethod" value="POST">
+                <input type="hidden" name="region" id="rateRegion" value="{{ $selectedRegion }}">
+                <input type="hidden" name="comuna" id="rateComuna" value="{{ $selectedComuna }}">
                 <div class="modal-header">
                     <h5 class="modal-title" id="rateModalTitle">Nuevo tramo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -144,7 +231,7 @@
                                    class="form-control" placeholder="Vacío = sin límite">
                         </div>
                         <div class="col-6">
-                            <label class="form-label">Precio (CLP) *</label>
+                            <label class="form-label">Adicional (CLP) *</label>
                             <input type="number" name="price" id="ratePrice" min="0" step="1"
                                    class="form-control" required>
                         </div>
@@ -172,6 +259,8 @@
 <script>
 const rateStoreUrl = @json(route('admin.shipping.rates.store'));
 const rateUpdateUrlTemplate = @json(route('admin.shipping.rates.update', ['rate' => 0]));
+const selectedRegion = @json($selectedRegion);
+const selectedComuna = @json($selectedComuna);
 
 function openRateModal(rate = null) {
     const form = document.getElementById('rateForm');
@@ -181,6 +270,8 @@ function openRateModal(rate = null) {
     if (rate) {
         form.action = rateUpdateUrlTemplate.replace(/\/0$/, '/' + rate.id);
         method.value = 'PUT';
+        document.getElementById('rateRegion').value = rate.region;
+        document.getElementById('rateComuna').value = rate.comuna;
         document.getElementById('rateLabel').value = rate.label;
         document.getElementById('rateMin').value = rate.min_weight_kg;
         document.getElementById('rateMax').value = rate.max_weight_kg ?? '';
@@ -191,6 +282,8 @@ function openRateModal(rate = null) {
         form.action = rateStoreUrl;
         method.value = 'POST';
         form.reset();
+        document.getElementById('rateRegion').value = selectedRegion;
+        document.getElementById('rateComuna').value = selectedComuna;
         document.getElementById('rateActive').checked = true;
         document.getElementById('rateSort').value = 0;
         document.getElementById('rateMin').value = 0;

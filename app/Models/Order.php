@@ -16,6 +16,7 @@ class Order extends Model
         'uuid', 'user_id', 'status', 'payment_status', 'payment_method',
         'subtotal', 'shipping_amount', 'shipping_zone', 'shipping_total_weight_kg',
         'shipping_rate_type', 'shipping_rate_label', 'shipping_weight_rate_id',
+        'shipping_comuna_weight_rate_id',
         'shipping_metadata', 'total', 'currency',
         'shipping_recipient_name', 'shipping_phone', 'shipping_region',
         'shipping_comuna', 'shipping_street', 'shipping_street_number',
@@ -65,6 +66,11 @@ class Order extends Model
     public function shippingWeightRate(): BelongsTo
     {
         return $this->belongsTo(ShippingWeightRate::class, 'shipping_weight_rate_id');
+    }
+
+    public function shippingComunaWeightRate(): BelongsTo
+    {
+        return $this->belongsTo(ShippingComunaWeightRate::class, 'shipping_comuna_weight_rate_id');
     }
 
     public function recordStatus(string $toStatus, ?string $fromStatus = null, ?string $note = null): void

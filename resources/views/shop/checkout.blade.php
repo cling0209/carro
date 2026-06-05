@@ -95,7 +95,7 @@
                     </div>
                     <div class="d-flex justify-content-between mb-2 text-muted small">
                         <span>Envío</span>
-                        <span id="summary-shipping">Selecciona región</span>
+                        <span id="summary-shipping">Selecciona región y comuna</span>
                     </div>
                     <div id="shipping-detail" class="small text-muted mb-3 d-none"></div>
                     <div class="d-flex justify-content-between fs-5 fw-bold mb-4 border-top pt-3">
@@ -135,11 +135,18 @@ function formatClp(amount) {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(amount);
 }
 
+function isRmRegion(regionName) {
+    return regionName.toLowerCase().includes('metropolitana');
+}
+
 function loadComunas() {
     const regionName = regionSelect.value;
     comunaSelect.innerHTML = '<option value="">Selecciona comuna</option>';
     const region = regions.find(r => r.region === regionName);
-    if (!region) return;
+    if (!region) {
+        quoteShipping();
+        return;
+    }
     region.comunas.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c;
@@ -152,20 +159,30 @@ function loadComunas() {
 
 async function quoteShipping() {
     const region = regionSelect.value;
+    const comuna = comunaSelect.value;
     shippingError.classList.add('d-none');
     shippingDetail.classList.add('d-none');
 
     if (!region) {
-        summaryShipping.textContent = 'Selecciona región';
+        summaryShipping.textContent = 'Selecciona región y comuna';
         summaryTotal.textContent = formatClp(subtotalAmount);
         checkoutSubmit.disabled = false;
+        return;
+    }
+
+    if (!isRmRegion(region) && !comuna) {
+        summaryShipping.textContent = 'Selecciona comuna';
+        summaryTotal.textContent = formatClp(subtotalAmount);
+        checkoutSubmit.disabled = true;
         return;
     }
 
     summaryShipping.textContent = 'Calculando...';
 
     try {
-        const response = await fetch(`${quoteUrl}?region=${encodeURIComponent(region)}`, {
+        const params = new URLSearchParams({ region });
+        if (comuna) params.set('comuna', comuna);
+        const response = await fetch(`${quoteUrl}?${params.toString()}`, {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
         const data = await response.json();
@@ -178,7 +195,11 @@ async function quoteShipping() {
         summaryTotal.textContent = formatClp(data.total);
 
         let detail = data.shipping.rate_label;
-        if (data.shipping.zone === 'regions') {
+        if (data.shipping.zone === 'rm') {
+            detail = 'Tarifa fija Región Metropolitana';
+        } else if (data.shipping.zone === 'regions' && data.shipping.metadata) {
+            const meta = data.shipping.metadata;
+            detail = `${meta.comuna}: fija ${formatClp(meta.region_flat_rate)} + tramo ${formatClp(meta.weight_tramo_amount)}`;
             detail += ` · ${Number(data.shipping.total_weight_kg).toFixed(2)} kg`;
         }
         shippingDetail.textContent = detail;
@@ -194,6 +215,7 @@ async function quoteShipping() {
 }
 
 regionSelect.addEventListener('change', loadComunas);
+comunaSelect.addEventListener('change', quoteShipping);
 if (regionSelect.value) loadComunas();
 </script>
 @endpush

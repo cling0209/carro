@@ -104,6 +104,19 @@
                             <p class="mb-1 text-muted">
                                 Zona: Regiones · Peso total: {{ number_format($order->shipping_total_weight_kg, 2, ',', '.') }} kg
                             </p>
+                            @if(is_array($order->shipping_metadata))
+                                @if(isset($order->shipping_metadata['region_flat_rate']))
+                                    <p class="mb-1 text-muted">
+                                        @if(!empty($order->shipping_metadata['comuna']))
+                                            {{ $order->shipping_metadata['comuna'] }}:
+                                        @endif
+                                        fija región {{ clp($order->shipping_metadata['region_flat_rate']) }}
+                                        @if(isset($order->shipping_metadata['weight_tramo_amount']))
+                                            + tramo {{ clp($order->shipping_metadata['weight_tramo_amount']) }}
+                                        @endif
+                                    </p>
+                                @endif
+                            @endif
                         @endif
                         <p class="mb-0"><strong>Costo envío:</strong> {{ clp($order->shipping_amount) }}</p>
                     @endif
