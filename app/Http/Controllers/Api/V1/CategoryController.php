@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Support\CategorySlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Categories')]
@@ -35,14 +36,24 @@ class CategoryController extends Controller
         $data = $request->validate([
             'parent_id' => ['nullable', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', 'unique:categories,slug'],
+            'slug' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', Rule::unique('categories', 'slug')->where(fn ($q) => $q->whereNull('deleted_at'))],
             'description' => ['nullable', 'string'],
             'sort_order' => ['integer', 'min:0'],
             'is_active' => ['boolean'],
         ]);
 
-        $data['slug'] = CategorySlug::normalize($data['slug'] ?? '') ?: CategorySlug::fromName($data['name']);
+        $baseSlug = CategorySlug::normalize($data['slug'] ?? '') ?: CategorySlug::fromName($data['name']);
+        $trashed = Category::onlyTrashed()->where('slug', $baseSlug)->first();
 
+        if ($trashed) {
+            $data['slug'] = $baseSlug;
+            $trashed->restore();
+            $trashed->update($data);
+
+            return $this->success($trashed->fresh(), [], 200);
+        }
+
+        $data['slug'] = $baseSlug;
         $category = Category::create($data);
 
         return $this->success($category, [], 201);
@@ -55,7 +66,7 @@ class CategoryController extends Controller
         $data = $request->validate([
             'parent_id' => ['nullable', 'exists:categories,id'],
             'name' => ['sometimes', 'string', 'max:120'],
-            'slug' => ['sometimes', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', 'unique:categories,slug,'.$category->id],
+            'slug' => ['sometimes', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', Rule::unique('categories', 'slug')->ignore($category->id)->where(fn ($q) => $q->whereNull('deleted_at'))],
             'description' => ['nullable', 'string'],
             'sort_order' => ['integer', 'min:0'],
             'is_active' => ['boolean'],
@@ -74,8 +85,8 @@ class CategoryController extends Controller
     #[OA\Response(response: 200, description: 'OK')]
     public function destroy(Category $category): JsonResponse
     {
-        $category->delete();
+        $category->archive();
 
-        return $this->success(['deleted' => true]);
+        return $this->success(['archived' => true]);
     }
 }

@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'category_id', 'sku', 'familia', 'name', 'slug', 'description',
         'price', 'compare_at_price', 'stock', 'weight_kg', 'is_active', 'is_featured', 'metadata',
@@ -87,7 +89,17 @@ class Product extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true);
+        return $query->where('is_active', true)
+            ->where(function (Builder $q) {
+                $q->whereNull('category_id')
+                    ->orWhereHas('category');
+            });
+    }
+
+    public function archive(): void
+    {
+        $this->update(['is_active' => false]);
+        $this->delete();
     }
 
     public function scopeFeatured(Builder $query): Builder

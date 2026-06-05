@@ -44,8 +44,21 @@ class CategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $data['slug'] = $this->uniqueSlug($data['slug'] ?? CategorySlug::fromName($data['name']));
+        $baseSlug = CategorySlug::normalize($data['slug'] ?? '') ?: CategorySlug::fromName($data['name']);
 
+        $trashed = Category::onlyTrashed()->where('slug', $baseSlug)->first();
+
+        if ($trashed) {
+            $data['slug'] = $this->uniqueSlug($baseSlug, $trashed->id);
+            $trashed->restore();
+            $trashed->update($data);
+
+            return redirect()
+                ->route('admin.categories.index')
+                ->with('success', 'Categoría reactivada correctamente.');
+        }
+
+        $data['slug'] = $this->uniqueSlug($baseSlug);
         Category::create($data);
 
         return redirect()
@@ -78,29 +91,22 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        if ($category->children()->exists()) {
-            return redirect()
-                ->route('admin.categories.index')
-                ->with('error', 'No se puede eliminar: tiene subcategorías asociadas.');
-        }
-
-        if ($category->products()->exists()) {
-            return redirect()
-                ->route('admin.categories.index')
-                ->with('error', 'No se puede eliminar: tiene productos asociados.');
-        }
-
-        $category->delete();
+        $category->archive();
 
         return redirect()
             ->route('admin.categories.index')
-            ->with('success', 'Categoría eliminada.');
+            ->with('success', 'Categoría dada de baja del catálogo.');
     }
 
     protected function validated(Request $request, ?Category $category = null): array
     {
         $categoryId = $category?->id;
-        $uniqueSlug = 'unique:categories,slug'.($categoryId ? ','.$categoryId : '');
+        $slugRule = Rule::unique('categories', 'slug')
+            ->where(fn ($q) => $q->whereNull('deleted_at'));
+
+        if ($categoryId) {
+            $slugRule->ignore($categoryId);
+        }
 
         $parentRule = ['nullable', 'exists:categories,id'];
 
@@ -111,7 +117,7 @@ class CategoryController extends Controller
         $data = $request->validate([
             'parent_id' => $parentRule,
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', $uniqueSlug],
+            'slug' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', $slugRule],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -137,7 +143,7 @@ class CategoryController extends Controller
         $candidate = $base;
         $i = 1;
 
-        while (Category::query()
+        while (Category::withTrashed()
             ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
             ->where('slug', $candidate)
             ->exists()) {

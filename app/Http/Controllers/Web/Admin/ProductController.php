@@ -8,6 +8,7 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ProductController extends Controller
@@ -38,8 +39,20 @@ class ProductController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $data['slug'] = $this->uniqueSlug($data['slug'] ?? Str::slug($data['name']));
 
+        $trashed = Product::onlyTrashed()->where('sku', $data['sku'])->first();
+
+        if ($trashed) {
+            $data['slug'] = $this->uniqueSlug($data['slug'] ?? Str::slug($data['name']), $trashed->id);
+            $trashed->restore();
+            $trashed->update($data);
+
+            return redirect()
+                ->route('admin.products.index')
+                ->with('success', 'Producto reactivado correctamente.');
+        }
+
+        $data['slug'] = $this->uniqueSlug($data['slug'] ?? Str::slug($data['name']));
         Product::create($data);
 
         return redirect()
@@ -74,23 +87,30 @@ class ProductController extends Controller
 
     public function destroy(Product $product): RedirectResponse
     {
-        $product->delete();
+        $product->archive();
 
         return redirect()
             ->route('admin.products.index')
-            ->with('success', 'Producto eliminado.');
+            ->with('success', 'Producto dado de baja del catálogo.');
     }
 
     protected function validated(Request $request, ?int $productId = null): array
     {
-        $uniqueSku = 'unique:products,sku'.($productId ? ','.$productId : '');
-        $uniqueSlug = 'unique:products,slug'.($productId ? ','.$productId : '');
+        $skuRule = Rule::unique('products', 'sku')
+            ->where(fn ($q) => $q->whereNull('deleted_at'));
+        $slugRule = Rule::unique('products', 'slug')
+            ->where(fn ($q) => $q->whereNull('deleted_at'));
+
+        if ($productId) {
+            $skuRule->ignore($productId);
+            $slugRule->ignore($productId);
+        }
 
         $data = $request->validate([
             'category_id' => ['nullable', 'exists:categories,id'],
-            'sku' => ['required', 'string', 'max:60', $uniqueSku],
+            'sku' => ['required', 'string', 'max:60', $skuRule],
             'name' => ['required', 'string', 'max:200'],
-            'slug' => ['nullable', 'string', 'max:200', $uniqueSlug],
+            'slug' => ['nullable', 'string', 'max:200', $slugRule],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
@@ -110,7 +130,7 @@ class ProductController extends Controller
         $candidate = $base;
         $i = 1;
 
-        while (Product::query()
+        while (Product::withTrashed()
             ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
             ->where('slug', $candidate)
             ->exists()) {

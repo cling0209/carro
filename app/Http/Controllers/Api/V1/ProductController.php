@@ -8,6 +8,7 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Products')]
@@ -78,13 +79,29 @@ class ProductController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $this->validateProduct($request);
-        $data['slug'] = $data['slug'] ?? Str::slug($data['name']);
 
-        $product = Product::create($data);
-        $this->syncImages($product, $request->input('images', []));
-        $this->syncAttributes($product, $request->input('attributes', []));
+        $trashed = Product::onlyTrashed()->where('sku', $data['sku'])->first();
 
-        return $this->success($product->load(['images', 'attributes']), [], 201);
+        if ($trashed) {
+            $trashed->restore();
+            $trashed->update($data);
+            $product = $trashed;
+        } else {
+            $data['slug'] = $data['slug'] ?? Str::slug($data['name']);
+            $product = Product::create($data);
+        }
+
+        if ($request->has('images')) {
+            $product->images()->delete();
+            $this->syncImages($product, $request->input('images', []));
+        }
+
+        if ($request->has('attributes')) {
+            $product->attributes()->delete();
+            $this->syncAttributes($product, $request->input('attributes', []));
+        }
+
+        return $this->success($product->load(['images', 'attributes']), [], $trashed ? 200 : 201);
     }
 
     #[OA\Put(path: '/api/v1/admin/products/{id}', summary: 'Actualizar producto', tags: ['Admin'], security: [['sanctum' => []]])]
@@ -111,20 +128,28 @@ class ProductController extends Controller
     #[OA\Response(response: 200, description: 'OK')]
     public function destroy(Product $product): JsonResponse
     {
-        $product->delete();
+        $product->archive();
 
-        return $this->success(['deleted' => true]);
+        return $this->success(['archived' => true]);
     }
 
     protected function validateProduct(Request $request, ?int $id = null): array
     {
-        $uniqueSku = 'unique:products,sku'.($id ? ','.$id : '');
+        $skuRule = Rule::unique('products', 'sku')
+            ->where(fn ($q) => $q->whereNull('deleted_at'));
+        $slugRule = Rule::unique('products', 'slug')
+            ->where(fn ($q) => $q->whereNull('deleted_at'));
+
+        if ($id) {
+            $skuRule->ignore($id);
+            $slugRule->ignore($id);
+        }
 
         return $request->validate([
             'category_id' => ['nullable', 'exists:categories,id'],
-            'sku' => ['required', 'string', 'max:60', $uniqueSku],
+            'sku' => ['required', 'string', 'max:60', $skuRule],
             'name' => ['required', 'string', 'max:200'],
-            'slug' => ['nullable', 'string', 'max:200', 'unique:products,slug'.($id ? ','.$id : '')],
+            'slug' => ['nullable', 'string', 'max:200', $slugRule],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
