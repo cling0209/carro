@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Support\CategorySlug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -44,7 +44,7 @@ class CategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $data['slug'] = $this->uniqueSlug($data['slug'] ?? Str::slug($data['name']));
+        $data['slug'] = $this->uniqueSlug($data['slug'] ?? CategorySlug::fromName($data['name']));
 
         Category::create($data);
 
@@ -111,7 +111,7 @@ class CategoryController extends Controller
         $data = $request->validate([
             'parent_id' => $parentRule,
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['nullable', 'string', 'max:120', $uniqueSlug],
+            'slug' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', $uniqueSlug],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
@@ -133,7 +133,7 @@ class CategoryController extends Controller
 
     protected function uniqueSlug(string $slug, ?int $exceptId = null): string
     {
-        $base = Str::slug($slug) ?: 'categoria';
+        $base = CategorySlug::normalize($slug) ?: 'categoria';
         $candidate = $base;
         $i = 1;
 

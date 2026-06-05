@@ -28,10 +28,11 @@
                                 @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Slug</label>
+                                <label class="form-label">Slug (carpeta imágenes)</label>
                                 <input type="text" name="slug" class="form-control @error('slug') is-invalid @enderror"
-                                       value="{{ old('slug', $category->slug) }}" placeholder="auto desde nombre">
+                                       value="{{ old('slug', $category->slug) }}" placeholder="Ej. LIB">
                                 @error('slug')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text">Conserva mayúsculas. Debe coincidir con la carpeta en Romulo (ej. LIB).</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Categoría padre</label>

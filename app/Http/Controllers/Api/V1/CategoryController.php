@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiResponse;
 use App\Models\Category;
+use App\Support\CategorySlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Categories')]
@@ -35,13 +35,13 @@ class CategoryController extends Controller
         $data = $request->validate([
             'parent_id' => ['nullable', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:120'],
-            'slug' => ['nullable', 'string', 'max:120', 'unique:categories,slug'],
+            'slug' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', 'unique:categories,slug'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['integer', 'min:0'],
             'is_active' => ['boolean'],
         ]);
 
-        $data['slug'] = $data['slug'] ?? Str::slug($data['name']);
+        $data['slug'] = CategorySlug::normalize($data['slug'] ?? '') ?: CategorySlug::fromName($data['name']);
 
         $category = Category::create($data);
 
@@ -55,11 +55,15 @@ class CategoryController extends Controller
         $data = $request->validate([
             'parent_id' => ['nullable', 'exists:categories,id'],
             'name' => ['sometimes', 'string', 'max:120'],
-            'slug' => ['sometimes', 'string', 'max:120', 'unique:categories,slug,'.$category->id],
+            'slug' => ['sometimes', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-_]*$/', 'unique:categories,slug,'.$category->id],
             'description' => ['nullable', 'string'],
             'sort_order' => ['integer', 'min:0'],
             'is_active' => ['boolean'],
         ]);
+
+        if (array_key_exists('slug', $data)) {
+            $data['slug'] = CategorySlug::normalize($data['slug']) ?: CategorySlug::fromName($data['name'] ?? $category->name);
+        }
 
         $category->update($data);
 
