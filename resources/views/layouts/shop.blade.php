@@ -79,14 +79,13 @@
         <div class="row g-4">
             <div class="col-md-4">
                 <h5 class="fw-bold">{{ config('app.name', 'Carro') }}</h5>
-                <p class="text-secondary mb-0">Tienda online Chile — PHP 8.4, Webpay Plus, envío a todo el país.</p>
+                <p class="text-secondary mb-0">Tienda online Chile, Webpay Plus, envío a todo el país.</p>
             </div>
             <div class="col-md-4">
                 <h6 class="fw-semibold">Enlaces</h6>
                 <ul class="list-unstyled mb-0">
                     <li><a href="{{ route('catalog') }}">Catálogo</a></li>
                     <li><a href="{{ route('cart.index') }}">Mi carro</a></li>
-                    <li><a href="/api/documentation" target="_blank">API Swagger</a></li>
                 </ul>
             </div>
             <div class="col-md-4">
