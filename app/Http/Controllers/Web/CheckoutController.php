@@ -128,8 +128,11 @@ class CheckoutController extends Controller
             }
 
             $user = $request->user();
+            $this->orderService->cancelStalePendingOrders($user, $data['email']);
+
             $cart = $this->cartService->resolve($request);
             $order = $this->orderService->createFromCart($cart, $data, $user);
+            $request->session()->put('pending_order_uuid', $order->uuid);
 
             if ($user) {
                 $this->addressService->syncDefaultFromShipping($user, $data);

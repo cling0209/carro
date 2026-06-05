@@ -85,9 +85,68 @@ class OrderService
             }
 
             $order->recordStatus('pending_payment', null, 'Orden creada');
-            $cart->items()->delete();
 
             return $order->load('items');
         });
+    }
+
+    /**
+     * Cancela órdenes sin pago confirmado antes de un nuevo intento de compra.
+     */
+    public function cancelStalePendingOrders(?User $user, string $email): void
+    {
+        $query = Order::query()->whereIn('status', ['pending_payment', 'payment_failed']);
+
+        if ($user) {
+            $query->where('user_id', $user->id);
+        } else {
+            $query->whereNull('user_id')->where('customer_email', $email);
+        }
+
+        foreach ($query->get() as $order) {
+            $this->cancelPendingOrder($order);
+        }
+    }
+
+    public function cancelPendingOrder(Order $order): void
+    {
+        if (! in_array($order->status, ['pending_payment', 'payment_failed'], true)) {
+            return;
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->load('items');
+
+            foreach ($order->items as $item) {
+                if ($item->product_id) {
+                    Product::whereKey($item->product_id)->increment('stock', $item->quantity);
+                }
+            }
+
+            $previousStatus = $order->status;
+            $order->update(['payment_status' => 'failed']);
+            $order->recordStatus('cancelled', $previousStatus, 'Cancelada por nuevo intento de compra');
+        });
+    }
+
+    public function canRetryPayment(Order $order, ?User $user, ?string $sessionOrderUuid): bool
+    {
+        if (! in_array($order->status, ['pending_payment', 'payment_failed'], true)) {
+            return false;
+        }
+
+        if ($sessionOrderUuid === $order->uuid) {
+            return true;
+        }
+
+        return $user !== null && $order->user_id === $user->id;
+    }
+
+    public function prepareForPaymentRetry(Order $order): void
+    {
+        if ($order->status === 'payment_failed') {
+            $order->recordStatus('pending_payment', $order->status, 'Reintento de pago Webpay');
+            $order->update(['payment_status' => 'pending']);
+        }
     }
 }

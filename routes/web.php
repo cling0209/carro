@@ -31,6 +31,8 @@ Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.s
 
 Route::match(['get', 'post'], '/checkout/webpay/return', [PaymentWebController::class, 'return'])
     ->name('checkout.webpay.return');
+Route::get('/checkout/webpay/retry/{uuid}', [PaymentWebController::class, 'retry'])
+    ->name('checkout.webpay.retry');
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('login', [AdminAuthController::class, 'showLogin'])->name('login');

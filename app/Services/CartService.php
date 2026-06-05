@@ -81,6 +81,11 @@ class CartService
         ]);
     }
 
+    public function clearItems(Cart $cart): void
+    {
+        $cart->items()->delete();
+    }
+
     public function formatCart(Cart $cart): array
     {
         $cart->loadMissing('items.product.images');
