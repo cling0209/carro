@@ -32,6 +32,17 @@
             <form class="d-flex me-3 flex-grow-1 flex-lg-grow-0" action="{{ route('catalog') }}" method="get" style="max-width: 320px;">
                 <input class="form-control form-control-sm rounded-pill" type="search" name="q" placeholder="Buscar productos..." value="{{ request('q') }}">
             </form>
+            @auth
+                <span class="text-muted small me-2 d-none d-md-inline">{{ auth()->user()->name }}</span>
+                <form action="{{ route('account.logout') }}" method="post" class="d-inline me-2">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill">Salir</button>
+                </form>
+            @else
+                <a href="{{ route('account.login') }}" class="btn btn-outline-secondary btn-sm rounded-pill me-2">
+                    <i class="bi bi-person"></i> Ingresar
+                </a>
+            @endauth
             <a href="{{ route('cart.index') }}" class="btn btn-outline-primary btn-sm rounded-pill position-relative">
                 <i class="bi bi-cart3"></i> Carro
                 @if(($cartCount ?? 0) > 0)

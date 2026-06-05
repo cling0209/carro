@@ -6,6 +6,21 @@
 <section class="container py-4 py-lg-5">
     <h1 class="h3 fw-bold mb-4">Finalizar compra</h1>
 
+    @if($isLoggedIn)
+        <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+            <span>Hola, <strong>{{ $userName }}</strong>. Tus datos están precargados para esta compra.</span>
+            <form method="post" action="{{ route('account.logout') }}" class="mb-0">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-success">Cerrar sesión</button>
+            </form>
+        </div>
+    @else
+        <div class="alert alert-light border mb-4">
+            ¿Ya tienes cuenta?
+            <a href="{{ route('account.login') }}">Ingresa aquí</a> para no volver a escribir tus datos.
+        </div>
+    @endif
+
     <form action="{{ route('checkout.store') }}" method="post">
         @csrf
         <div class="row g-4">
@@ -16,31 +31,31 @@
                         <div class="col-md-6">
                             <label class="form-label">Nombre completo *</label>
                             <input type="text" name="customer_name" class="form-control @error('customer_name') is-invalid @enderror"
-                                   value="{{ old('customer_name') }}" required>
+                                   value="{{ $defaults['customer_name'] }}" required>
                             @error('customer_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Email *</label>
                             <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ old('email') }}" required>
+                                   value="{{ $defaults['email'] }}" required>
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
                 </div>
 
-                <div class="checkout-card card p-4">
+                <div class="checkout-card card p-4 mb-4">
                     <h2 class="h5 fw-bold mb-3">Dirección de envío</h2>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Destinatario *</label>
                             <input type="text" name="recipient_name" class="form-control @error('recipient_name') is-invalid @enderror"
-                                   value="{{ old('recipient_name') }}" required>
+                                   value="{{ $defaults['recipient_name'] }}" required>
                             @error('recipient_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Teléfono *</label>
                             <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror"
-                                   value="{{ old('phone') }}" placeholder="+56 9..." required>
+                                   value="{{ $defaults['phone'] }}" placeholder="+56 9..." required>
                             @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
@@ -48,7 +63,7 @@
                             <select name="region" id="region" class="form-select @error('region') is-invalid @enderror" required>
                                 <option value="">Selecciona región</option>
                                 @foreach($regions as $region)
-                                    <option value="{{ $region['region'] }}" @selected(old('region') === $region['region'])>{{ $region['region'] }}</option>
+                                    <option value="{{ $region['region'] }}" @selected($defaults['region'] === $region['region'])>{{ $region['region'] }}</option>
                                 @endforeach
                             </select>
                             @error('region')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -63,19 +78,45 @@
                         <div class="col-md-8">
                             <label class="form-label">Calle *</label>
                             <input type="text" name="street" class="form-control @error('street') is-invalid @enderror"
-                                   value="{{ old('street') }}" required>
+                                   value="{{ $defaults['street'] }}" required>
                             @error('street')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Número</label>
-                            <input type="text" name="street_number" class="form-control" value="{{ old('street_number') }}">
+                            <input type="text" name="street_number" class="form-control" value="{{ $defaults['street_number'] }}">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Depto</label>
-                            <input type="text" name="apartment" class="form-control" value="{{ old('apartment') }}">
+                            <input type="text" name="apartment" class="form-control" value="{{ $defaults['apartment'] }}">
                         </div>
                     </div>
                 </div>
+
+                @unless($isLoggedIn)
+                    <div class="checkout-card card p-4">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" name="create_account" id="create_account"
+                                   value="1" @checked(old('create_account'))>
+                            <label class="form-check-label fw-semibold" for="create_account">
+                                Crear cuenta con estos datos
+                            </label>
+                            <div class="form-text">En tu próxima compra no tendrás que volver a completar el formulario.</div>
+                        </div>
+                        <div id="create-account-fields" class="row g-3 mt-3 @unless(old('create_account')) d-none @endunless">
+                            <div class="col-md-6">
+                                <label class="form-label">Contraseña *</label>
+                                <input type="password" name="password" id="password"
+                                       class="form-control @error('password') is-invalid @enderror" autocomplete="new-password">
+                                @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Confirmar contraseña *</label>
+                                <input type="password" name="password_confirmation" id="password_confirmation"
+                                       class="form-control" autocomplete="new-password">
+                            </div>
+                        </div>
+                    </div>
+                @endunless
             </div>
 
             <div class="col-lg-5">
@@ -121,7 +162,7 @@
 const regions = @json($regions);
 const regionSelect = document.getElementById('region');
 const comunaSelect = document.getElementById('comuna');
-const oldComuna = @json(old('comuna'));
+const savedComuna = @json($defaults['comuna']);
 const quoteUrl = @json(route('checkout.shipping.quote'));
 const subtotalAmount = {{ (float) $formatted['subtotal'] }};
 
@@ -131,12 +172,25 @@ const shippingDetail = document.getElementById('shipping-detail');
 const shippingError = document.getElementById('shipping-error');
 const checkoutSubmit = document.getElementById('checkout-submit');
 
+const createAccountCheckbox = document.getElementById('create_account');
+const createAccountFields = document.getElementById('create-account-fields');
+const passwordInput = document.getElementById('password');
+const passwordConfirmInput = document.getElementById('password_confirmation');
+
 function formatClp(amount) {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(amount);
 }
 
 function isRmRegion(regionName) {
     return regionName.toLowerCase().includes('metropolitana');
+}
+
+function toggleCreateAccountFields() {
+    if (!createAccountCheckbox || !createAccountFields) return;
+    const show = createAccountCheckbox.checked;
+    createAccountFields.classList.toggle('d-none', !show);
+    if (passwordInput) passwordInput.required = show;
+    if (passwordConfirmInput) passwordConfirmInput.required = show;
 }
 
 function loadComunas() {
@@ -151,7 +205,7 @@ function loadComunas() {
         const opt = document.createElement('option');
         opt.value = c;
         opt.textContent = c;
-        if (c === oldComuna) opt.selected = true;
+        if (c === savedComuna) opt.selected = true;
         comunaSelect.appendChild(opt);
     });
     quoteShipping();
@@ -212,6 +266,11 @@ async function quoteShipping() {
         shippingError.classList.remove('d-none');
         checkoutSubmit.disabled = true;
     }
+}
+
+if (createAccountCheckbox) {
+    createAccountCheckbox.addEventListener('change', toggleCreateAccountFields);
+    toggleCreateAccountFields();
 }
 
 regionSelect.addEventListener('change', loadComunas);

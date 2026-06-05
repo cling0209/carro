@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Services\CartService;
+use App\Services\CustomerAddressService;
 use App\Services\OrderService;
 use App\Services\Payments\WebpayGateway;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class CheckoutController extends Controller
@@ -20,6 +24,7 @@ class CheckoutController extends Controller
         protected OrderService $orderService,
         protected WebpayGateway $webpay,
         protected ShippingService $shippingService,
+        protected CustomerAddressService $addressService,
     ) {}
 
     public function index(Request $request): View|RedirectResponse
@@ -35,10 +40,24 @@ class CheckoutController extends Controller
             ? json_decode(File::get(database_path('data/chile_regions.json')), true)
             : [];
 
+        $user = $request->user();
+        $saved = $this->addressService->checkoutDefaults($user);
+        $defaults = [];
+
+        foreach ([
+            'customer_name', 'email', 'recipient_name', 'phone',
+            'region', 'comuna', 'street', 'street_number', 'apartment',
+        ] as $field) {
+            $defaults[$field] = old($field, $saved[$field] ?? '');
+        }
+
         return view('shop.checkout', [
             'formatted' => $formatted,
             'regions' => $regions,
             'cartCount' => $formatted['item_count'],
+            'defaults' => $defaults,
+            'isLoggedIn' => $user !== null,
+            'userName' => $user?->name,
         ]);
     }
 
@@ -75,7 +94,7 @@ class CheckoutController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
+        $rules = [
             'customer_name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:180'],
             'recipient_name' => ['required', 'string', 'max:120'],
@@ -85,11 +104,41 @@ class CheckoutController extends Controller
             'street' => ['required', 'string', 'max:180'],
             'street_number' => ['nullable', 'string', 'max:20'],
             'apartment' => ['nullable', 'string', 'max:40'],
-        ]);
+            'create_account' => ['nullable', 'boolean'],
+            'password' => ['nullable', 'required_if:create_account,1', 'confirmed', Password::min(8)],
+        ];
+
+        if (! $request->user() && $request->boolean('create_account')) {
+            $rules['email'][] = 'unique:users,email';
+        }
+
+        $data = $request->validate($rules);
 
         try {
+            if (! $request->user() && $request->boolean('create_account')) {
+                $user = User::create([
+                    'name' => $data['customer_name'],
+                    'email' => $data['email'],
+                    'password' => $data['password'],
+                    'role' => 'customer',
+                ]);
+
+                Auth::login($user);
+                $request->session()->regenerate();
+            }
+
+            $user = $request->user();
             $cart = $this->cartService->resolve($request);
-            $order = $this->orderService->createFromCart($cart, $data, $request->user());
+            $order = $this->orderService->createFromCart($cart, $data, $user);
+
+            if ($user) {
+                $this->addressService->syncDefaultFromShipping($user, $data);
+
+                if ($user->name !== $data['customer_name']) {
+                    $user->update(['name' => $data['customer_name']]);
+                }
+            }
+
             $payment = $this->webpay->createTransaction($order);
 
             return redirect()->away($payment['url'].'?token_ws='.$payment['token']);

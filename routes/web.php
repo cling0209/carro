@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Web\Admin\ShippingController as AdminShippingController;
 use App\Http\Controllers\Web\CartWebController;
 use App\Http\Controllers\Web\CheckoutController;
+use App\Http\Controllers\Web\CustomerAuthController;
 use App\Http\Controllers\Web\PaymentWebController;
 use App\Http\Controllers\Web\ShopController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,10 @@ Route::get('/carro', [CartWebController::class, 'index'])->name('cart.index');
 Route::post('/carro/agregar', [CartWebController::class, 'add'])->name('cart.add');
 Route::patch('/carro/{id}', [CartWebController::class, 'update'])->name('cart.update');
 Route::delete('/carro/{id}', [CartWebController::class, 'remove'])->name('cart.remove');
+
+Route::get('/cuenta/ingresar', [CustomerAuthController::class, 'showLogin'])->name('account.login');
+Route::post('/cuenta/ingresar', [CustomerAuthController::class, 'login'])->name('account.login.store');
+Route::post('/cuenta/salir', [CustomerAuthController::class, 'logout'])->name('account.logout')->middleware('auth');
 
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
 Route::get('/checkout/envio', [CheckoutController::class, 'quote'])->name('checkout.shipping.quote');
