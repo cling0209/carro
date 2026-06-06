@@ -6,7 +6,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Info(
     version: '1.0.0',
-    title: 'Carro API',
+    title: 'Rómulo API',
     description: 'API REST tienda online con carrito, Redis y Webpay Plus (Chile)'
 )]
 #[OA\Server(url: 'http://localhost:8081', description: 'Docker local')]

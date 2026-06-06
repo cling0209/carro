@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Tienda') — {{ config('app.name', 'Carro') }}</title>
+    <title>@yield('title', 'Tienda') — {{ config('app.name', 'Rómulo') }}</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/romulo-icon.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -18,9 +19,7 @@
 <x-page-loader />
 <nav class="navbar navbar-expand-lg shop-navbar sticky-top">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="{{ route('home') }}">
-            <i class="bi bi-bag-heart-fill text-primary me-1"></i>{{ config('app.name', 'Carro') }}
-        </a>
+        <x-shop-logo :href="route('home')" class="navbar-brand py-0" />
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -45,7 +44,7 @@
                 </a>
             @endauth
             <a href="{{ route('cart.index') }}" class="btn btn-outline-primary btn-sm rounded-pill position-relative">
-                <i class="bi bi-cart3"></i> Carro
+                <i class="bi bi-cart3"></i> Mi carro
                 @if(($cartCount ?? 0) > 0)
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill shop-cart-badge">
                         {{ $cartCount }}
@@ -87,7 +86,7 @@
     <div class="container py-5">
         <div class="row g-4">
             <div class="col-md-4">
-                <h5 class="fw-bold">{{ config('app.name', 'Carro') }}</h5>
+                <h5 class="fw-bold">{{ config('app.name', 'Rómulo') }}</h5>
                 <p class="text-secondary mb-0">Tienda online Chile, Webpay Plus, envío a todo el país.</p>
             </div>
             <div class="col-md-4">
@@ -104,7 +103,7 @@
             </div>
         </div>
         <hr class="my-4 border-secondary-subtle">
-        <p class="text-center text-secondary small mb-0">&copy; {{ date('Y') }} {{ config('app.name', 'Carro') }}</p>
+        <p class="text-center text-secondary small mb-0">&copy; {{ date('Y') }} {{ config('app.name', 'Rómulo') }}</p>
     </div>
 </footer>
 

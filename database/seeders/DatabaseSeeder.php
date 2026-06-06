@@ -91,7 +91,7 @@ class DatabaseSeeder extends Seeder
             'sku' => $sku,
             'name' => $name,
             'slug' => $slug,
-            'description' => "Descripción de {$name}. Producto de demostración Carro.",
+            'description' => "Descripción de {$name}. Producto de demostración Rómulo.",
             'price' => $price,
             'compare_at_price' => $compareAt,
             'stock' => $stock,

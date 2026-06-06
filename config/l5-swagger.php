@@ -5,7 +5,7 @@ return [
     'documentations' => [
         'default' => [
             'api' => [
-                'title' => 'Carro API',
+                'title' => 'Rómulo API',
             ],
 
             'routes' => [

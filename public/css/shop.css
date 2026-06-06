@@ -23,6 +23,30 @@ body {
     border-bottom: 1px solid #e2e8f0;
 }
 
+.shop-brand__text {
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.shop-brand:hover .shop-brand__text {
+    color: var(--shop-primary) !important;
+}
+
+.admin-navbar .shop-brand:hover .shop-brand__text {
+    color: #ffffff !important;
+    opacity: 0.9;
+}
+
+.shop-brand:hover .shop-brand__icon {
+    transform: scale(1.04);
+    transition: transform 0.15s ease;
+}
+
+.shop-brand__icon {
+    transition: transform 0.15s ease;
+}
+
 .shop-footer {
     background: #fff;
     border-top: 1px solid #e2e8f0;
