@@ -49,7 +49,22 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <div class="form-text">El slug de la categoría define la carpeta de la imagen.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Familia (carpeta imagen)</label>
+                                <input type="text" name="familia" class="form-control @error('familia') is-invalid @enderror"
+                                       value="{{ old('familia', $product->familia) }}"
+                                       placeholder="Ej. LIB">
+                                @error('familia')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text">Carpeta en la URL externa de Romulo.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Nombre de archivo imagen</label>
+                                <input type="text" name="image_filename" class="form-control @error('image_filename') is-invalid @enderror"
+                                       value="{{ old('image_filename', $product->image_filename) }}"
+                                       placeholder="Ej. 90503_medium.jpg">
+                                @error('image_filename')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text">Última parte de la URL de la imagen.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Precio de venta *</label>
@@ -114,7 +129,7 @@
             <div class="card admin-card">
                 <div class="card-body">
                     <h2 class="h6 fw-bold">Vista previa imagen</h2>
-                    <p class="small text-muted">Según base URL + slug de categoría + SKU configurados.</p>
+                    <p class="small text-muted">Según base URL + familia + nombre de archivo del producto.</p>
                     @if($product->exists)
                         <x-product-image :product="$product" variant="admin-preview" />
                         <code class="d-block small mt-2 text-break admin-image-url">{{ product_image($product) ?: '— sin URL —' }}</code>

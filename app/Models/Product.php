@@ -12,7 +12,7 @@ class Product extends Model
 {
     use SoftDeletes;
     protected $fillable = [
-        'category_id', 'sku', 'familia', 'name', 'slug', 'description',
+        'category_id', 'sku', 'familia', 'image_filename', 'name', 'slug', 'description',
         'price', 'compare_at_price', 'stock', 'weight_kg', 'is_active', 'is_featured', 'metadata',
     ];
 
@@ -73,16 +73,12 @@ class Product extends Model
     public function buildExternalImageUrl(): ?string
     {
         $base = rtrim((string) config('products.image_base_url'), '/');
+        $folder = trim((string) $this->familia);
+        $filename = trim((string) $this->image_filename);
 
-        $this->loadMissing('category');
-        $folder = $this->category?->slug;
-
-        if ($base === '' || ! $folder || ! $this->sku) {
+        if ($base === '' || $folder === '' || $filename === '') {
             return null;
         }
-
-        $pattern = (string) config('products.image_filename_pattern', '{codigo}_medium.jpg');
-        $filename = str_replace('{codigo}', $this->sku, $pattern);
 
         return $base.'/'.trim($folder, '/').'/'.ltrim($filename, '/');
     }

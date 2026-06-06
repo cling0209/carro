@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\ProductImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductController extends Controller
 {
@@ -94,6 +96,66 @@ class ProductController extends Controller
             ->with('success', 'Producto dado de baja del catálogo.');
     }
 
+    public function importForm(): View
+    {
+        return view('admin.products.import');
+    }
+
+    public function downloadImportTemplate(ProductImportService $importService): StreamedResponse
+    {
+        $content = $importService->generateTemplateCsv();
+
+        return response()->streamDownload(
+            fn () => print($content),
+            'plantilla_productos.csv',
+            ['Content-Type' => 'text/csv; charset=UTF-8']
+        );
+    }
+
+    public function storeImport(Request $request, ProductImportService $importService): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ]);
+
+        $result = $importService->importFromUploadedFile($request->file('file'));
+
+        $parts = [];
+
+        if ($result['created'] > 0) {
+            $parts[] = $result['created'].' creado(s)';
+        }
+
+        if ($result['updated'] > 0) {
+            $parts[] = $result['updated'].' actualizado(s)';
+        }
+
+        if ($result['reactivated'] > 0) {
+            $parts[] = $result['reactivated'].' reactivado(s)';
+        }
+
+        if ($parts === []) {
+            return redirect()
+                ->route('admin.products.import')
+                ->with('error', 'No se importó ningún producto.')
+                ->with('import_errors', array_slice($result['errors'], 0, 20));
+        }
+
+        $redirect = redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Importación completada: '.implode(', ', $parts).'.');
+
+        if ($result['errors'] !== []) {
+            $redirect->with('import_errors', array_slice($result['errors'], 0, 20));
+
+            if (count($result['errors']) > 20) {
+                $redirect->with('error', 'Algunas filas fallaron. Se muestran los primeros 20 errores.');
+            }
+        }
+
+        return $redirect;
+    }
+
     protected function validated(Request $request, ?int $productId = null): array
     {
         $skuRule = Rule::unique('products', 'sku')
@@ -116,6 +178,8 @@ class ProductController extends Controller
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
             'weight_kg' => ['nullable', 'numeric', 'min:0'],
+            'familia' => ['nullable', 'string', 'max:120'],
+            'image_filename' => ['nullable', 'string', 'max:255'],
         ]);
 
         $data['is_active'] = $request->boolean('is_active');

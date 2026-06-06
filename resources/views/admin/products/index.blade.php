@@ -9,10 +9,26 @@
             <h1 class="h3 fw-bold mb-1">Mantenedor de productos</h1>
             <p class="text-muted mb-0">Alta, edición y baja del catálogo.</p>
         </div>
-        <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> Nuevo producto
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.products.import') }}" class="btn btn-outline-primary">
+                <i class="bi bi-upload"></i> Carga masiva
+            </a>
+            <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Nuevo producto
+            </a>
+        </div>
     </div>
+
+    @if(session('import_errors'))
+        <div class="alert alert-warning">
+            <strong>Errores en la importación:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach(session('import_errors') as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="card admin-card mb-4">
         <div class="card-body">

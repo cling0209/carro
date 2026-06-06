@@ -40,7 +40,6 @@ services:
       TRANSBANK_RETURN_URL: http://localhost:8081/checkout/webpay/return
       L5_SWAGGER_GENERATE_ALWAYS: "false"
       PRODUCT_IMAGE_BASE_URL: https://www.romulo.cl/allproducts/imagenes/productos
-      PRODUCT_IMAGE_FILENAME_PATTERN: "{codigo}_medium.jpg"
     depends_on:
       postgres:
         condition: service_healthy
