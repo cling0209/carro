@@ -14,9 +14,7 @@ class AccountController extends Controller
 
     public function editPassword(): View
     {
-        return view('admin.account.password', [
-            'passwordMaxLength' => self::PASSWORD_MAX_LENGTH,
-        ]);
+        return view('admin.account.password');
     }
 
     public function updatePassword(Request $request): RedirectResponse
