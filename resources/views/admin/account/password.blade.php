@@ -10,7 +10,7 @@
                 <div class="card-header bg-white fw-semibold">Cambiar contraseña</div>
                 <div class="card-body">
                     <p class="text-muted small mb-4">
-                        Mínimo 6 caracteres, con letras y números. Máximo 10 caracteres.
+                        Mínimo 6 caracteres, con letras y números. Máximo {{ $passwordMaxLength }} caracteres.
                     </p>
 
                     <form method="post" action="{{ route('admin.account.password.update') }}">
@@ -23,7 +23,7 @@
                                 <input type="password" name="current_password" id="current_password"
                                        class="form-control @error('current_password') is-invalid @enderror"
                                        required autocomplete="current-password"
-                                       maxlength="10">
+                                       maxlength="{{ $passwordMaxLength }}">
                                 <button type="button" class="btn btn-outline-secondary js-password-toggle"
                                         data-target="current_password" aria-label="Mostrar contraseña">
                                     <i class="bi bi-eye"></i>
@@ -38,7 +38,7 @@
                                 <input type="password" name="password" id="password"
                                        class="form-control @error('password') is-invalid @enderror"
                                        required autocomplete="new-password"
-                                       minlength="6" maxlength="10">
+                                       minlength="6" maxlength="{{ $passwordMaxLength }}">
                                 <button type="button" class="btn btn-outline-secondary js-password-toggle"
                                         data-target="password" aria-label="Mostrar contraseña">
                                     <i class="bi bi-eye"></i>

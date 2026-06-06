@@ -10,11 +10,13 @@ use Illuminate\View\View;
 
 class AccountController extends Controller
 {
-    public const PASSWORD_MAX_LENGTH = 10;
+    public const PASSWORD_MAX_LENGTH = 20;
 
     public function editPassword(): View
     {
-        return view('admin.account.password');
+        return view('admin.account.password', [
+            'passwordMaxLength' => self::PASSWORD_MAX_LENGTH,
+        ]);
     }
 
     public function updatePassword(Request $request): RedirectResponse
