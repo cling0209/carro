@@ -14,9 +14,6 @@ class ShippingController extends Controller
 {
     public function index(Request $request): View
     {
-        ShippingRegionRate::syncFromChileRegions();
-        ShippingComunaWeightRate::syncAllComunasFromChileData();
-
         $regionComunas = ShippingComunaWeightRate::chileRegionComunasExcludingRm();
         $regions = array_keys($regionComunas);
 

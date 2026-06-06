@@ -70,9 +70,21 @@ class ShippingComunaWeightRate extends Model
     {
         self::migrateLegacyGlobalRatesIfNeeded();
 
+        $existingPairs = self::query()
+            ->select('region', 'comuna')
+            ->distinct()
+            ->get()
+            ->mapWithKeys(fn (self $row) => [$row->region."\0".$row->comuna => true])
+            ->all();
+
         foreach (self::chileRegionComunasExcludingRm() as $region => $comunas) {
             foreach ($comunas as $comuna) {
-                self::seedDefaultsForComunaIfEmpty($region, $comuna);
+                if (isset($existingPairs[$region."\0".$comuna])) {
+                    continue;
+                }
+
+                self::seedDefaultsForComuna($region, $comuna);
+                $existingPairs[$region."\0".$comuna] = true;
             }
         }
     }
@@ -113,6 +125,11 @@ class ShippingComunaWeightRate extends Model
             return;
         }
 
+        self::seedDefaultsForComuna($region, $comuna);
+    }
+
+    protected static function seedDefaultsForComuna(string $region, string $comuna): void
+    {
         foreach (self::defaultBands() as $band) {
             self::create([
                 'region' => $region,
@@ -127,15 +144,22 @@ class ShippingComunaWeightRate extends Model
         }
     }
 
+    /** @var array<string, list<string>>|null */
+    protected static ?array $chileRegionComunasCache = null;
+
     /**
      * @return array<string, list<string>>
      */
     public static function chileRegionComunasExcludingRm(): array
     {
+        if (self::$chileRegionComunasCache !== null) {
+            return self::$chileRegionComunasCache;
+        }
+
         $path = database_path('data/chile_regions.json');
 
         if (! File::exists($path)) {
-            return [];
+            return self::$chileRegionComunasCache = [];
         }
 
         $regions = json_decode(File::get($path), true) ?? [];
@@ -151,7 +175,7 @@ class ShippingComunaWeightRate extends Model
             $map[$name] = $entry['comunas'] ?? [];
         }
 
-        return $map;
+        return self::$chileRegionComunasCache = $map;
     }
 
     public static function isValidComuna(string $region, string $comuna): bool
