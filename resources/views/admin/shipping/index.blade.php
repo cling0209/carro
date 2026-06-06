@@ -109,8 +109,7 @@
                 <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold">Tramos por peso por comuna</span>
                     @if($selectedRegion && $selectedComuna)
-                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#rateModal"
-                                onclick="openRateModal()">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openRateModal()">
                             <i class="bi bi-plus-lg"></i> Nuevo tramo
                         </button>
                     @endif
@@ -298,6 +297,8 @@ function openRateModal(rate = null) {
         document.getElementById('rateSort').value = 0;
         document.getElementById('rateMin').value = 0;
     }
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('rateModal')).show();
 }
 </script>
 @endpush
