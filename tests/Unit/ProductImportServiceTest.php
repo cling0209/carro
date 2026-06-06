@@ -68,4 +68,27 @@ class ProductImportServiceTest extends TestCase
         $this->assertSame('Después', $product->name);
         $this->assertSame(9, $product->stock);
     }
+
+    public function test_imports_csv_saved_with_windows_latin1_encoding(): void
+    {
+        Category::create([
+            'name' => 'Librería',
+            'slug' => 'libr',
+            'is_active' => true,
+        ]);
+
+        $line = 'IMP-003;Pizarra Acrílica Arcovi;19990;5;LIBR';
+        $latin1 = mb_convert_encoding($line, 'Windows-1252', 'UTF-8');
+        $csv = "sku;nombre;precio;stock;familia\n".$latin1;
+
+        $file = UploadedFile::fake()->createWithContent('productos.csv', $csv);
+
+        $result = app(ProductImportService::class)->importFromUploadedFile($file);
+
+        $this->assertSame(1, $result['created']);
+        $this->assertDatabaseHas('products', [
+            'sku' => 'IMP-003',
+            'name' => 'Pizarra Acrílica Arcovi',
+        ]);
+    }
 }

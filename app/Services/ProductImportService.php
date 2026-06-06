@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -106,11 +107,20 @@ class ProductImportService
      */
     protected function parseCsv(UploadedFile $file): array
     {
-        $handle = fopen($file->getRealPath(), 'r');
+        $content = $this->readFileAsUtf8($file);
+
+        if ($content === '') {
+            return [];
+        }
+
+        $handle = fopen('php://temp', 'r+');
 
         if ($handle === false) {
             return [];
         }
+
+        fwrite($handle, $content);
+        rewind($handle);
 
         $firstLine = fgets($handle);
 
@@ -120,7 +130,6 @@ class ProductImportService
             return [];
         }
 
-        $firstLine = $this->stripBom($firstLine);
         $delimiter = str_contains($firstLine, ';') ? ';' : ',';
         $headers = $this->normalizeHeaders(str_getcsv($firstLine, $delimiter));
         $rows = [];
@@ -137,7 +146,7 @@ class ProductImportService
                     continue;
                 }
 
-                $row[$header] = trim((string) ($data[$index] ?? ''));
+                $row[$header] = $this->ensureUtf8(trim((string) ($data[$index] ?? '')));
             }
 
             if ($row !== []) {
@@ -148,6 +157,57 @@ class ProductImportService
         fclose($handle);
 
         return $rows;
+    }
+
+    protected function readFileAsUtf8(UploadedFile $file): string
+    {
+        $path = $file->getRealPath();
+
+        if ($path === false) {
+            return '';
+        }
+
+        $raw = file_get_contents($path);
+
+        if ($raw === false) {
+            return '';
+        }
+
+        return $this->ensureUtf8($raw);
+    }
+
+    protected function ensureUtf8(string $value): string
+    {
+        $value = $this->stripBom($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        if ($this->isValidUtf8($value)) {
+            return $value;
+        }
+
+        foreach (['Windows-1252', 'ISO-8859-1', 'CP1252'] as $encoding) {
+            $converted = mb_convert_encoding($value, 'UTF-8', $encoding);
+
+            if (mb_check_encoding($converted, 'UTF-8')) {
+                return $converted;
+            }
+        }
+
+        $converted = iconv('UTF-8', 'UTF-8//IGNORE', $value);
+
+        return $converted !== false ? $converted : $value;
+    }
+
+    protected function isValidUtf8(string $value): bool
+    {
+        if (! mb_check_encoding($value, 'UTF-8')) {
+            return false;
+        }
+
+        return preg_match('//u', $value) === 1;
     }
 
     /**
@@ -278,27 +338,75 @@ class ProductImportService
                 ];
             }
 
-            $payload['slug'] = $this->uniqueSlug($slug, $existing->id);
-            $existing->update($payload);
+            $payload['slug'] = $this->uniqueSlug($slug, $existing->id, $payload['sku']);
 
-            return ['action' => 'updated', 'error' => null];
+            return $this->persistProduct($existing, $payload, $displayLine, 'updated', reactivate: false);
         }
 
         if ($existing && $existing->trashed()) {
             $payload['slug'] = $this->uniqueSlug(
-                $validated['slug'] ?? Str::slug($payload['name']),
-                $existing->id
+                $validated['slug'] ?? $this->defaultSlug($payload['name'], $payload['sku']),
+                $existing->id,
+                $payload['sku']
             );
-            $existing->restore();
-            $existing->update($payload);
 
-            return ['action' => 'reactivated', 'error' => null];
+            return $this->persistProduct($existing, $payload, $displayLine, 'reactivated', reactivate: true);
         }
 
-        $payload['slug'] = $this->uniqueSlug($validated['slug'] ?? Str::slug($payload['name']));
-        Product::create($payload);
+        $payload['slug'] = $this->uniqueSlug(
+            $validated['slug'] ?? $this->defaultSlug($payload['name'], $payload['sku']),
+            sku: $payload['sku']
+        );
 
-        return ['action' => 'created', 'error' => null];
+        return $this->persistProduct(new Product, $payload, $displayLine, 'created');
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{action: string, error: string|null}
+     */
+    protected function persistProduct(
+        Product $product,
+        array $payload,
+        int $displayLine,
+        string $action,
+        bool $reactivate = false,
+    ): array {
+        try {
+            if ($reactivate) {
+                $product->restore();
+            }
+
+            if ($product->exists) {
+                $product->update($payload);
+            } else {
+                $product->fill($payload);
+                $product->save();
+            }
+        } catch (QueryException $e) {
+            return [
+                'action' => 'skipped',
+                'error' => 'Fila '.$displayLine.': '.$this->friendlyDbError($e),
+            ];
+        }
+
+        return ['action' => $action, 'error' => null];
+    }
+
+    protected function friendlyDbError(QueryException $exception): string
+    {
+        $message = $exception->getMessage();
+
+        if (str_contains($message, 'invalid byte sequence for encoding "UTF8"')) {
+            return 'texto con caracteres inválidos (guarda el CSV en UTF-8 o Latin-1/Windows).';
+        }
+
+        return 'error al guardar en la base de datos.';
+    }
+
+    protected function defaultSlug(string $name, string $sku): string
+    {
+        return Str::slug($name) ?: Str::slug($sku) ?: 'producto';
     }
 
     protected function resolveCategoryFromFamilia(string $familia): ?Category
@@ -335,9 +443,9 @@ class ProductImportService
         return in_array($normalized, ['1', 'true', 'si', 'sí', 'yes', 'activo', 'on'], true);
     }
 
-    protected function uniqueSlug(string $slug, ?int $exceptId = null): string
+    protected function uniqueSlug(string $slug, ?int $exceptId = null, ?string $sku = null): string
     {
-        $base = Str::slug($slug) ?: 'producto';
+        $base = Str::slug($slug) ?: ($sku ? Str::slug($sku) : '') ?: 'producto';
         $candidate = $base;
         $i = 1;
 

@@ -31,7 +31,8 @@
                 <div class="card-header bg-white fw-semibold">1. Descargar plantilla</div>
                 <div class="card-body">
                     <p class="text-muted">
-                        Archivo CSV con separador <strong>punto y coma (;)</strong>, codificación UTF-8.
+                        Archivo CSV con separador <strong>punto y coma (;)</strong>.
+                        UTF-8 o Excel Windows (Latin-1); el sistema convierte la codificación automáticamente.
                         Incluye una fila de ejemplo.
                     </p>
                     <dl class="small mb-4">
