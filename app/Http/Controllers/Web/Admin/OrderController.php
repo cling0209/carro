@@ -4,30 +4,43 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\Admin\OrderAdminService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderController extends Controller
 {
+    public function __construct(protected OrderAdminService $orderAdmin) {}
+
     public function index(Request $request): View
     {
-        $orders = Order::query()
-            ->withCount('items')
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
-            ->when($request->filled('payment_status'), fn ($q) => $q->where('payment_status', $request->query('payment_status')))
-            ->when($request->filled('q'), function ($q) use ($request) {
-                $term = $request->query('q');
-                $q->where(function ($inner) use ($term) {
-                    $inner->where('uuid', 'ilike', "%{$term}%")
-                        ->orWhere('customer_email', 'ilike', "%{$term}%")
-                        ->orWhere('customer_name', 'ilike', "%{$term}%");
-                });
-            })
-            ->orderByDesc('created_at')
+        $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+        ]);
+
+        $dates = $this->orderAdmin->resolveDateRange($request);
+
+        $orders = $this->orderAdmin->filteredQuery($request)
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.orders.index', compact('orders'));
+        return view('admin.orders.index', [
+            'orders' => $orders,
+            'dateFrom' => $dates['from_input'],
+            'dateTo' => $dates['to_input'],
+        ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
+        ]);
+
+        return $this->orderAdmin->exportCsv($request);
     }
 
     public function show(Order $order): View

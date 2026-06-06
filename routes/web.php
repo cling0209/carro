@@ -65,6 +65,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('categorias/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
 
         Route::get('ventas', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('ventas/exportar', [AdminOrderController::class, 'export'])->name('orders.export');
         Route::get('ventas/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
 
         Route::get('envios', [AdminShippingController::class, 'index'])->name('shipping.index');

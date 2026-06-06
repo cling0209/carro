@@ -4,20 +4,35 @@
 
 @section('content')
 <div class="container-fluid py-4">
-    <div class="mb-4">
-        <h1 class="h3 fw-bold mb-1">Ventas realizadas</h1>
-        <p class="text-muted mb-0">Pedidos y pagos confirmados en la tienda.</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Ventas realizadas</h1>
+            <p class="text-muted mb-0">Pedidos y pagos en la tienda. Por defecto se muestra la última semana.</p>
+        </div>
+        <a href="{{ route('admin.orders.export', request()->query()) }}" class="btn btn-outline-success">
+            <i class="bi bi-download"></i> Descargar CSV
+        </a>
     </div>
 
     <div class="card admin-card mb-4">
         <div class="card-body">
             <form method="get" class="row g-2 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-2">
+                    <label class="form-label small" for="date_from">Desde</label>
+                    <input type="date" name="date_from" id="date_from" class="form-control"
+                           value="{{ $dateFrom }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="date_to">Hasta</label>
+                    <input type="date" name="date_to" id="date_to" class="form-control"
+                           value="{{ $dateTo }}">
+                </div>
+                <div class="col-md-3">
                     <label class="form-label small">Buscar</label>
                     <input type="search" name="q" class="form-control" placeholder="UUID, email, cliente..."
                            value="{{ request('q') }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small">Estado pedido</label>
                     <select name="status" class="form-select">
                         <option value="">Todos</option>
@@ -26,7 +41,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label small">Estado pago</label>
                     <select name="payment_status" class="form-select">
                         <option value="">Todos</option>
@@ -35,8 +50,9 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-auto">
+                <div class="col-md-auto d-flex gap-2">
                     <button type="submit" class="btn btn-outline-primary">Filtrar</button>
+                    <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary">Última semana</a>
                 </div>
             </form>
         </div>
@@ -60,7 +76,7 @@
                 <tbody>
                     @forelse($orders as $order)
                         <tr>
-                            <td class="text-nowrap small">{{ $order->created_at?->format('d/m/Y H:i') }}</td>
+                            <td class="text-nowrap small">{{ $order->created_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') }}</td>
                             <td><code class="small">{{ substr($order->uuid, 0, 13) }}</code></td>
                             <td>
                                 <div>{{ $order->customer_name }}</div>
@@ -82,7 +98,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-5">No hay ventas registradas.</td>
+                            <td colspan="8" class="text-center text-muted py-5">No hay ventas en el período seleccionado.</td>
                         </tr>
                     @endforelse
                 </tbody>
