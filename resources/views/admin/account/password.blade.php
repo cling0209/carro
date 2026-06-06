@@ -19,27 +19,45 @@
 
                         <div class="mb-3">
                             <label class="form-label" for="current_password">Contraseña actual *</label>
-                            <input type="password" name="current_password" id="current_password"
-                                   class="form-control @error('current_password') is-invalid @enderror"
-                                   required autocomplete="current-password"
-                                   maxlength="10" size="10">
-                            @error('current_password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="input-group">
+                                <input type="password" name="current_password" id="current_password"
+                                       class="form-control @error('current_password') is-invalid @enderror"
+                                       required autocomplete="current-password"
+                                       maxlength="10">
+                                <button type="button" class="btn btn-outline-secondary js-password-toggle"
+                                        data-target="current_password" aria-label="Mostrar contraseña">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            @error('current_password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label" for="password">Nueva contraseña *</label>
-                            <input type="password" name="password" id="password"
-                                   class="form-control @error('password') is-invalid @enderror"
-                                   required autocomplete="new-password"
-                                   minlength="6" maxlength="10" size="10">
-                            @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="input-group">
+                                <input type="password" name="password" id="password"
+                                       class="form-control @error('password') is-invalid @enderror"
+                                       required autocomplete="new-password"
+                                       minlength="6" maxlength="10">
+                                <button type="button" class="btn btn-outline-secondary js-password-toggle"
+                                        data-target="password" aria-label="Mostrar contraseña">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            @error('password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label" for="password_confirmation">Confirmar nueva contraseña *</label>
-                            <input type="password" name="password_confirmation" id="password_confirmation"
-                                   class="form-control" required autocomplete="new-password"
-                                   minlength="6" maxlength="10" size="10">
+                            <div class="input-group">
+                                <input type="password" name="password_confirmation" id="password_confirmation"
+                                       class="form-control" required autocomplete="new-password"
+                                       minlength="6" maxlength="10">
+                                <button type="button" class="btn btn-outline-secondary js-password-toggle"
+                                        data-target="password_confirmation" aria-label="Mostrar contraseña">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary">
@@ -52,3 +70,25 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelectorAll('.js-password-toggle').forEach(function (button) {
+    button.addEventListener('click', function () {
+        const input = document.getElementById(button.dataset.target);
+
+        if (!input) {
+            return;
+        }
+
+        const icon = button.querySelector('i');
+        const show = input.type === 'password';
+
+        input.type = show ? 'text' : 'password';
+        icon.classList.toggle('bi-eye', !show);
+        icon.classList.toggle('bi-eye-slash', show);
+        button.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    });
+});
+</script>
+@endpush
