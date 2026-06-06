@@ -31,7 +31,7 @@
                             </thead>
                             <tbody>
                                 @foreach($formatted['items'] as $item)
-                                    <tr>
+                                    <tr data-cart-row data-unit-price="{{ $item['unit_price'] }}">
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
                                                 <x-product-image
@@ -48,14 +48,17 @@
                                         </td>
                                         <td>{{ clp($item['unit_price']) }}</td>
                                         <td>
-                                            <form action="{{ route('cart.update', $item['id']) }}" method="post" class="d-flex gap-1">
+                                            <form action="{{ route('cart.update', $item['id']) }}" method="post"
+                                                  class="js-cart-quantity-form d-flex align-items-center gap-1">
                                                 @csrf
                                                 @method('PATCH')
-                                                <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" max="99" class="form-control form-control-sm" style="width:4rem">
-                                                <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-arrow-repeat"></i></button>
+                                                <input type="number" name="quantity" value="{{ $item['quantity'] }}"
+                                                       min="1" max="99"
+                                                       class="form-control form-control-sm js-cart-quantity"
+                                                       style="width:4rem" aria-label="Cantidad">
                                             </form>
                                         </td>
-                                        <td class="fw-semibold">{{ clp($item['line_total']) }}</td>
+                                        <td class="fw-semibold js-cart-line-total">{{ clp($item['line_total']) }}</td>
                                         <td>
                                             <form action="{{ route('cart.remove', $item['id']) }}" method="post">
                                                 @csrf
@@ -74,14 +77,14 @@
                 <div class="checkout-card card p-4">
                     <h2 class="h5 fw-bold mb-3">Resumen</h2>
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal ({{ $formatted['item_count'] }} ítems)</span>
-                        <span class="fw-semibold">{{ clp($formatted['subtotal']) }}</span>
+                        <span>Subtotal (<span class="js-cart-item-count">{{ $formatted['item_count'] }} ítems</span>)</span>
+                        <span class="fw-semibold js-cart-subtotal">{{ clp($formatted['subtotal']) }}</span>
                     </div>
                     <p class="text-muted small">El envío se calcula al pagar según tu región.</p>
                     <hr>
                     <div class="d-flex justify-content-between mb-4 fs-5">
                         <span class="fw-bold">Subtotal</span>
-                        <span class="fw-bold text-primary">{{ clp($formatted['subtotal']) }}</span>
+                        <span class="fw-bold text-primary js-cart-subtotal">{{ clp($formatted['subtotal']) }}</span>
                     </div>
                     <a href="{{ route('checkout.index') }}" class="btn btn-go-checkout btn-lg rounded-pill w-100">
                         Ir a pagar <i class="bi bi-arrow-right"></i>
@@ -93,3 +96,7 @@
     @endif
 </section>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/cart.js') }}" defer></script>
+@endpush
