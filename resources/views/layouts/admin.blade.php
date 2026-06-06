@@ -37,6 +37,9 @@
             <a href="{{ route('home') }}" class="nav-link-admin" target="_blank">
                 <i class="bi bi-shop"></i> Tienda
             </a>
+            <a href="{{ route('admin.account.password') }}" class="nav-link-admin {{ request()->routeIs('admin.account.*') ? 'active' : '' }}">
+                <i class="bi bi-key"></i> <span class="d-none d-lg-inline">Clave</span>
+            </a>
             <span class="text-white-50 small d-none d-md-inline">{{ auth()->user()->name }}</span>
             <form action="{{ route('admin.logout') }}" method="post" class="d-inline">
                 @csrf

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Web\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Web\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Web\Admin\OrderController as AdminOrderController;
@@ -41,6 +42,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
+        Route::get('cuenta/clave', [AdminAccountController::class, 'editPassword'])->name('account.password');
+        Route::put('cuenta/clave', [AdminAccountController::class, 'updatePassword'])->name('account.password.update');
         Route::redirect('/', '/admin/productos');
 
         Route::get('productos', [AdminProductController::class, 'index'])->name('products.index');
