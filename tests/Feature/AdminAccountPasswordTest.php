@@ -55,7 +55,7 @@ class AdminAccountPasswordTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $tooLong = 'a1'.str_repeat('x', 72);
+        $tooLong = 'a1'.str_repeat('x', 9);
 
         $response = $this->actingAs($admin)->from(route('admin.account.password'))->put(route('admin.account.password.update'), [
             'current_password' => 'Admin123!Secure',

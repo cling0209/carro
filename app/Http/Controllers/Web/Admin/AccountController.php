@@ -10,8 +10,7 @@ use Illuminate\View\View;
 
 class AccountController extends Controller
 {
-    /** Longitud máxima de texto plano compatible con bcrypt y columna users.password (varchar 255, hash ~60). */
-    public const PASSWORD_MAX_LENGTH = 72;
+    public const PASSWORD_MAX_LENGTH = 10;
 
     public function editPassword(): View
     {

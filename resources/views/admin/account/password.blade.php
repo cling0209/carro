@@ -21,7 +21,8 @@
                             <label class="form-label" for="current_password">Contraseña actual *</label>
                             <input type="password" name="current_password" id="current_password"
                                    class="form-control @error('current_password') is-invalid @enderror"
-                                   required autocomplete="current-password">
+                                   required autocomplete="current-password"
+                                   maxlength="{{ $passwordMaxLength }}">
                             @error('current_password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
