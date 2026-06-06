@@ -21,14 +21,13 @@ class ProductImportService
             'nombre',
             'precio',
             'stock',
-            'categoria_slug',
+            'familia',
             'slug',
             'descripcion',
             'precio_referencia',
             'peso_kg',
             'activo',
             'destacado',
-            'familia',
             'nombre_archivo',
         ];
     }
@@ -44,14 +43,13 @@ class ProductImportService
             'Audífonos Bluetooth Pro',
             '29990',
             '45',
-            'electronica',
+            'LIB',
             'audifonos-bluetooth-pro',
             'Descripción opcional del producto',
             '39990',
             '0.35',
             '1',
             '1',
-            'LIB',
             '90503_medium.jpg',
         ], ';');
 
@@ -184,8 +182,6 @@ class ProductImportService
         $aliases = [
             'name' => 'nombre',
             'price' => 'precio',
-            'category_slug' => 'categoria_slug',
-            'categoria' => 'categoria_slug',
             'description' => 'descripcion',
             'compare_at_price' => 'precio_referencia',
             'weight_kg' => 'peso_kg',
@@ -216,21 +212,20 @@ class ProductImportService
             'nombre' => ['required', 'string', 'max:200'],
             'precio' => ['required', 'numeric', 'min:0'],
             'stock' => ['required', 'integer', 'min:0'],
-            'categoria_slug' => ['nullable', 'string', 'max:200'],
+            'familia' => ['required', 'string', 'max:120'],
             'slug' => ['nullable', 'string', 'max:200'],
             'descripcion' => ['nullable', 'string'],
             'precio_referencia' => ['nullable', 'numeric', 'min:0'],
             'peso_kg' => ['nullable', 'numeric', 'min:0'],
             'activo' => ['nullable'],
             'destacado' => ['nullable'],
-            'familia' => ['nullable', 'string', 'max:120'],
             'nombre_archivo' => ['nullable', 'string', 'max:255'],
         ], [], [
             'sku' => 'sku',
             'nombre' => 'nombre',
             'precio' => 'precio',
             'stock' => 'stock',
-            'categoria_slug' => 'categoria_slug',
+            'familia' => 'familia',
         ]);
 
         if ($validator->fails()) {
@@ -241,26 +236,18 @@ class ProductImportService
         }
 
         $validated = $validator->validated();
-        $categoryId = null;
+        $familia = trim($validated['familia']);
+        $category = $this->resolveCategoryFromFamilia($familia);
 
-        if (! empty($validated['categoria_slug'])) {
-            $category = Category::query()
-                ->where('slug', $validated['categoria_slug'])
-                ->whereNull('deleted_at')
-                ->first();
-
-            if (! $category) {
-                return [
-                    'action' => 'skipped',
-                    'error' => 'Fila '.$displayLine.': categoría "'.$validated['categoria_slug'].'" no existe.',
-                ];
-            }
-
-            $categoryId = $category->id;
+        if (! $category) {
+            return [
+                'action' => 'skipped',
+                'error' => 'Fila '.$displayLine.': no existe categoría para la familia "'.$familia.'".',
+            ];
         }
 
         $payload = [
-            'category_id' => $categoryId,
+            'category_id' => $category->id,
             'sku' => $validated['sku'],
             'name' => $validated['nombre'],
             'description' => $validated['descripcion'] ?? null,
@@ -270,7 +257,7 @@ class ProductImportService
             'weight_kg' => $this->nullableNumeric($validated['peso_kg'] ?? null),
             'is_active' => $this->parseBoolean($validated['activo'] ?? null, true),
             'is_featured' => $this->parseBoolean($validated['destacado'] ?? null, false),
-            'familia' => $validated['familia'] ?? null,
+            'familia' => $familia,
             'image_filename' => $validated['nombre_archivo'] ?? null,
         ];
 
@@ -312,6 +299,20 @@ class ProductImportService
         Product::create($payload);
 
         return ['action' => 'created', 'error' => null];
+    }
+
+    protected function resolveCategoryFromFamilia(string $familia): ?Category
+    {
+        $candidates = array_values(array_unique([
+            $familia,
+            Str::lower($familia),
+            Str::slug($familia),
+        ]));
+
+        return Category::query()
+            ->whereNull('deleted_at')
+            ->whereIn('slug', $candidates)
+            ->first();
     }
 
     protected function nullableNumeric(?string $value): ?float

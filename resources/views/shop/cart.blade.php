@@ -35,13 +35,13 @@
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
                                                 <x-product-image
-                                                    :src="$item['product']['image'] ?? ''"
-                                                    :alt="$item['product']['name']"
+                                                    :src="data_get($item, 'product.image', '')"
+                                                    :alt="data_get($item, 'product.name', 'Producto')"
                                                     variant="thumb"
                                                 />
                                                 <div>
-                                                    <a href="{{ route('product.show', $item['product']['slug']) }}" class="fw-semibold text-decoration-none">
-                                                        {{ $item['product']['name'] }}
+                                                    <a href="{{ route('product.show', data_get($item, 'product.slug')) }}" class="fw-semibold text-decoration-none">
+                                                        {{ data_get($item, 'product.name') }}
                                                     </a>
                                                 </div>
                                             </div>

@@ -125,7 +125,7 @@
                     <ul class="list-unstyled mb-3">
                         @foreach($formatted['items'] as $item)
                             <li class="d-flex justify-content-between py-2 border-bottom">
-                                <span>{{ $item['product']['name'] }} × {{ $item['quantity'] }}</span>
+                                <span>{{ data_get($item, 'product.name', 'Producto') }} × {{ $item['quantity'] }}</span>
                                 <span>{{ clp($item['line_total']) }}</span>
                             </li>
                         @endforeach

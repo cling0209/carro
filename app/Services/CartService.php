@@ -26,7 +26,10 @@ class CartService
                 }
             }
 
-            return $cart->load('items.product.images');
+            $cart->load('items.product.images');
+            $this->purgeUnavailableItems($cart, $request);
+
+            return $cart;
         }
 
         if (! $sessionId) {
@@ -37,12 +40,19 @@ class CartService
 
         $cart->setAttribute('session_token', $sessionId);
 
-        return $cart->load('items.product.images');
+        $cart->load('items.product.images');
+        $this->purgeUnavailableItems($cart, $request);
+
+        return $cart;
     }
 
     protected function mergeCarts(Cart $from, Cart $to): void
     {
         foreach ($from->items as $item) {
+            if (! $this->isProductAvailable($item->product_id)) {
+                continue;
+            }
+
             $existing = $to->items()->where('product_id', $item->product_id)->first();
             if ($existing) {
                 $existing->update(['quantity' => $existing->quantity + $item->quantity]);
@@ -88,28 +98,66 @@ class CartService
 
     public function formatCart(Cart $cart): array
     {
+        $this->purgeUnavailableItems($cart);
         $cart->loadMissing('items.product.images');
         $totals = $cart->recalculateTotals();
 
         return [
             'id' => $cart->id,
             'session_id' => $cart->session_id ?? $cart->getAttribute('session_token'),
-            'items' => $cart->items->map(fn (CartItem $item) => [
-                'id' => $item->id,
-                'product_id' => $item->product_id,
-                'quantity' => $item->quantity,
-                'unit_price' => $item->unit_price,
-                'line_total' => round($item->unit_price * $item->quantity, 2),
-                'product' => $item->product ? [
-                    'id' => $item->product->id,
-                    'name' => $item->product->name,
-                    'slug' => $item->product->slug,
-                    'stock' => $item->product->stock,
-                    'image' => $item->product->resolveImageUrl(),
-                ] : null,
-            ]),
+            'items' => $cart->items
+                ->filter(fn (CartItem $item) => $item->product !== null)
+                ->values()
+                ->map(fn (CartItem $item) => [
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'line_total' => round($item->unit_price * $item->quantity, 2),
+                    'product' => [
+                        'id' => $item->product->id,
+                        'name' => $item->product->name,
+                        'slug' => $item->product->slug,
+                        'stock' => $item->product->stock,
+                        'image' => $item->product->resolveImageUrl(),
+                    ],
+                ]),
             'subtotal' => $totals['subtotal'],
             'item_count' => $totals['item_count'],
         ];
+    }
+
+    protected function purgeUnavailableItems(Cart $cart, ?Request $request = null): int
+    {
+        $cart->loadMissing('items.product');
+
+        $orphanIds = $cart->items
+            ->filter(fn (CartItem $item) => $item->product === null || ! $item->product->is_active)
+            ->pluck('id');
+
+        if ($orphanIds->isEmpty()) {
+            return 0;
+        }
+
+        CartItem::query()->whereIn('id', $orphanIds)->delete();
+        $cart->unsetRelation('items');
+
+        if ($request && ! $request->expectsJson()) {
+            session()->flash(
+                'warning',
+                'Se quitaron del carro producto(s) que ya no están disponibles.'
+            );
+        }
+
+        return $orphanIds->count();
+    }
+
+    protected function isProductAvailable(?int $productId): bool
+    {
+        if ($productId === null) {
+            return false;
+        }
+
+        return Product::query()->active()->whereKey($productId)->exists();
     }
 }

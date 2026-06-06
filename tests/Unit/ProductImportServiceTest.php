@@ -16,13 +16,13 @@ class ProductImportServiceTest extends TestCase
     public function test_imports_new_product_from_csv(): void
     {
         $category = Category::create([
-            'name' => 'Electrónica',
-            'slug' => 'electronica',
+            'name' => 'Libros',
+            'slug' => 'lib',
             'is_active' => true,
         ]);
 
-        $csv = "sku;nombre;precio;stock;categoria_slug\n";
-        $csv .= 'IMP-001;Producto importado;19990;10;electronica';
+        $csv = "sku;nombre;precio;stock;familia\n";
+        $csv .= 'IMP-001;Producto importado;19990;10;LIB';
 
         $file = UploadedFile::fake()->createWithContent('productos.csv', "\xEF\xBB\xBF".$csv);
 
@@ -34,22 +34,31 @@ class ProductImportServiceTest extends TestCase
             'sku' => 'IMP-001',
             'name' => 'Producto importado',
             'category_id' => $category->id,
+            'familia' => 'LIB',
             'stock' => 10,
         ]);
     }
 
     public function test_updates_existing_product_by_sku(): void
     {
+        $category = Category::create([
+            'name' => 'Libros',
+            'slug' => 'lib',
+            'is_active' => true,
+        ]);
+
         $product = Product::create([
+            'category_id' => $category->id,
             'sku' => 'IMP-002',
             'name' => 'Antes',
             'slug' => 'antes',
+            'familia' => 'LIB',
             'price' => 1000,
             'stock' => 1,
             'is_active' => true,
         ]);
 
-        $csv = "sku;nombre;precio;stock\nIMP-002;Después;5000;9";
+        $csv = "sku;nombre;precio;stock;familia\nIMP-002;Después;5000;9;LIB";
         $file = UploadedFile::fake()->createWithContent('productos.csv', $csv);
 
         $result = app(ProductImportService::class)->importFromUploadedFile($file);

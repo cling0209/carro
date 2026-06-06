@@ -36,13 +36,17 @@
                     </p>
                     <dl class="small mb-4">
                         <dt class="fw-semibold">Columnas obligatorias</dt>
-                        <dd><code>sku</code>, <code>nombre</code>, <code>precio</code>, <code>stock</code></dd>
+                        <dd><code>sku</code>, <code>nombre</code>, <code>precio</code>, <code>stock</code>, <code>familia</code></dd>
                         <dt class="fw-semibold">Columnas opcionales</dt>
                         <dd>
-                            <code>categoria_slug</code>, <code>slug</code>, <code>descripcion</code>,
-                            <code>precio_referencia</code>, <code>peso_kg</code>, <code>activo</code> (1/0),
-                            <code>destacado</code> (1/0), <code>familia</code> (carpeta imagen),
+                            <code>slug</code>, <code>descripcion</code>, <code>precio_referencia</code>,
+                            <code>peso_kg</code>, <code>activo</code> (1/0), <code>destacado</code> (1/0),
                             <code>nombre_archivo</code> (ej. <code>90503_medium.jpg</code>)
+                        </dd>
+                        <dt class="fw-semibold">Familia</dt>
+                        <dd class="mb-0">
+                            Define la carpeta de la imagen Romulo y la categoría del producto
+                            (debe existir una categoría con el mismo slug, ej. <code>LIB</code>).
                         </dd>
                     </dl>
                     <a href="{{ route('admin.products.import.template') }}" class="btn btn-outline-primary"
