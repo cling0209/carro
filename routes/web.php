@@ -47,6 +47,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('productos/carga-masiva', [AdminProductController::class, 'importForm'])->name('products.import');
         Route::get('productos/carga-masiva/plantilla', [AdminProductController::class, 'downloadImportTemplate'])->name('products.import.template');
         Route::post('productos/carga-masiva/chunk', [AdminProductController::class, 'storeImportChunk'])->name('products.import.chunk');
+        Route::post('productos/carga-masiva/procesar', [AdminProductController::class, 'processImportBatch'])->name('products.import.process');
         Route::get('productos/nuevo', [AdminProductController::class, 'create'])->name('products.create');
         Route::post('productos', [AdminProductController::class, 'store'])->name('products.store');
         Route::get('productos/{product}/editar', [AdminProductController::class, 'edit'])->name('products.edit');

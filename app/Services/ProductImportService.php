@@ -159,6 +159,17 @@ class ProductImportService
         return $rows;
     }
 
+    public function readPathAsUtf8(string $path): string
+    {
+        $raw = file_get_contents($path);
+
+        if ($raw === false) {
+            return '';
+        }
+
+        return $this->ensureUtf8($raw);
+    }
+
     protected function readFileAsUtf8(UploadedFile $file): string
     {
         $path = $file->getRealPath();
@@ -167,13 +178,7 @@ class ProductImportService
             return '';
         }
 
-        $raw = file_get_contents($path);
-
-        if ($raw === false) {
-            return '';
-        }
-
-        return $this->ensureUtf8($raw);
+        return $this->readPathAsUtf8($path);
     }
 
     protected function ensureUtf8(string $value): string

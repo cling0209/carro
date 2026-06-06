@@ -13,7 +13,7 @@ class ProductChunkUploadService
     public const MAX_TOTAL_BYTES = 52428800;
 
     /**
-     * @return array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}
+     * @return array{ready: bool, upload_id?: string, batch_count?: int}
      */
     public function storeChunk(
         string $uploadId,
@@ -66,33 +66,31 @@ class ProductChunkUploadService
         $this->storeChunkFile($chunk, $dir.'/'.$this->chunkFilename($chunkIndex));
 
         if ($chunkIndex !== $totalChunks - 1) {
-            return [
-                'created' => 0,
-                'updated' => 0,
-                'reactivated' => 0,
-                'skipped' => 0,
-                'errors' => [],
-            ];
+            return ['ready' => false];
         }
 
         $mergedPath = $this->mergeChunks($uploadId, $totalChunks);
 
         try {
-            $uploaded = new UploadedFile(
+            $prepared = app(ProductImportJobService::class)->prepareFromMergedCsv(
+                $uploadId,
                 $mergedPath,
+                $userId,
                 $meta['original_name'],
-                'text/csv',
-                null,
-                true
             );
-
-            return app(ProductImportService::class)->importFromUploadedFile($uploaded);
         } finally {
             $this->cleanup($uploadId);
+
             if (File::exists($mergedPath)) {
                 File::delete($mergedPath);
             }
         }
+
+        return [
+            'ready' => true,
+            'upload_id' => $prepared['upload_id'],
+            'batch_count' => $prepared['batch_count'],
+        ];
     }
 
     protected function mergeChunks(string $uploadId, int $totalChunks): string

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\ProductChunkUploadService;
+use App\Services\ProductImportJobService;
 use App\Services\ProductImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -151,9 +152,7 @@ class ProductController extends Controller
             ], 500);
         }
 
-        $isLastChunk = ((int) $data['chunk_index']) === ((int) $data['total_chunks'] - 1);
-
-        if (! $isLastChunk) {
+        if (! $result['ready']) {
             return response()->json([
                 'done' => false,
                 'received' => (int) $data['chunk_index'] + 1,
@@ -163,8 +162,45 @@ class ProductController extends Controller
 
         return response()->json([
             'done' => true,
-            'redirect' => $this->flashImportResultAndGetRedirectUrl($result),
+            'upload_id' => $result['upload_id'],
+            'batch_count' => $result['batch_count'],
         ]);
+    }
+
+    public function processImportBatch(Request $request, ProductImportJobService $importJob): JsonResponse
+    {
+        $data = $request->validate([
+            'upload_id' => ['required', 'uuid'],
+        ]);
+
+        try {
+            $progress = $importJob->processNextBatch(
+                $data['upload_id'],
+                (int) $request->user()->id,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Error interno al importar productos. Reintenta en unos minutos.',
+            ], 500);
+        }
+
+        $payload = [
+            'finished' => $progress['finished'],
+            'processed_batches' => $progress['processed_batches'],
+            'total_batches' => $progress['total_batches'],
+        ];
+
+        if ($progress['finished']) {
+            $payload['redirect'] = $this->flashImportResultAndGetRedirectUrl($progress['result']);
+        }
+
+        return response()->json($payload);
     }
 
     /**

@@ -99,6 +99,7 @@
 <script>
 const CHUNK_SIZE = 512 * 1024;
 const chunkUploadUrl = @json(route('admin.products.import.chunk'));
+const processImportUrl = @json(route('admin.products.import.process'));
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
 
 function importErrorMessage(payload, status) {
@@ -111,6 +112,45 @@ function importErrorMessage(payload, status) {
     }
 
     return `Error del servidor (${status}).`;
+}
+
+async function processImportBatches(uploadId, batchCount, progressBar, progressLabel, progressPercent) {
+    let processed = 0;
+
+    while (processed < batchCount) {
+        const formData = new FormData();
+        formData.append('upload_id', uploadId);
+        formData.append('_token', csrfToken);
+
+        const response = await fetch(processImportUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            credentials: 'same-origin',
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(importErrorMessage(payload, response.status));
+        }
+
+        processed = payload.processed_batches ?? processed + 1;
+        const percent = Math.round((processed / batchCount) * 100);
+        progressBar.style.width = percent + '%';
+        progressBar.setAttribute('aria-valuenow', String(percent));
+        progressPercent.textContent = percent + '%';
+        progressLabel.textContent = `Importando productos (${processed}/${batchCount} lotes)...`;
+
+        if (payload.finished && payload.redirect) {
+            window.location.href = payload.redirect;
+            return;
+        }
+    }
 }
 
 document.getElementById('importForm').addEventListener('submit', async (event) => {
@@ -178,14 +218,20 @@ document.getElementById('importForm').addEventListener('submit', async (event) =
                 throw new Error(importErrorMessage(payload, response.status));
             }
 
-            const percent = Math.round(((chunkIndex + 1) / totalChunks) * 100);
-            progressBar.style.width = percent + '%';
-            progressBar.setAttribute('aria-valuenow', String(percent));
-            progressPercent.textContent = percent + '%';
+            const uploadPercent = Math.round(((chunkIndex + 1) / totalChunks) * 45);
+            progressBar.style.width = uploadPercent + '%';
+            progressBar.setAttribute('aria-valuenow', String(uploadPercent));
+            progressPercent.textContent = uploadPercent + '%';
 
-            if (payload.done && payload.redirect) {
-                progressLabel.textContent = 'Importando productos...';
-                window.location.href = payload.redirect;
+            if (payload.done && payload.upload_id) {
+                progressLabel.textContent = 'Preparando importación...';
+                await processImportBatches(
+                    payload.upload_id,
+                    payload.batch_count,
+                    progressBar,
+                    progressLabel,
+                    progressPercent
+                );
                 return;
             }
         }
