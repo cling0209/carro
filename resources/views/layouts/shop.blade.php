@@ -47,7 +47,7 @@
             <a href="{{ route('cart.index') }}" class="btn btn-outline-primary btn-sm rounded-pill position-relative">
                 <i class="bi bi-cart3"></i> Carro
                 @if(($cartCount ?? 0) > 0)
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill shop-cart-badge">
                         {{ $cartCount }}
                     </span>
                 @endif

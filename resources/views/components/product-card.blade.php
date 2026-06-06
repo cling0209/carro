@@ -30,7 +30,7 @@
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}">
                     <input type="hidden" name="quantity" value="1">
-                    <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill" @disabled($product->stock < 1)>
+                    <button type="submit" class="btn btn-add-cart btn-sm w-100 rounded-pill" @disabled($product->stock < 1)>
                         <i class="bi bi-cart-plus"></i>
                         {{ $product->stock > 0 ? 'Agregar' : 'Sin stock' }}
                     </button>

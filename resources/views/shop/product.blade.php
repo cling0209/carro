@@ -55,7 +55,7 @@
                            class="form-control" style="width:5rem" @disabled($product->stock < 1)>
                 </div>
                 <div class="col">
-                    <button type="submit" class="btn btn-primary btn-lg rounded-pill w-100" @disabled($product->stock < 1)>
+                    <button type="submit" class="btn btn-add-cart btn-lg rounded-pill w-100" @disabled($product->stock < 1)>
                         <i class="bi bi-cart-plus"></i> Agregar al carro
                     </button>
                 </div>

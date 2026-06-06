@@ -83,7 +83,7 @@
                         <span class="fw-bold">Subtotal</span>
                         <span class="fw-bold text-primary">{{ clp($formatted['subtotal']) }}</span>
                     </div>
-                    <a href="{{ route('checkout.index') }}" class="btn btn-primary btn-lg rounded-pill w-100">
+                    <a href="{{ route('checkout.index') }}" class="btn btn-go-checkout btn-lg rounded-pill w-100">
                         Ir a pagar <i class="bi bi-arrow-right"></i>
                     </a>
                     <a href="{{ route('catalog') }}" class="btn btn-link w-100 mt-2">Seguir comprando</a>

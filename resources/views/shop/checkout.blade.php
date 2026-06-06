@@ -146,7 +146,7 @@
                     <div class="alert alert-info small">
                         <i class="bi bi-credit-card"></i> Serás redirigido a <strong>Webpay Plus</strong> para pagar con tarjeta de crédito o débito.
                     </div>
-                    <button type="submit" class="btn btn-primary btn-lg rounded-pill w-100" id="checkout-submit" disabled>
+                    <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
                     </button>
                 </div>
