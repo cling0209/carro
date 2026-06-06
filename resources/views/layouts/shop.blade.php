@@ -86,11 +86,11 @@
     <div class="container py-5">
         <div class="row g-4">
             <div class="col-md-4">
-                <h5 class="fw-bold">{{ config('app.name', 'Rómulo') }}</h5>
-                <p class="text-secondary mb-0">Tienda online Chile, Webpay Plus, envío a todo el país.</p>
+                <x-shop-logo variant="light" :href="route('home')" class="mb-3" />
+                <p class="text-secondary mb-0">Insumos y productos para tu negocio o tu hogar. Envío a todo Chile.</p>
             </div>
             <div class="col-md-4">
-                <h6 class="fw-semibold">Enlaces</h6>
+                <h6 class="fw-semibold"><i class="bi bi-link-45deg me-1"></i> Enlaces</h6>
                 <ul class="list-unstyled mb-0">
                     <li><a href="{{ route('catalog') }}">Catálogo</a></li>
                     <li><a href="{{ route('about') }}">Quiénes somos</a></li>
@@ -98,7 +98,7 @@
                 </ul>
             </div>
             <div class="col-md-4">
-                <h6 class="fw-semibold">Pago seguro</h6>
+                <h6 class="fw-semibold"><i class="bi bi-shield-lock me-1"></i> Pago seguro</h6>
                 <p class="text-secondary small mb-0">Pagos procesados por Transbank Webpay Plus.</p>
             </div>
         </div>

@@ -1,18 +1,21 @@
 @props(['product'])
 
 <div class="col-sm-6 col-lg-3">
-    <article class="card product-card h-100 border-0 shadow-sm">
+    <article class="card product-card h-100 border-0 shadow-sm {{ $product->is_featured ? 'product-card--featured' : '' }}">
         <a href="{{ route('product.show', $product->slug) }}" class="text-decoration-none">
             <div class="product-img-wrap">
                 <x-product-image :product="$product" variant="card" />
                 @if($product->compare_at_price && $product->compare_at_price > $product->price)
                     <span class="badge sale-badge">Oferta</span>
                 @endif
+                @if($product->is_featured)
+                    <span class="badge featured-badge"><i class="bi bi-star-fill me-1"></i>Destacado</span>
+                @endif
             </div>
         </a>
         <div class="card-body d-flex flex-column">
             @if($product->category)
-                <small class="text-primary fw-semibold text-uppercase">{{ $product->category->name }}</small>
+                <small class="fw-semibold text-uppercase" style="color: var(--shop-orange);">{{ $product->category->name }}</small>
             @endif
             <h3 class="h6 card-title mt-1 mb-2">
                 <a href="{{ route('product.show', $product->slug) }}" class="text-dark text-decoration-none stretched-link-title">

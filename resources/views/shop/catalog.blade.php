@@ -22,7 +22,7 @@
         </aside>
         <div class="col-lg-9">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 fw-bold mb-0">Catálogo</h1>
+                <h1 class="h3 fw-bold mb-0 section-title"><i class="bi bi-grid"></i> Catálogo</h1>
                 @if($search)
                     <span class="text-muted">Resultados para “{{ $search }}”</span>
                 @endif
