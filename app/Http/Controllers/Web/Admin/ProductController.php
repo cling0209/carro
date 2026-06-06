@@ -128,7 +128,7 @@ class ProductController extends Controller
             'chunk_index' => ['required', 'integer', 'min:0'],
             'total_chunks' => ['required', 'integer', 'min:1', 'max:500'],
             'original_name' => ['required', 'string', 'max:255'],
-            'chunk' => ['required', 'file', 'max:4096'],
+            'chunk' => ['required', 'file', 'max:7168'],
         ]);
 
         try {

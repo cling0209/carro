@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class ProductChunkUploadService
 {
-    public const MAX_CHUNK_BYTES = 524288;
+    public const MAX_CHUNK_BYTES = 6291456;
 
     public const MAX_TOTAL_BYTES = 52428800;
 

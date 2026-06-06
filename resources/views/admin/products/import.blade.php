@@ -67,7 +67,7 @@
                             <label class="form-label">Archivo CSV *</label>
                             <input type="file" id="importFile" accept=".csv,text/csv" class="form-control" required>
                             <div class="form-text">
-                                Hasta 50 MB. Se sube en fragmentos para evitar límites del servidor.
+                                Hasta 50 MB. Se sube en fragmentos de ~6 MB e importa en lotes de 100 productos.
                                 Si un SKU ya existe, el producto se actualiza; si estaba dado de baja, se reactiva.
                             </div>
                         </div>
@@ -97,7 +97,7 @@
 
 @push('scripts')
 <script>
-const CHUNK_SIZE = 512 * 1024;
+const CHUNK_SIZE = 6 * 1024 * 1024;
 const chunkUploadUrl = @json(route('admin.products.import.chunk'));
 const processImportUrl = @json(route('admin.products.import.process'));
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
