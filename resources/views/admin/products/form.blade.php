@@ -71,7 +71,7 @@
                                 <input type="number" name="price" min="0" step="1"
                                        class="form-control @error('price') is-invalid @enderror"
                                        value="{{ old('price', $product->price) }}" required>
-                                <div class="form-text">Lo que paga el cliente en el carrito y checkout.</div>
+                                <div class="form-text">Lo que paga el cliente en el carrito y al pagar.</div>
                                 @error('price')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">

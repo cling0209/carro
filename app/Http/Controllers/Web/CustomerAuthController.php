@@ -29,7 +29,7 @@ class CustomerAuthController extends Controller
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()
                 ->withInput($request->only('email'))
-                ->with('error', 'Email o contraseña incorrectos.');
+                ->with('error', 'Correo o contraseña incorrectos.');
         }
 
         $request->session()->regenerate();

@@ -12,7 +12,7 @@
             <form method="post" action="{{ route('admin.login.store') }}">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label" for="email">Email</label>
+                    <label class="form-label" for="email">Correo electrónico</label>
                     <input type="email" name="email" id="email" value="{{ old('email') }}"
                            class="form-control @error('email') is-invalid @enderror" required autofocus>
                     @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror

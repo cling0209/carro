@@ -52,7 +52,7 @@
                             <div class="input-group">
                                 <input type="password" name="password_confirmation" id="password_confirmation"
                                        class="form-control" required autocomplete="new-password"
-                                       minlength="6" maxlength="10">
+                                       minlength="6" maxlength="{{ $passwordMaxLength }}">
                                 <button type="button" class="btn btn-outline-secondary js-password-toggle"
                                         data-target="password_confirmation" aria-label="Mostrar contraseña">
                                     <i class="bi bi-eye"></i>

@@ -1,6 +1,6 @@
 @extends('layouts.shop')
 
-@section('title', 'Checkout')
+@section('title', 'Finalizar compra')
 
 @section('content')
 <section class="container py-4 py-lg-5">
@@ -35,7 +35,7 @@
                             @error('customer_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Email *</label>
+                            <label class="form-label">Correo electrónico *</label>
                             <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
                                    value="{{ $defaults['email'] }}" required>
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror

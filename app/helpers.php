@@ -60,3 +60,15 @@ if (! function_exists('payment_status_label')) {
         };
     }
 }
+
+if (! function_exists('payment_transaction_status_label')) {
+    function payment_transaction_status_label(?string $status): string
+    {
+        return match ($status) {
+            'created' => 'Iniciada',
+            'approved' => 'Aprobada',
+            'rejected' => 'Rechazada',
+            default => $status ?? '—',
+        };
+    }
+}

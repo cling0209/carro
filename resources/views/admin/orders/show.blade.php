@@ -137,7 +137,7 @@
                     </p>
                     @forelse($order->paymentTransactions as $payment)
                         <div class="border rounded p-3 small mb-2">
-                            <div><strong>Estado:</strong> {{ $payment->status }}</div>
+                            <div><strong>Estado:</strong> {{ payment_transaction_status_label($payment->status) }}</div>
                             @if($payment->payment_type_label)
                                 <div><strong>Tarjeta:</strong> {{ $payment->payment_type_label }}</div>
                             @endif

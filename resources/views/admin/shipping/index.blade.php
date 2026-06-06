@@ -55,7 +55,7 @@
             <div class="card admin-card">
                 <div class="card-header bg-white fw-semibold">Tarifa fija por región (fuera de RM)</div>
                 <div class="card-body border-bottom py-3 text-muted small">
-                    Monto base de cada región. Se suma el tramo de peso de la comuna elegida en el checkout.
+                    Monto base de cada región. Se suma el tramo de peso de la comuna elegida al pagar.
                 </div>
                 <form method="post" action="{{ route('admin.shipping.regions') }}">
                     @csrf

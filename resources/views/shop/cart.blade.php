@@ -77,7 +77,7 @@
                         <span>Subtotal ({{ $formatted['item_count'] }} ítems)</span>
                         <span class="fw-semibold">{{ clp($formatted['subtotal']) }}</span>
                     </div>
-                    <p class="text-muted small">El envío se calcula en el checkout según tu región.</p>
+                    <p class="text-muted small">El envío se calcula al pagar según tu región.</p>
                     <hr>
                     <div class="d-flex justify-content-between mb-4 fs-5">
                         <span class="fw-bold">Subtotal</span>

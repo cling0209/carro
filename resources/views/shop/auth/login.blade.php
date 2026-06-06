@@ -9,13 +9,13 @@
             <div class="checkout-card card p-4">
                 <h1 class="h4 fw-bold mb-1">Ingresar a tu cuenta</h1>
                 <p class="text-muted small mb-4">
-                    Tus datos de envío se completarán automáticamente en el checkout.
+                    Tus datos de envío se completarán automáticamente al pagar.
                 </p>
 
                 <form method="post" action="{{ route('account.login.store') }}">
                     @csrf
                     <div class="mb-3">
-                        <label class="form-label" for="email">Email</label>
+                        <label class="form-label" for="email">Correo electrónico</label>
                         <input type="email" name="email" id="email"
                                class="form-control @error('email') is-invalid @enderror"
                                value="{{ old('email') }}" required autofocus>
@@ -37,7 +37,7 @@
 
                 <p class="small text-muted text-center mt-4 mb-0">
                     ¿Primera compra?
-                    <a href="{{ route('checkout.index') }}">Ve al checkout</a> y marca «Crear cuenta».
+                    <a href="{{ route('checkout.index') }}">Ve a finalizar compra</a> y marca «Crear cuenta».
                 </p>
             </div>
         </div>

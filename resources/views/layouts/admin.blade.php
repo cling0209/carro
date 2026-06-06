@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin') — {{ config('app.name', 'Carro') }}</title>
+    <title>@yield('title', 'Administración') — {{ config('app.name', 'Carro') }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -19,7 +19,7 @@
 <nav class="navbar navbar-dark admin-navbar">
     <div class="container-fluid">
         <a class="navbar-brand fw-bold" href="{{ route('admin.products.index') }}">
-            <i class="bi bi-speedometer2 me-1"></i> Admin {{ config('app.name') }}
+            <i class="bi bi-speedometer2 me-1"></i> Administración {{ config('app.name') }}
         </a>
         <div class="d-flex align-items-center gap-3">
             <a href="{{ route('admin.products.index') }}" class="nav-link-admin {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
