@@ -45,7 +45,8 @@
                             <code>nombre_archivo</code> (ej. <code>90503_medium.jpg</code>)
                         </dd>
                     </dl>
-                    <a href="{{ route('admin.products.import.template') }}" class="btn btn-outline-primary">
+                    <a href="{{ route('admin.products.import.template') }}" class="btn btn-outline-primary"
+                       download="plantilla_productos.csv" data-no-loader>
                         <i class="bi bi-download"></i> Descargar plantilla CSV
                     </a>
                 </div>

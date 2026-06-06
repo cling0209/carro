@@ -24,6 +24,12 @@
         if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
         if (link.origin !== window.location.origin) return;
         showLoader();
+        // Descargas de archivo no navegan: ocultar si la página sigue visible.
+        window.setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+                hideLoader();
+            }
+        }, 1500);
     });
 
     document.addEventListener('submit', (event) => {
