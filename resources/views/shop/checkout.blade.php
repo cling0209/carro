@@ -143,8 +143,12 @@
                         <span class="text-primary" id="summary-total">—</span>
                     </div>
                     <div id="shipping-error" class="alert alert-warning small d-none"></div>
-                    <div class="alert alert-info small">
+                    <div class="alert alert-info small mb-3">
                         <i class="bi bi-credit-card"></i> Serás redirigido a <strong>Webpay Plus</strong> para pagar con tarjeta de crédito o débito.
+                    </div>
+                    <div id="checkout-submit-hint" class="alert alert-warning border-warning small mb-3">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        El botón de pago se activará cuando ingreses todos los <strong>datos obligatorios</strong> y se calcule el envío.
                     </div>
                     <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
@@ -169,6 +173,10 @@ const summaryShipping = document.getElementById('summary-shipping');
 const summaryTotal = document.getElementById('summary-total');
 const shippingError = document.getElementById('shipping-error');
 const checkoutSubmit = document.getElementById('checkout-submit');
+const checkoutSubmitHint = document.getElementById('checkout-submit-hint');
+const checkoutForm = checkoutSubmit.closest('form');
+
+let shippingReady = false;
 
 const createAccountCheckbox = document.getElementById('create_account');
 const createAccountFields = document.getElementById('create-account-fields');
@@ -189,6 +197,28 @@ function toggleCreateAccountFields() {
     createAccountFields.classList.toggle('d-none', !show);
     if (passwordInput) passwordInput.required = show;
     if (passwordConfirmInput) passwordConfirmInput.required = show;
+    updateCheckoutSubmitState();
+}
+
+function requiredFieldsComplete() {
+    if (!checkoutForm) return false;
+
+    return Array.from(checkoutForm.querySelectorAll('[required]')).every((field) => {
+        if (field.offsetParent === null || field.closest('.d-none')) {
+            return true;
+        }
+
+        return String(field.value ?? '').trim() !== '';
+    });
+}
+
+function updateCheckoutSubmitState() {
+    const ready = shippingReady && requiredFieldsComplete();
+    checkoutSubmit.disabled = !ready;
+
+    if (checkoutSubmitHint) {
+        checkoutSubmitHint.classList.toggle('d-none', ready);
+    }
 }
 
 function loadComunas() {
@@ -217,18 +247,21 @@ async function quoteShipping() {
     if (!region) {
         summaryShipping.textContent = 'Selecciona región y comuna';
         summaryTotal.textContent = '—';
-        checkoutSubmit.disabled = true;
+        shippingReady = false;
+        updateCheckoutSubmitState();
         return;
     }
 
     if (!isRmRegion(region) && !comuna) {
         summaryShipping.textContent = 'Selecciona comuna';
         summaryTotal.textContent = '—';
-        checkoutSubmit.disabled = true;
+        shippingReady = false;
+        updateCheckoutSubmitState();
         return;
     }
 
-    checkoutSubmit.disabled = true;
+    shippingReady = false;
+    updateCheckoutSubmitState();
     summaryShipping.textContent = 'Calculando...';
     summaryTotal.textContent = '—';
 
@@ -246,13 +279,15 @@ async function quoteShipping() {
 
         summaryShipping.textContent = formatClp(data.shipping.amount);
         summaryTotal.textContent = formatClp(data.total);
-        checkoutSubmit.disabled = false;
+        shippingReady = true;
+        updateCheckoutSubmitState();
     } catch (error) {
         summaryShipping.textContent = '—';
         summaryTotal.textContent = '—';
         shippingError.textContent = error.message;
         shippingError.classList.remove('d-none');
-        checkoutSubmit.disabled = true;
+        shippingReady = false;
+        updateCheckoutSubmitState();
     }
 }
 
@@ -263,6 +298,13 @@ if (createAccountCheckbox) {
 
 regionSelect.addEventListener('change', loadComunas);
 comunaSelect.addEventListener('change', quoteShipping);
+
+if (checkoutForm) {
+    checkoutForm.addEventListener('input', updateCheckoutSubmitState);
+    checkoutForm.addEventListener('change', updateCheckoutSubmitState);
+}
+
 if (regionSelect.value) loadComunas();
+updateCheckoutSubmitState();
 </script>
 @endpush
