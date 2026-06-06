@@ -47,6 +47,7 @@ class ShippingController extends Controller
         return view('admin.shipping.index', [
             'rmFlatRate' => ShippingSetting::getFloat('rm_flat_rate', 3990),
             'defaultProductWeight' => ShippingSetting::getFloat('default_product_weight_kg', 1.0),
+            'fallbackAdditional' => ShippingSetting::getFloat('fallback_additional_clp', 500),
             'regionRates' => ShippingRegionRate::query()->orderBy('region')->get(),
             'regionComunas' => $regionComunas,
             'selectedRegion' => $selectedRegion,
@@ -60,10 +61,12 @@ class ShippingController extends Controller
         $data = $request->validate([
             'rm_flat_rate' => ['required', 'numeric', 'min:0'],
             'default_product_weight_kg' => ['required', 'numeric', 'min:0.001'],
+            'fallback_additional_clp' => ['required', 'numeric', 'min:0'],
         ]);
 
         ShippingSetting::setValue('rm_flat_rate', $data['rm_flat_rate']);
         ShippingSetting::setValue('default_product_weight_kg', $data['default_product_weight_kg']);
+        ShippingSetting::setValue('fallback_additional_clp', $data['fallback_additional_clp']);
 
         return redirect()
             ->route('admin.shipping.index')

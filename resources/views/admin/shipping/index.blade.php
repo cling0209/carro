@@ -14,7 +14,7 @@
     <div class="row g-4">
         <div class="col-12 col-xl-4">
             <div class="card admin-card">
-                <div class="card-header bg-white fw-semibold">Tarifa fija RM</div>
+                <div class="card-header bg-white fw-semibold">Configuración general</div>
                 <div class="card-body">
                     <form method="post" action="{{ route('admin.shipping.settings') }}">
                         @csrf
@@ -35,7 +35,17 @@
                             @error('default_product_weight_kg')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             <div class="form-text">Si un producto no tiene peso definido.</div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Guardar RM</button>
+                        <div class="mb-3">
+                            <label class="form-label">Adicional fijo sin tramo (CLP) *</label>
+                            <input type="number" name="fallback_additional_clp" min="0" step="1"
+                                   class="form-control @error('fallback_additional_clp') is-invalid @enderror"
+                                   value="{{ old('fallback_additional_clp', $fallbackAdditional) }}" required>
+                            @error('fallback_additional_clp')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">
+                                Para todas las comunas fuera de RM: se suma a la tarifa regional cuando no aplica ningún tramo de peso.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar configuración</button>
                     </form>
                 </div>
             </div>
@@ -130,8 +140,8 @@
                     </form>
                     @if($selectedRegion && $selectedComuna)
                         <p class="text-muted small mb-0 mt-3">
-                            Tramos para <strong>{{ $selectedComuna }}</strong> ({{ $selectedRegion }}).
-                            El adicional se suma a la tarifa fija de la región.
+                            Tramos de peso para <strong>{{ $selectedComuna }}</strong>. El adicional se suma a la tarifa fija de la región.
+                            Si no aplica ningún tramo, se usa el adicional fijo global ({{ clp($fallbackAdditional) }}).
                         </p>
                     @endif
                 </div>

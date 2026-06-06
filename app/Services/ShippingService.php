@@ -69,15 +69,26 @@ class ShippingService
         }
 
         $rate = ShippingComunaWeightRate::findForComunaAndWeight($region, $comuna, $totalWeight);
+        $usedFallback = $rate === null;
 
-        if (! $rate) {
-            throw new \InvalidArgumentException(
-                'No hay tarifa de envío configurada para '.$comuna.' con peso total de '
-                .number_format($totalWeight, 2, ',', '.').' kg.'
-            );
+        if ($usedFallback) {
+            $weightTramoAmount = ShippingSetting::getFloat('fallback_additional_clp', 500);
+            $rateLabel = 'Fija región + adicional fijo ('.$comuna.')';
+            $comunaWeightRateId = null;
+            $weightRateMeta = null;
+        } else {
+            $weightTramoAmount = (float) $rate->price;
+            $rateLabel = 'Fija región + '.$rate->label.' ('.$comuna.')';
+            $comunaWeightRateId = $rate->id;
+            $weightRateMeta = [
+                'id' => $rate->id,
+                'label' => $rate->label,
+                'min_weight_kg' => $rate->min_weight_kg,
+                'max_weight_kg' => $rate->max_weight_kg,
+                'price' => $rate->price,
+            ];
         }
 
-        $weightTramoAmount = (float) $rate->price;
         $amount = round($regionFlatRate + $weightTramoAmount, 2);
 
         return [
@@ -85,20 +96,15 @@ class ShippingService
             'zone' => self::ZONE_REGIONS,
             'total_weight_kg' => $totalWeight,
             'rate_type' => self::RATE_REGION_FLAT_PLUS_WEIGHT,
-            'rate_label' => 'Fija región + '.$rate->label.' ('.$comuna.')',
-            'comuna_weight_rate_id' => $rate->id,
+            'rate_label' => $rateLabel,
+            'comuna_weight_rate_id' => $comunaWeightRateId,
             'metadata' => [
                 'region' => $region,
                 'comuna' => $comuna,
                 'region_flat_rate' => $regionFlatRate,
                 'weight_tramo_amount' => $weightTramoAmount,
-                'weight_rate' => [
-                    'id' => $rate->id,
-                    'label' => $rate->label,
-                    'min_weight_kg' => $rate->min_weight_kg,
-                    'max_weight_kg' => $rate->max_weight_kg,
-                    'price' => $rate->price,
-                ],
+                'used_fallback_additional' => $usedFallback,
+                'weight_rate' => $weightRateMeta,
                 'items' => $weightBreakdown['items'],
             ],
         ];
