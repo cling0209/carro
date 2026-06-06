@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductImportService
 {
@@ -42,6 +43,50 @@ class ProductImportService
             'destacado',
             'nombre_archivo',
         ];
+    }
+
+    public function parseUploadedCsv(UploadedFile $file): array
+    {
+        return $this->parseCsv($file);
+    }
+
+    public function exportProductsCsvResponse(): StreamedResponse
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, $this->templateHeaders(), ';');
+
+            Product::query()
+                ->with('category')
+                ->orderBy('sku')
+                ->chunk(500, function ($products) use ($handle) {
+                    foreach ($products as $product) {
+                        fputcsv($handle, [
+                            $product->sku,
+                            $product->name,
+                            number_format((float) $product->price, 0, '', ''),
+                            $product->stock,
+                            $product->familia ?? '',
+                            $product->slug,
+                            $product->description ?? '',
+                            $product->compare_at_price !== null
+                                ? number_format((float) $product->compare_at_price, 0, '', '')
+                                : '',
+                            $product->weight_kg !== null
+                                ? rtrim(rtrim(number_format((float) $product->weight_kg, 3, '.', ''), '0'), '.')
+                                : '',
+                            $product->is_active ? '1' : '0',
+                            $product->is_featured ? '1' : '0',
+                            $product->image_filename ?? '',
+                        ], ';');
+                    }
+                });
+
+            fclose($handle);
+        }, 'productos_'.now()->format('Y-m-d').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function generateTemplateCsv(): string

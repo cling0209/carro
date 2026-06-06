@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\ShippingComunaWeightRate;
 use App\Models\ShippingRegionRate;
 use App\Models\ShippingSetting;
+use App\Services\Admin\ShippingWeightRateImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ShippingController extends Controller
 {
+    public function __construct(protected ShippingWeightRateImportService $rateImport) {}
+
     public function index(Request $request): View
     {
         $regionComunas = ShippingComunaWeightRate::chileRegionComunasExcludingRm();
@@ -130,6 +134,63 @@ class ShippingController extends Controller
         return redirect()
             ->route('admin.shipping.index', compact('region', 'comuna'))
             ->with('success', 'Tramo de peso eliminado.');
+    }
+
+    public function importForm(): View
+    {
+        return view('admin.shipping.import');
+    }
+
+    public function downloadImportTemplate(): StreamedResponse
+    {
+        $content = $this->rateImport->generateTemplateCsv();
+
+        return response()->streamDownload(
+            fn () => print($content),
+            'plantilla_tramos_peso.csv',
+            ['Content-Type' => 'text/csv; charset=UTF-8']
+        );
+    }
+
+    public function exportRates(): StreamedResponse
+    {
+        return $this->rateImport->exportCsvResponse();
+    }
+
+    public function processImport(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
+        ]);
+
+        $result = $this->rateImport->importFromUploadedFile($request->file('file'));
+
+        $parts = [];
+
+        if ($result['created'] > 0) {
+            $parts[] = $result['created'].' creado(s)';
+        }
+
+        if ($result['updated'] > 0) {
+            $parts[] = $result['updated'].' actualizado(s)';
+        }
+
+        if ($parts === []) {
+            return redirect()
+                ->route('admin.shipping.import')
+                ->with('error', 'No se importó ningún tramo.')
+                ->with('import_errors', array_slice($result['errors'], 0, 30));
+        }
+
+        $redirect = redirect()
+            ->route('admin.shipping.index')
+            ->with('success', 'Importación completada: '.implode(', ', $parts).'.');
+
+        if ($result['errors'] !== []) {
+            $redirect->with('import_errors', array_slice($result['errors'], 0, 30));
+        }
+
+        return $redirect;
     }
 
     protected function validatedRate(Request $request, ?ShippingComunaWeightRate $existing = null): array

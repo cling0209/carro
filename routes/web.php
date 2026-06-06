@@ -49,6 +49,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('productos', [AdminProductController::class, 'index'])->name('products.index');
         Route::get('productos/carga-masiva', [AdminProductController::class, 'importForm'])->name('products.import');
         Route::get('productos/carga-masiva/plantilla', [AdminProductController::class, 'downloadImportTemplate'])->name('products.import.template');
+        Route::get('productos/exportar', [AdminProductController::class, 'exportProducts'])->name('products.export');
         Route::post('productos/carga-masiva/chunk', [AdminProductController::class, 'storeImportChunk'])->name('products.import.chunk');
         Route::post('productos/carga-masiva/procesar', [AdminProductController::class, 'processImportBatch'])->name('products.import.process');
         Route::get('productos/nuevo', [AdminProductController::class, 'create'])->name('products.create');
@@ -69,6 +70,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('ventas/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
 
         Route::get('envios', [AdminShippingController::class, 'index'])->name('shipping.index');
+        Route::get('envios/carga-masiva', [AdminShippingController::class, 'importForm'])->name('shipping.import');
+        Route::get('envios/carga-masiva/plantilla', [AdminShippingController::class, 'downloadImportTemplate'])->name('shipping.import.template');
+        Route::get('envios/exportar-tramos', [AdminShippingController::class, 'exportRates'])->name('shipping.export');
+        Route::post('envios/carga-masiva', [AdminShippingController::class, 'processImport'])->name('shipping.import.store');
         Route::put('envios', [AdminShippingController::class, 'updateSettings'])->name('shipping.settings');
         Route::put('envios/regiones', [AdminShippingController::class, 'updateRegionRates'])->name('shipping.regions');
         Route::post('envios/tramos', [AdminShippingController::class, 'storeRate'])->name('shipping.rates.store');

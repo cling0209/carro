@@ -4,12 +4,28 @@
 
 @section('content')
 <div class="container-fluid py-4">
-    <div class="mb-4">
-        <h1 class="h3 fw-bold mb-1">Configuración de envíos</h1>
-        <p class="text-muted mb-0">
-            RM: tarifa fija. Otras regiones: tarifa fija regional + adicional por tramo de peso según la comuna.
-        </p>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Configuración de envíos</h1>
+            <p class="text-muted mb-0">
+                RM: tarifa fija. Otras regiones: tarifa fija regional + adicional por tramo de peso según la comuna.
+            </p>
+        </div>
+        <a href="{{ route('admin.shipping.import') }}" class="btn btn-outline-primary">
+            <i class="bi bi-upload"></i> Carga masiva tramos
+        </a>
     </div>
+
+    @if(session('import_errors'))
+        <div class="alert alert-warning">
+            <strong>Errores en la importación:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach(session('import_errors') as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="row g-4">
         <div class="col-12 col-xl-4">
@@ -108,11 +124,16 @@
             <div class="card admin-card">
                 <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold">Tramos por peso por comuna</span>
-                    @if($selectedRegion && $selectedComuna)
-                        <button type="button" class="btn btn-sm btn-primary" onclick="openRateModal()">
-                            <i class="bi bi-plus-lg"></i> Nuevo tramo
-                        </button>
-                    @endif
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('admin.shipping.export') }}" class="btn btn-sm btn-outline-success" data-no-loader>
+                            <i class="bi bi-download"></i> Exportar CSV
+                        </a>
+                        @if($selectedRegion && $selectedComuna)
+                            <button type="button" class="btn btn-sm btn-primary" onclick="openRateModal()">
+                                <i class="bi bi-plus-lg"></i> Nuevo tramo
+                            </button>
+                        @endif
+                    </div>
                 </div>
                 <div class="card-body border-bottom">
                     <form method="get" action="{{ route('admin.shipping.index') }}" class="row g-3 align-items-end">

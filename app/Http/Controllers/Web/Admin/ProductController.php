@@ -115,6 +115,11 @@ class ProductController extends Controller
         );
     }
 
+    public function exportProducts(ProductImportService $importService): StreamedResponse
+    {
+        return $importService->exportProductsCsvResponse();
+    }
+
     public function storeImportChunk(Request $request, ProductChunkUploadService $chunkUpload): JsonResponse
     {
         if (! $request->hasFile('chunk') || ! $request->file('chunk')->isValid()) {

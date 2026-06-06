@@ -50,10 +50,14 @@
                             (debe existir una categoría con el mismo slug, ej. <code>LIB</code>).
                         </dd>
                     </dl>
-                    <a href="{{ route('admin.products.import.template') }}" class="btn btn-outline-primary"
-                       download="plantilla_productos.csv" data-no-loader>
-                        <i class="bi bi-download"></i> Descargar plantilla CSV
-                    </a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('admin.products.import.template') }}" class="btn btn-outline-primary" data-no-loader>
+                            <i class="bi bi-download"></i> Descargar plantilla
+                        </a>
+                        <a href="{{ route('admin.products.export') }}" class="btn btn-outline-success" data-no-loader>
+                            <i class="bi bi-file-earmark-spreadsheet"></i> Descargar productos actuales
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
