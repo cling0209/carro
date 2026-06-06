@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class ProductChunkUploadService
 {
-    public const MAX_CHUNK_BYTES = 1048576;
+    public const MAX_CHUNK_BYTES = 524288;
 
     public const MAX_TOTAL_BYTES = 52428800;
 
@@ -55,7 +55,7 @@ class ProductChunkUploadService
 
         $meta = $this->readMeta($uploadId);
 
-        if ($meta['user_id'] !== $userId) {
+        if ((int) $meta['user_id'] !== $userId) {
             throw new \InvalidArgumentException('No autorizado para continuar esta carga.');
         }
 
@@ -63,7 +63,7 @@ class ProductChunkUploadService
             throw new \InvalidArgumentException('La cantidad total de fragmentos no coincide.');
         }
 
-        $chunk->move($dir, $this->chunkFilename($chunkIndex));
+        $this->storeChunkFile($chunk, $dir.'/'.$this->chunkFilename($chunkIndex));
 
         if ($chunkIndex !== $totalChunks - 1) {
             return [
@@ -151,6 +151,21 @@ class ProductChunkUploadService
         }
 
         return $meta;
+    }
+
+    protected function storeChunkFile(UploadedFile $chunk, string $destination): void
+    {
+        $source = $chunk->getRealPath();
+
+        if ($source === false) {
+            throw new \InvalidArgumentException('No se recibió el fragmento del archivo.');
+        }
+
+        $bytes = file_get_contents($source);
+
+        if ($bytes === false || File::put($destination, $bytes) === false) {
+            throw new \RuntimeException('No se pudo guardar el fragmento en el servidor.');
+        }
     }
 
     protected function cleanup(string $uploadId): void

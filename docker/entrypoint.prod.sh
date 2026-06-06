@@ -11,6 +11,9 @@ if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
   exit 1
 fi
 
+mkdir -p storage/app/imports/chunks storage/app/imports/merged
+chown -R www-data:www-data storage/app/imports 2>/dev/null || true
+
 php artisan package:discover --ansi 2>/dev/null || true
 php artisan config:cache
 php artisan route:cache

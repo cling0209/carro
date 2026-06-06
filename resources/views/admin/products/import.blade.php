@@ -97,9 +97,21 @@
 
 @push('scripts')
 <script>
-const CHUNK_SIZE = 1024 * 1024;
+const CHUNK_SIZE = 512 * 1024;
 const chunkUploadUrl = @json(route('admin.products.import.chunk'));
-const csrfToken = @json(csrf_token());
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || @json(csrf_token());
+
+function importErrorMessage(payload, status) {
+    if (payload?.message) {
+        return payload.message;
+    }
+
+    if (payload?.errors) {
+        return Object.values(payload.errors).flat().join(' ');
+    }
+
+    return `Error del servidor (${status}).`;
+}
 
 document.getElementById('importForm').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -146,7 +158,7 @@ document.getElementById('importForm').addEventListener('submit', async (event) =
             formData.append('chunk_index', String(chunkIndex));
             formData.append('total_chunks', String(totalChunks));
             formData.append('original_name', file.name);
-            formData.append('chunk', blob, file.name);
+            formData.append('chunk', blob, `chunk-${chunkIndex}.part`);
             formData.append('_token', csrfToken);
 
             const response = await fetch(chunkUploadUrl, {
@@ -155,6 +167,7 @@ document.getElementById('importForm').addEventListener('submit', async (event) =
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
                 },
                 credentials: 'same-origin',
             });
@@ -162,7 +175,7 @@ document.getElementById('importForm').addEventListener('submit', async (event) =
             const payload = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(payload.message || 'No se pudo subir el archivo.');
+                throw new Error(importErrorMessage(payload, response.status));
             }
 
             const percent = Math.round(((chunkIndex + 1) / totalChunks) * 100);

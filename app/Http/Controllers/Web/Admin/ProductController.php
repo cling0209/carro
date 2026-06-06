@@ -116,12 +116,18 @@ class ProductController extends Controller
 
     public function storeImportChunk(Request $request, ProductChunkUploadService $chunkUpload): JsonResponse
     {
+        if (! $request->hasFile('chunk') || ! $request->file('chunk')->isValid()) {
+            return response()->json([
+                'message' => 'El fragmento no llegó al servidor. Reintenta la carga.',
+            ], 422);
+        }
+
         $data = $request->validate([
             'upload_id' => ['required', 'uuid'],
             'chunk_index' => ['required', 'integer', 'min:0'],
             'total_chunks' => ['required', 'integer', 'min:1', 'max:500'],
             'original_name' => ['required', 'string', 'max:255'],
-            'chunk' => ['required', 'file', 'max:1024'],
+            'chunk' => ['required', 'file', 'max:4096'],
         ]);
 
         try {
@@ -135,6 +141,14 @@ class ProductController extends Controller
             );
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Error interno al procesar la carga. Reintenta en unos minutos.',
+            ], 500);
         }
 
         $isLastChunk = ((int) $data['chunk_index']) === ((int) $data['total_chunks'] - 1);
