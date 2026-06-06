@@ -6,12 +6,23 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 
 class ProductImportService
 {
+    private const PERSIST_CHUNK_SIZE = 50;
+
+    /** @var array<string, int> */
+    private array $categoryIdByKey = [];
+
+    /** @var array<string, Product> */
+    private array $existingProductsBySku = [];
+
+    /** @var array<string, int|string> slug => product id or temporary owner key */
+    private array $reservedSlugs = [];
+
     /**
      * @return list<string>
      */
@@ -78,6 +89,8 @@ class ProductImportService
             ];
         }
 
+        $this->warmImportCaches($rows);
+
         $result = [
             'created' => 0,
             'updated' => 0,
@@ -86,8 +99,12 @@ class ProductImportService
             'errors' => [],
         ];
 
+        $inserts = [];
+        $updates = [];
+        $reactivates = [];
+
         foreach ($rows as $lineNumber => $row) {
-            $outcome = $this->importRow($row, $lineNumber);
+            $outcome = $this->prepareRow($row, $lineNumber);
 
             if ($outcome['error'] !== null) {
                 $result['errors'][] = $outcome['error'];
@@ -96,10 +113,233 @@ class ProductImportService
                 continue;
             }
 
-            $result[$outcome['action']]++;
+            match ($outcome['action']) {
+                'created' => $inserts[] = $outcome['payload'],
+                'updated' => $updates[] = $outcome['payload'],
+                'reactivated' => $reactivates[] = $outcome['payload'],
+                default => null,
+            };
+
+            if (count($inserts) + count($updates) + count($reactivates) >= self::PERSIST_CHUNK_SIZE) {
+                $this->flushPersistBuffers($inserts, $updates, $reactivates, $result);
+            }
         }
 
+        $this->flushPersistBuffers($inserts, $updates, $reactivates, $result);
+        $this->resetImportCaches();
+
         return $result;
+    }
+
+    /**
+     * @param  list<array<string, string>>  $rows
+     */
+    protected function warmImportCaches(array $rows): void
+    {
+        $this->categoryIdByKey = [];
+        Category::query()
+            ->whereNull('deleted_at')
+            ->get(['id', 'slug'])
+            ->each(function (Category $category): void {
+                $this->categoryIdByKey[$category->slug] = $category->id;
+                $this->categoryIdByKey[Str::lower($category->slug)] = $category->id;
+            });
+
+        $skus = [];
+
+        foreach ($rows as $row) {
+            $sku = trim((string) ($row['sku'] ?? ''));
+
+            if ($sku !== '') {
+                $skus[$sku] = true;
+            }
+        }
+
+        $this->existingProductsBySku = [];
+
+        if ($skus !== []) {
+            Product::withTrashed()
+                ->whereIn('sku', array_keys($skus))
+                ->get()
+                ->each(function (Product $product): void {
+                    $this->existingProductsBySku[$product->sku] = $product;
+                });
+        }
+
+        $this->reservedSlugs = Product::query()
+            ->whereNull('deleted_at')
+            ->pluck('id', 'slug')
+            ->all();
+    }
+
+    protected function resetImportCaches(): void
+    {
+        $this->categoryIdByKey = [];
+        $this->existingProductsBySku = [];
+        $this->reservedSlugs = [];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $inserts
+     * @param  list<array<string, mixed>>  $updates
+     * @param  list<array<string, mixed>>  $reactivates
+     * @param  array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}  $result
+     */
+    protected function flushPersistBuffers(array &$inserts, array &$updates, array &$reactivates, array &$result): void
+    {
+        if ($inserts === [] && $updates === [] && $reactivates === []) {
+            return;
+        }
+
+        try {
+            DB::transaction(function () use (&$inserts, &$updates, &$reactivates, &$result): void {
+                $this->persistInserts($inserts, $result);
+                $this->persistUpdates($updates, $result, reactivate: false);
+                $this->persistUpdates($reactivates, $result, reactivate: true);
+            });
+        } catch (QueryException $exception) {
+            $this->persistBuffersIndividually($inserts, $updates, $reactivates, $result, $exception);
+        }
+
+        $inserts = [];
+        $updates = [];
+        $reactivates = [];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $inserts
+     * @param  array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}  $result
+     */
+    protected function persistInserts(array $inserts, array &$result): void
+    {
+        if ($inserts === []) {
+            return;
+        }
+
+        $now = now();
+
+        foreach ($inserts as &$row) {
+            $row['created_at'] = $now;
+            $row['updated_at'] = $now;
+        }
+
+        unset($row);
+
+        Product::query()->insert($inserts);
+        $result['created'] += count($inserts);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $updates
+     * @param  array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}  $result
+     */
+    protected function persistUpdates(array $updates, array &$result, bool $reactivate): void
+    {
+        if ($updates === []) {
+            return;
+        }
+
+        $now = now();
+        $columns = [
+            'category_id',
+            'sku',
+            'familia',
+            'image_filename',
+            'name',
+            'slug',
+            'description',
+            'price',
+            'compare_at_price',
+            'stock',
+            'weight_kg',
+            'is_active',
+            'is_featured',
+            'updated_at',
+        ];
+
+        if ($reactivate) {
+            $columns[] = 'deleted_at';
+        }
+
+        foreach ($updates as &$row) {
+            $row['updated_at'] = $now;
+
+            if ($reactivate) {
+                $row['deleted_at'] = null;
+            }
+        }
+
+        unset($row);
+
+        Product::query()->upsert($updates, ['id'], $columns);
+        $result[$reactivate ? 'reactivated' : 'updated'] += count($updates);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $inserts
+     * @param  list<array<string, mixed>>  $updates
+     * @param  list<array<string, mixed>>  $reactivates
+     * @param  array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}  $result
+     */
+    protected function persistBuffersIndividually(
+        array $inserts,
+        array $updates,
+        array $reactivates,
+        array &$result,
+        QueryException $exception,
+    ): void {
+        $fallbackError = $this->friendlyDbError($exception);
+
+        foreach ($inserts as $payload) {
+            $outcome = $this->persistProduct(new Product, $payload, 0, 'created');
+
+            if ($outcome['error'] !== null) {
+                $result['errors'][] = 'SKU '.$payload['sku'].': '.$outcome['error'];
+                $result['skipped']++;
+            } else {
+                $result['created']++;
+            }
+        }
+
+        foreach ($updates as $payload) {
+            $product = $this->existingProductsBySku[$payload['sku']] ?? Product::query()->find($payload['id']);
+
+            if (! $product) {
+                $result['errors'][] = 'SKU '.$payload['sku'].': '.$fallbackError;
+                $result['skipped']++;
+
+                continue;
+            }
+
+            $outcome = $this->persistProduct($product, $payload, 0, 'updated');
+
+            if ($outcome['error'] !== null) {
+                $result['errors'][] = 'SKU '.$payload['sku'].': '.$outcome['error'];
+                $result['skipped']++;
+            } else {
+                $result['updated']++;
+            }
+        }
+
+        foreach ($reactivates as $payload) {
+            $product = $this->existingProductsBySku[$payload['sku']] ?? Product::withTrashed()->find($payload['id']);
+
+            if (! $product) {
+                $result['errors'][] = 'SKU '.$payload['sku'].': '.$fallbackError;
+                $result['skipped']++;
+
+                continue;
+            }
+
+            $outcome = $this->persistProduct($product, $payload, 0, 'reactivated', reactivate: true);
+
+            if ($outcome['error'] !== null) {
+                $result['errors'][] = 'SKU '.$payload['sku'].': '.$outcome['error'];
+                $result['skipped']++;
+            } else {
+                $result['reactivated']++;
+            }
+        }
     }
 
     /**
@@ -266,9 +506,9 @@ class ProductImportService
 
     /**
      * @param  array<string, string>  $row
-     * @return array{action: string, error: string|null}
+     * @return array{action: string, error: string|null, payload?: array<string, mixed>}
      */
-    protected function importRow(array $row, int $lineNumber): array
+    protected function prepareRow(array $row, int $lineNumber): array
     {
         $displayLine = $lineNumber + 2;
 
@@ -302,9 +542,9 @@ class ProductImportService
 
         $validated = $validator->validated();
         $familia = trim($validated['familia']);
-        $category = $this->resolveCategoryFromFamilia($familia);
+        $categoryId = $this->resolveCategoryIdFromFamilia($familia);
 
-        if (! $category) {
+        if ($categoryId === null) {
             return [
                 'action' => 'skipped',
                 'error' => 'Fila '.$displayLine.': no existe categoría para la familia "'.$familia.'".',
@@ -312,7 +552,7 @@ class ProductImportService
         }
 
         $payload = [
-            'category_id' => $category->id,
+            'category_id' => $categoryId,
             'sku' => $validated['sku'],
             'name' => $validated['nombre'],
             'description' => $validated['descripcion'] ?? null,
@@ -326,44 +566,43 @@ class ProductImportService
             'image_filename' => $validated['nombre_archivo'] ?? null,
         ];
 
-        $existing = Product::withTrashed()->where('sku', $payload['sku'])->first();
+        $existing = $this->existingProductsBySku[$payload['sku']] ?? null;
 
         if ($existing && ! $existing->trashed()) {
-            $slug = $validated['slug'] ?? $existing->slug;
+            $slug = trim((string) ($validated['slug'] ?? $existing->slug));
 
-            $slugValidator = Validator::make(
-                ['slug' => $slug],
-                ['slug' => ['required', 'string', 'max:200', Rule::unique('products', 'slug')->where(fn ($q) => $q->whereNull('deleted_at'))->ignore($existing->id)]]
-            );
-
-            if ($slugValidator->fails()) {
+            if ($slug === '') {
                 return [
                     'action' => 'skipped',
-                    'error' => 'Fila '.$displayLine.': '.$slugValidator->errors()->first(),
+                    'error' => 'Fila '.$displayLine.': el slug es obligatorio.',
                 ];
             }
 
-            $payload['slug'] = $this->uniqueSlug($slug, $existing->id, $payload['sku']);
+            $payload['slug'] = $slug === $existing->slug
+                ? $existing->slug
+                : $this->reserveUniqueSlug($slug, $existing->id, $payload['sku']);
+            $payload['id'] = $existing->id;
 
-            return $this->persistProduct($existing, $payload, $displayLine, 'updated', reactivate: false);
+            return ['action' => 'updated', 'error' => null, 'payload' => $payload];
         }
 
         if ($existing && $existing->trashed()) {
-            $payload['slug'] = $this->uniqueSlug(
+            $payload['slug'] = $this->reserveUniqueSlug(
                 $validated['slug'] ?? $this->defaultSlug($payload['name'], $payload['sku']),
                 $existing->id,
                 $payload['sku']
             );
+            $payload['id'] = $existing->id;
 
-            return $this->persistProduct($existing, $payload, $displayLine, 'reactivated', reactivate: true);
+            return ['action' => 'reactivated', 'error' => null, 'payload' => $payload];
         }
 
-        $payload['slug'] = $this->uniqueSlug(
+        $payload['slug'] = $this->reserveUniqueSlug(
             $validated['slug'] ?? $this->defaultSlug($payload['name'], $payload['sku']),
             sku: $payload['sku']
         );
 
-        return $this->persistProduct(new Product, $payload, $displayLine, 'created');
+        return ['action' => 'created', 'error' => null, 'payload' => $payload];
     }
 
     /**
@@ -389,9 +628,13 @@ class ProductImportService
                 $product->save();
             }
         } catch (QueryException $e) {
+            $message = $displayLine > 0
+                ? 'Fila '.$displayLine.': '.$this->friendlyDbError($e)
+                : $this->friendlyDbError($e);
+
             return [
                 'action' => 'skipped',
-                'error' => 'Fila '.$displayLine.': '.$this->friendlyDbError($e),
+                'error' => $message,
             ];
         }
 
@@ -414,18 +657,15 @@ class ProductImportService
         return Str::slug($name) ?: Str::slug($sku) ?: 'producto';
     }
 
-    protected function resolveCategoryFromFamilia(string $familia): ?Category
+    protected function resolveCategoryIdFromFamilia(string $familia): ?int
     {
-        $candidates = array_values(array_unique([
-            $familia,
-            Str::lower($familia),
-            Str::slug($familia),
-        ]));
+        foreach (array_unique([$familia, Str::lower($familia), Str::slug($familia)]) as $candidate) {
+            if (isset($this->categoryIdByKey[$candidate])) {
+                return $this->categoryIdByKey[$candidate];
+            }
+        }
 
-        return Category::query()
-            ->whereNull('deleted_at')
-            ->whereIn('slug', $candidates)
-            ->first();
+        return null;
     }
 
     protected function nullableNumeric(?string $value): ?float
@@ -448,20 +688,30 @@ class ProductImportService
         return in_array($normalized, ['1', 'true', 'si', 'sí', 'yes', 'activo', 'on'], true);
     }
 
-    protected function uniqueSlug(string $slug, ?int $exceptId = null, ?string $sku = null): string
+    protected function reserveUniqueSlug(string $slug, ?int $exceptId = null, ?string $sku = null): string
     {
         $base = Str::slug($slug) ?: ($sku ? Str::slug($sku) : '') ?: 'producto';
         $candidate = $base;
         $i = 1;
 
-        while (Product::withTrashed()
-            ->when($exceptId, fn ($q) => $q->where('id', '!=', $exceptId))
-            ->where('slug', $candidate)
-            ->exists()) {
+        while ($this->slugTaken($candidate, $exceptId)) {
             $candidate = $base.'-'.$i;
             $i++;
         }
 
+        $this->reservedSlugs[$candidate] = $exceptId ?? ('new:'.$sku);
+
         return $candidate;
+    }
+
+    protected function slugTaken(string $slug, ?int $exceptId): bool
+    {
+        if (! isset($this->reservedSlugs[$slug])) {
+            return false;
+        }
+
+        $owner = $this->reservedSlugs[$slug];
+
+        return ! ($exceptId !== null && $owner === $exceptId);
     }
 }

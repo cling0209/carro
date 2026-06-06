@@ -69,6 +69,61 @@ class ProductImportServiceTest extends TestCase
         $this->assertSame(9, $product->stock);
     }
 
+    public function test_imports_multiple_products_in_one_batch(): void
+    {
+        Category::create([
+            'name' => 'Libros',
+            'slug' => 'lib',
+            'is_active' => true,
+        ]);
+
+        $csv = "sku;nombre;precio;stock;familia\n";
+        $csv .= "IMP-010;Producto A;1000;1;LIB\n";
+        $csv .= "IMP-011;Producto B;2000;2;LIB\n";
+        $csv .= "IMP-012;Producto C;3000;3;LIB";
+
+        $file = UploadedFile::fake()->createWithContent('productos.csv', $csv);
+
+        $result = app(ProductImportService::class)->importFromUploadedFile($file);
+
+        $this->assertSame(3, $result['created']);
+        $this->assertSame(0, $result['skipped']);
+        $this->assertDatabaseCount('products', 3);
+    }
+
+    public function test_reactivates_soft_deleted_product_by_sku(): void
+    {
+        $category = Category::create([
+            'name' => 'Libros',
+            'slug' => 'lib',
+            'is_active' => true,
+        ]);
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'sku' => 'IMP-020',
+            'name' => 'Archivado',
+            'slug' => 'archivado',
+            'familia' => 'LIB',
+            'price' => 1000,
+            'stock' => 1,
+            'is_active' => true,
+        ]);
+
+        $product->delete();
+
+        $csv = "sku;nombre;precio;stock;familia\nIMP-020;Reactivado;5000;9;LIB";
+        $file = UploadedFile::fake()->createWithContent('productos.csv', $csv);
+
+        $result = app(ProductImportService::class)->importFromUploadedFile($file);
+
+        $this->assertSame(1, $result['reactivated']);
+        $product->refresh();
+        $this->assertNull($product->deleted_at);
+        $this->assertSame('Reactivado', $product->name);
+        $this->assertSame(9, $product->stock);
+    }
+
     public function test_imports_csv_saved_with_windows_latin1_encoding(): void
     {
         Category::create([

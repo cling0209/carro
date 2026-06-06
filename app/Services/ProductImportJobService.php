@@ -8,7 +8,7 @@ use Illuminate\Support\Str;
 
 class ProductImportJobService
 {
-    public const ROWS_PER_BATCH = 100;
+    public const ROWS_PER_BATCH = 250;
 
     /**
      * @return array{upload_id: string, batch_count: int}
