@@ -73,6 +73,74 @@ class ProductImportService
     }
 
     /**
+     * @return list<array<string, string>>
+     */
+    public function parseCsvFromPath(string $path): array
+    {
+        if (! is_readable($path)) {
+            return [];
+        }
+
+        $file = new UploadedFile($path, basename($path), 'text/csv', null, true);
+
+        return $this->parseCsv($file);
+    }
+
+    /**
+     * @param  list<array<string, string>>  $rows
+     * @return array{
+     *     staging: list<array<string, mixed>>,
+     *     created: int,
+     *     updated: int,
+     *     reactivated: int,
+     *     skipped: int,
+     *     errors: list<string>
+     * }
+     */
+    public function prepareBulkImport(array $rows): array
+    {
+        $this->warmImportCaches($rows);
+
+        $staging = [];
+        $errors = [];
+        $skipped = 0;
+        $created = 0;
+        $updated = 0;
+        $reactivated = 0;
+
+        foreach ($rows as $lineNumber => $row) {
+            $outcome = $this->prepareRow($row, $lineNumber);
+
+            if ($outcome['error'] !== null) {
+                $errors[] = $outcome['error'];
+                $skipped++;
+
+                continue;
+            }
+
+            $staging[] = $outcome['payload'];
+
+            match ($outcome['action']) {
+                'created' => $created++,
+                'updated' => $updated++,
+                'reactivated' => $reactivated++,
+                default => null,
+            };
+        }
+
+        $this->resetImportCaches();
+
+        return [
+            'staging' => $staging,
+            'created' => $created,
+            'updated' => $updated,
+            'reactivated' => $reactivated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ];
+    }
+
+    /**
      * @return array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}
      */
     public function importFromUploadedFile(UploadedFile $file): array

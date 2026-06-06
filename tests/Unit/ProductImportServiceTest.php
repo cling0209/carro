@@ -124,6 +124,27 @@ class ProductImportServiceTest extends TestCase
         $this->assertSame(9, $product->stock);
     }
 
+    public function test_prepare_bulk_import_splits_valid_and_invalid_rows(): void
+    {
+        Category::create([
+            'name' => 'Libros',
+            'slug' => 'lib',
+            'is_active' => true,
+        ]);
+
+        $rows = [
+            ['sku' => 'BULK-1', 'nombre' => 'Uno', 'precio' => '1000', 'stock' => '1', 'familia' => 'LIB'],
+            ['sku' => '', 'nombre' => 'Sin SKU', 'precio' => '1000', 'stock' => '1', 'familia' => 'LIB'],
+        ];
+
+        $prepared = app(ProductImportService::class)->prepareBulkImport($rows);
+
+        $this->assertCount(1, $prepared['staging']);
+        $this->assertSame(1, $prepared['created']);
+        $this->assertSame(1, $prepared['skipped']);
+        $this->assertNotEmpty($prepared['errors']);
+    }
+
     public function test_imports_csv_saved_with_windows_latin1_encoding(): void
     {
         Category::create([
