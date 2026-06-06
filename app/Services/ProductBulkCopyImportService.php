@@ -14,8 +14,9 @@ class ProductBulkCopyImportService
     /**
      * @return array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}
      */
-    public function importFromPath(string $path, bool $dryRun = false): array
+    public function importFromPath(string $path, bool $dryRun = false, ?ProductImportProgress $progress = null): array
     {
+        $progress?->phase('Leyendo archivo CSV...');
         $rows = $this->importService->parseCsvFromPath($path);
 
         if ($rows === []) {
@@ -28,7 +29,8 @@ class ProductBulkCopyImportService
             ];
         }
 
-        $prepared = $this->importService->prepareBulkImport($rows);
+        $progress?->phase('Validando '.number_format(count($rows), 0, '', '.').' filas...');
+        $prepared = $this->importService->prepareBulkImport($rows, $progress);
         $staging = $this->dedupeStagingBySku($prepared['staging']);
 
         $result = [
@@ -39,7 +41,15 @@ class ProductBulkCopyImportService
             'errors' => $prepared['errors'],
         ];
 
-        if ($dryRun || $staging === []) {
+        if ($dryRun) {
+            $progress?->phase('Dry-run: no se escribirá en la base de datos.');
+
+            return $result;
+        }
+
+        if ($staging === []) {
+            $progress?->phase('No hay filas válidas para importar.');
+
             return $result;
         }
 
@@ -47,11 +57,15 @@ class ProductBulkCopyImportService
             throw new \RuntimeException('La importación masiva COPY requiere PostgreSQL.');
         }
 
+        $progress?->phase('Importando '.number_format(count($staging), 0, '', '.').' productos a la base de datos...');
+
         if (extension_loaded('pgsql')) {
-            $this->importViaPgsqlCopy($staging);
+            $this->importViaPgsqlCopy($staging, $progress);
         } else {
-            $this->importViaLaravelStaging($staging);
+            $this->importViaLaravelStaging($staging, $progress);
         }
+
+        $progress?->phase('Importación en base de datos completada.');
 
         return $result;
     }
@@ -74,15 +88,19 @@ class ProductBulkCopyImportService
     /**
      * @param  list<array<string, mixed>>  $staging
      */
-    protected function importViaPgsqlCopy(array $staging): void
+    protected function importViaPgsqlCopy(array $staging, ?ProductImportProgress $progress = null): void
     {
+        $progress?->phase('Conectando a PostgreSQL...');
         $connection = $this->connectPgsql();
 
         try {
             $this->assertPgResult(pg_query($connection, 'BEGIN'), $connection);
+            $progress?->phase('Creando tabla staging temporal...');
             $this->createStagingTable($connection);
+            $progress?->phase('COPY masivo a staging...');
             $this->copyIntoStaging($connection, $staging);
-            $this->runMergeStatements($connection);
+            $this->runMergeStatements($connection, $progress);
+            $progress?->phase('Confirmando transacción...');
             $this->assertPgResult(pg_query($connection, 'COMMIT'), $connection);
         } catch (\Throwable $exception) {
             @pg_query($connection, 'ROLLBACK');
@@ -96,18 +114,23 @@ class ProductBulkCopyImportService
     /**
      * @param  list<array<string, mixed>>  $staging
      */
-    protected function importViaLaravelStaging(array $staging): void
+    protected function importViaLaravelStaging(array $staging, ?ProductImportProgress $progress = null): void
     {
-        DB::transaction(function () use ($staging): void {
+        $chunks = array_chunk($this->formatStagingForDatabase($staging), 500);
+        $totalChunks = max(1, count($chunks));
+
+        DB::transaction(function () use ($chunks, $totalChunks, $progress): void {
+            $progress?->phase('Creando tabla staging temporal...');
             DB::unprepared($this->createStagingTableSql());
 
-            foreach (array_chunk($this->formatStagingForDatabase($staging), 500) as $chunk) {
+            $progress?->progressStart($totalChunks, 'Cargando staging');
+            foreach ($chunks as $index => $chunk) {
                 DB::table('product_import_staging')->insert($chunk);
+                $progress?->progressAdvance($index + 1);
             }
+            $progress?->progressFinish();
 
-            foreach ($this->mergeSqlStatements() as $sql) {
-                DB::unprepared($sql);
-            }
+            $this->runMergeStatementsViaLaravel($progress);
         });
     }
 
@@ -202,20 +225,29 @@ SQL;
         }
     }
 
-    protected function runMergeStatements(Connection $connection): void
+    protected function runMergeStatements(Connection $connection, ?ProductImportProgress $progress = null): void
     {
-        foreach ($this->mergeSqlStatements() as $sql) {
+        foreach ($this->mergeSqlStatements() as $label => $sql) {
+            $progress?->phase($label);
             $this->assertPgResult(pg_query($connection, $sql), $connection);
         }
     }
 
+    protected function runMergeStatementsViaLaravel(?ProductImportProgress $progress = null): void
+    {
+        foreach ($this->mergeSqlStatements() as $label => $sql) {
+            $progress?->phase($label);
+            DB::unprepared($sql);
+        }
+    }
+
     /**
-     * @return list<string>
+     * @return array<string, string>
      */
     protected function mergeSqlStatements(): array
     {
         return [
-            <<<'SQL'
+            'Actualizando productos existentes...' => <<<'SQL'
 UPDATE products AS p
 SET
     category_id = s.category_id,
@@ -235,7 +267,7 @@ FROM product_import_staging AS s
 WHERE p.sku = s.sku
   AND p.deleted_at IS NULL
 SQL,
-            <<<'SQL'
+            'Reactivando productos archivados...' => <<<'SQL'
 UPDATE products AS p
 SET
     deleted_at = NULL,
@@ -256,7 +288,7 @@ FROM product_import_staging AS s
 WHERE p.sku = s.sku
   AND p.deleted_at IS NOT NULL
 SQL,
-            <<<'SQL'
+            'Insertando productos nuevos...' => <<<'SQL'
 INSERT INTO products (
     category_id,
     sku,

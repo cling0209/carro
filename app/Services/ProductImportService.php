@@ -97,8 +97,10 @@ class ProductImportService
      *     errors: list<string>
      * }
      */
-    public function prepareBulkImport(array $rows): array
+    public function prepareBulkImport(array $rows, ?ProductImportProgress $progress = null): array
     {
+        $totalRows = count($rows);
+        $progress?->phase('Cargando categorías, SKUs y slugs en memoria...');
         $this->warmImportCaches($rows);
 
         $staging = [];
@@ -108,8 +110,13 @@ class ProductImportService
         $updated = 0;
         $reactivated = 0;
 
+        $progress?->progressStart($totalRows, 'Validando filas');
+        $processed = 0;
+
         foreach ($rows as $lineNumber => $row) {
             $outcome = $this->prepareRow($row, $lineNumber);
+            $processed++;
+            $progress?->progressAdvance($processed);
 
             if ($outcome['error'] !== null) {
                 $errors[] = $outcome['error'];
@@ -128,6 +135,7 @@ class ProductImportService
             };
         }
 
+        $progress?->progressFinish();
         $this->resetImportCaches();
 
         return [
