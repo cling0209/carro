@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\ProductChunkUploadService;
 use App\Services\ProductImportService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -112,14 +114,50 @@ class ProductController extends Controller
         );
     }
 
-    public function storeImport(Request $request, ProductImportService $importService): RedirectResponse
+    public function storeImportChunk(Request $request, ProductChunkUploadService $chunkUpload): JsonResponse
     {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        $data = $request->validate([
+            'upload_id' => ['required', 'uuid'],
+            'chunk_index' => ['required', 'integer', 'min:0'],
+            'total_chunks' => ['required', 'integer', 'min:1', 'max:500'],
+            'original_name' => ['required', 'string', 'max:255'],
+            'chunk' => ['required', 'file', 'max:1024'],
         ]);
 
-        $result = $importService->importFromUploadedFile($request->file('file'));
+        try {
+            $result = $chunkUpload->storeChunk(
+                $data['upload_id'],
+                (int) $data['chunk_index'],
+                (int) $data['total_chunks'],
+                $data['original_name'],
+                $request->file('chunk'),
+                (int) $request->user()->id,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
+        $isLastChunk = ((int) $data['chunk_index']) === ((int) $data['total_chunks'] - 1);
+
+        if (! $isLastChunk) {
+            return response()->json([
+                'done' => false,
+                'received' => (int) $data['chunk_index'] + 1,
+                'total' => (int) $data['total_chunks'],
+            ]);
+        }
+
+        return response()->json([
+            'done' => true,
+            'redirect' => $this->flashImportResultAndGetRedirectUrl($result),
+        ]);
+    }
+
+    /**
+     * @param  array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}  $result
+     */
+    protected function flashImportResultAndGetRedirectUrl(array $result): string
+    {
         $parts = [];
 
         if ($result['created'] > 0) {
@@ -135,25 +173,23 @@ class ProductController extends Controller
         }
 
         if ($parts === []) {
-            return redirect()
-                ->route('admin.products.import')
-                ->with('error', 'No se importó ningún producto.')
-                ->with('import_errors', array_slice($result['errors'], 0, 20));
+            session()->flash('error', 'No se importó ningún producto.');
+            session()->flash('import_errors', array_slice($result['errors'], 0, 20));
+
+            return route('admin.products.import');
         }
 
-        $redirect = redirect()
-            ->route('admin.products.index')
-            ->with('success', 'Importación completada: '.implode(', ', $parts).'.');
+        session()->flash('success', 'Importación completada: '.implode(', ', $parts).'.');
 
         if ($result['errors'] !== []) {
-            $redirect->with('import_errors', array_slice($result['errors'], 0, 20));
+            session()->flash('import_errors', array_slice($result['errors'], 0, 20));
 
             if (count($result['errors']) > 20) {
-                $redirect->with('error', 'Algunas filas fallaron. Se muestran los primeros 20 errores.');
+                session()->flash('error', 'Algunas filas fallaron. Se muestran los primeros 20 errores.');
             }
         }
 
-        return $redirect;
+        return route('admin.products.index');
     }
 
     protected function validated(Request $request, ?int $productId = null): array
