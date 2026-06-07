@@ -71,8 +71,8 @@
             <div class="card admin-card">
                 <div class="card-header bg-white fw-semibold">Tarifa fija por región (fuera de RM)</div>
                 <div class="card-body border-bottom py-3 text-muted small">
-                    Monto base de cada región. Se suma el tramo de peso de la comuna elegida al pagar.
-                    Si <strong>Activa</strong> no está marcada, esa región no se toma en el cálculo de envío en el checkout.
+                    Solo las regiones con <strong>Activa</strong> marcada participan en el cálculo de envío en checkout.
+                    Para cada una activa: monto base de la región + tramo de peso de la comuna elegida al pagar.
                 </div>
                 <form method="post" action="{{ route('admin.shipping.regions') }}">
                     @csrf
