@@ -37,15 +37,16 @@
                         <dt class="fw-semibold">Columnas obligatorias</dt>
                         <dd>
                             <code>codigo_comuna</code> (CUT oficial, 5 dígitos),
-                            <code>etiqueta</code>,
                             <code>peso_min_kg</code>,
                             <code>adicional_clp</code>
                         </dd>
                         <dt class="fw-semibold">Columnas de referencia (no editar)</dt>
                         <dd>
                             <code>comuna (no editar)</code>,
-                            <code>region (no editar)</code>
-                            — solo para identificar la fila en Excel; el sistema ignora su contenido al importar.
+                            <code>region (no editar)</code>,
+                            <code>etiqueta (no editar)</code>
+                            — solo para leer en Excel; la etiqueta se genera automáticamente según
+                            <code>peso_min_kg</code> y <code>peso_max_kg</code>.
                         </dd>
                         <dt class="fw-semibold">Columnas opcionales</dt>
                         <dd>
@@ -53,10 +54,15 @@
                             <code>peso_max_kg</code> (vacío = sin límite),
                             <code>orden</code>, <code>activo</code> (1/0)
                         </dd>
+                        <dt class="fw-semibold">Actualización</dt>
+                        <dd>
+                            Sin <code>id</code>, se busca por <code>codigo_comuna</code> + rango de peso
+                            (<code>peso_min_kg</code> / <code>peso_max_kg</code>).
+                        </dd>
                         <dt class="fw-semibold">Plantilla</dt>
                         <dd>
                             Incluye todas las comunas fuera de RM con <strong>4 tramos por defecto</strong> cada una.
-                            Solo debes ajustar precios o tramos; no borres el <code>codigo_comuna</code>.
+                            Solo debes ajustar precios o rangos de peso; no borres el <code>codigo_comuna</code>.
                         </dd>
                         <dt class="fw-semibold">Excel</dt>
                         <dd class="mb-0">

@@ -24,7 +24,7 @@ class ShippingWeightRateImportService
             'codigo_comuna',
             'comuna (no editar)',
             'region (no editar)',
-            'etiqueta',
+            'etiqueta (no editar)',
             'peso_min_kg',
             'peso_max_kg',
             'adicional_clp',
@@ -45,7 +45,7 @@ class ShippingWeightRateImportService
                     $comuna['codigo'],
                     $comuna['nombre'],
                     $comuna['region'],
-                    $band['label'],
+                    ShippingComunaWeightRate::formatLabelFromWeight($band['min'], $band['max']),
                     $this->formatDecimal($band['min']),
                     $band['max'] !== null ? $this->formatDecimal($band['max']) : '',
                     number_format((float) $band['price'], 0, '', ''),
@@ -83,7 +83,10 @@ class ShippingWeightRateImportService
                             $codigo,
                             $rate->comuna,
                             $rate->region,
-                            $rate->label,
+                            ShippingComunaWeightRate::formatLabelFromWeight(
+                                (float) $rate->min_weight_kg,
+                                $rate->max_weight_kg !== null ? (float) $rate->max_weight_kg : null,
+                            ),
                             $this->formatDecimal($rate->min_weight_kg),
                             $rate->max_weight_kg !== null ? $this->formatDecimal($rate->max_weight_kg) : '',
                             number_format((float) $rate->price, 0, '', ''),
@@ -141,7 +144,7 @@ class ShippingWeightRateImportService
                     'id' => ['nullable', 'integer', 'exists:shipping_comuna_weight_rates,id'],
                     'region' => ['required', 'string', 'max:80'],
                     'comuna' => ['required', 'string', 'max:80'],
-                    'etiqueta' => ['required', 'string', 'max:120'],
+                    'etiqueta' => ['nullable', 'string', 'max:120'],
                     'peso_min_kg' => ['required', 'numeric', 'min:0'],
                     'peso_max_kg' => ['nullable', 'numeric', 'gt:peso_min_kg'],
                     'adicional_clp' => ['required', 'numeric', 'min:0'],
@@ -158,12 +161,15 @@ class ShippingWeightRateImportService
 
                 $data = $validator->validated();
 
+                $minWeight = (float) $data['peso_min_kg'];
+                $maxWeight = isset($data['peso_max_kg']) ? (float) $data['peso_max_kg'] : null;
+
                 $payload = [
                     'region' => $data['region'],
                     'comuna' => $data['comuna'],
-                    'label' => $data['etiqueta'],
-                    'min_weight_kg' => $data['peso_min_kg'],
-                    'max_weight_kg' => $data['peso_max_kg'] ?? null,
+                    'label' => ShippingComunaWeightRate::formatLabelFromWeight($minWeight, $maxWeight),
+                    'min_weight_kg' => $minWeight,
+                    'max_weight_kg' => $maxWeight,
                     'price' => $data['adicional_clp'],
                     'sort_order' => $data['orden'] ?? 0,
                     'is_active' => $this->parseBoolean($data['activo'] ?? null, true),
@@ -176,11 +182,12 @@ class ShippingWeightRateImportService
                 }
 
                 if (! $rate) {
-                    $rate = ShippingComunaWeightRate::query()
-                        ->where('region', $payload['region'])
-                        ->where('comuna', $payload['comuna'])
-                        ->where('label', $payload['label'])
-                        ->first();
+                    $rate = ShippingComunaWeightRate::findByComunaAndWeightRange(
+                        $payload['region'],
+                        $payload['comuna'],
+                        $minWeight,
+                        $maxWeight,
+                    );
                 }
 
                 if ($rate) {
@@ -215,6 +222,8 @@ class ShippingWeightRateImportService
             'comuna_(no_editar)' => 'comuna_referencia',
             'region_no_editar' => 'region_referencia',
             'region_(no_editar)' => 'region_referencia',
+            'etiqueta_(no_editar)' => 'etiqueta_referencia',
+            'etiqueta_no_editar' => 'etiqueta_referencia',
         ];
 
         $normalized = [];

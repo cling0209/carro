@@ -156,6 +156,48 @@ class ShippingComunaWeightRate extends Model
         return ChileLocationCatalog::isValidComuna($region, $comuna);
     }
 
+    public static function findByComunaAndWeightRange(
+        string $region,
+        string $comuna,
+        float $minWeightKg,
+        ?float $maxWeightKg,
+    ): ?self {
+        $query = self::query()
+            ->where('region', $region)
+            ->where('comuna', $comuna)
+            ->where('min_weight_kg', $minWeightKg);
+
+        if ($maxWeightKg === null) {
+            $query->whereNull('max_weight_kg');
+        } else {
+            $query->where('max_weight_kg', $maxWeightKg);
+        }
+
+        return $query->first();
+    }
+
+    public static function formatLabelFromWeight(float $minKg, ?float $maxKg): string
+    {
+        $min = self::formatWeightForLabel($minKg);
+
+        if ($maxKg === null) {
+            return $minKg <= 0 ? 'Sin límite de peso' : 'Más de '.$min.' kg';
+        }
+
+        $max = self::formatWeightForLabel($maxKg);
+
+        if ($minKg <= 0) {
+            return 'Hasta '.$max.' kg';
+        }
+
+        return $min.' a '.$max.' kg';
+    }
+
+    protected static function formatWeightForLabel(float $kg): string
+    {
+        return rtrim(rtrim(number_format($kg, 3, '.', ''), '0'), '.');
+    }
+
     /**
      * @return list<array{label: string, min: float, max: float|null, price: int, sort: int}>
      */
