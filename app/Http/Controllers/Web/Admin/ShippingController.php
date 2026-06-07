@@ -162,6 +162,8 @@ class ShippingController extends Controller
 
     public function storeImportChunk(Request $request, ShippingWeightRateChunkUploadService $chunkUpload): JsonResponse
     {
+        set_time_limit(120);
+
         if (! $request->hasFile('chunk') || ! $request->file('chunk')->isValid()) {
             return response()->json([
                 'message' => 'El fragmento no llegó al servidor. Reintenta la carga.',
@@ -214,6 +216,8 @@ class ShippingController extends Controller
 
     public function processImportBatch(Request $request, ShippingWeightRateImportJobService $importJob): JsonResponse
     {
+        set_time_limit(120);
+
         $data = $request->validate([
             'upload_id' => ['required', 'uuid'],
         ]);

@@ -9,12 +9,39 @@ use Illuminate\Support\Str;
 
 class ShippingWeightRateImportJobService
 {
-    public const ROWS_PER_BATCH = 250;
+    public const ROWS_PER_BATCH = 50;
 
     public function __construct(
         protected ProductImportService $csvReader,
         protected ShippingWeightRateImportService $importService,
     ) {}
+
+    public function registerPendingUpload(
+        string $uploadId,
+        string $mergedPath,
+        int $userId,
+        string $originalName,
+    ): void {
+        $this->assertValidUploadId($uploadId);
+        $jobDir = $this->jobDirectory($uploadId);
+
+        if (File::isDirectory($jobDir)) {
+            File::deleteDirectory($jobDir);
+        }
+
+        File::ensureDirectoryExists($jobDir);
+
+        File::put($jobDir.'/job.json', json_encode([
+            'user_id' => $userId,
+            'original_name' => $originalName,
+            'merged_path' => $mergedPath,
+            'prepared' => false,
+            'next_batch' => 0,
+            'batch_count' => 0,
+            'result' => $this->emptyResult(),
+            'created_at' => now()->toIso8601String(),
+        ], JSON_THROW_ON_ERROR));
+    }
 
     /**
      * @return array{upload_id: string, batch_count: int}
@@ -29,6 +56,131 @@ class ShippingWeightRateImportJobService
         }
 
         File::ensureDirectoryExists($jobDir);
+
+        $batchCount = $this->splitMergedCsvIntoBatches($uploadId, $mergedPath);
+
+        if ($batchCount === 0) {
+            File::deleteDirectory($jobDir);
+            throw new \InvalidArgumentException('El archivo no contiene filas de tramos.');
+        }
+
+        File::put($jobDir.'/job.json', json_encode([
+            'user_id' => $userId,
+            'original_name' => $originalName,
+            'prepared' => true,
+            'next_batch' => 0,
+            'batch_count' => $batchCount,
+            'result' => $this->emptyResult(),
+            'created_at' => now()->toIso8601String(),
+        ], JSON_THROW_ON_ERROR));
+
+        return [
+            'upload_id' => $uploadId,
+            'batch_count' => $batchCount,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     finished: bool,
+     *     processed_batches: int,
+     *     total_batches: int,
+     *     result: array{created: int, updated: int, skipped: int, errors: list<string>}
+     * }
+     */
+    public function processNextBatch(string $uploadId, int $userId): array
+    {
+        $this->assertValidUploadId($uploadId);
+        $job = $this->readJob($uploadId);
+
+        if ((int) $job['user_id'] !== $userId) {
+            throw new \InvalidArgumentException('No autorizado para procesar esta importación.');
+        }
+
+        if (! ($job['prepared'] ?? false)) {
+            $mergedPath = (string) ($job['merged_path'] ?? '');
+
+            if ($mergedPath === '' || ! File::exists($mergedPath)) {
+                throw new \InvalidArgumentException('El archivo fusionado ya no está disponible. Vuelve a subir el CSV.');
+            }
+
+            $batchCount = $this->splitMergedCsvIntoBatches($uploadId, $mergedPath);
+            File::delete($mergedPath);
+
+            if ($batchCount === 0) {
+                $this->cleanup($uploadId);
+                throw new \InvalidArgumentException('El archivo no contiene filas de tramos.');
+            }
+
+            $job['prepared'] = true;
+            $job['batch_count'] = $batchCount;
+            $job['next_batch'] = 0;
+            unset($job['merged_path']);
+            $this->writeJob($uploadId, $job);
+
+            return [
+                'finished' => false,
+                'processed_batches' => 0,
+                'total_batches' => $batchCount,
+                'result' => $job['result'],
+            ];
+        }
+
+        $nextBatch = (int) $job['next_batch'];
+        $batchCount = (int) $job['batch_count'];
+
+        if ($nextBatch >= $batchCount) {
+            return [
+                'finished' => true,
+                'processed_batches' => $batchCount,
+                'total_batches' => $batchCount,
+                'result' => $job['result'],
+            ];
+        }
+
+        $batchPath = $this->jobDirectory($uploadId).'/batch-'.str_pad((string) $nextBatch, 6, '0', STR_PAD_LEFT).'.csv';
+
+        if (! File::exists($batchPath)) {
+            throw new \InvalidArgumentException('No se encontró el lote '.($nextBatch + 1).' de la importación.');
+        }
+
+        $uploaded = new UploadedFile(
+            $batchPath,
+            $job['original_name'],
+            'text/csv',
+            null,
+            true
+        );
+
+        $batchResult = $this->importService->importFromUploadedFile($uploaded);
+        $job['result'] = $this->mergeResults($job['result'], $batchResult);
+        $job['next_batch'] = $nextBatch + 1;
+
+        File::delete($batchPath);
+        $this->writeJob($uploadId, $job);
+
+        $finished = $job['next_batch'] >= $batchCount;
+
+        if ($finished) {
+            $this->cleanup($uploadId);
+        }
+
+        return [
+            'finished' => $finished,
+            'processed_batches' => (int) $job['next_batch'],
+            'total_batches' => $batchCount,
+            'result' => $job['result'],
+        ];
+    }
+
+    protected function splitMergedCsvIntoBatches(string $uploadId, string $mergedPath): int
+    {
+        $jobDir = $this->jobDirectory($uploadId);
+        File::ensureDirectoryExists($jobDir);
+
+        foreach (File::glob($jobDir.'/batch-*.csv') ?: [] as $oldBatch) {
+            File::delete($oldBatch);
+        }
 
         $content = $this->csvReader->readPathAsUtf8($mergedPath);
         $handle = fopen('php://temp', 'r+');
@@ -90,88 +242,7 @@ class ShippingWeightRateImportJobService
 
         fclose($handle);
 
-        if ($batchCount === 0) {
-            File::deleteDirectory($jobDir);
-            throw new \InvalidArgumentException('El archivo no contiene filas de tramos.');
-        }
-
-        File::put($jobDir.'/job.json', json_encode([
-            'user_id' => $userId,
-            'original_name' => $originalName,
-            'next_batch' => 0,
-            'batch_count' => $batchCount,
-            'result' => $this->emptyResult(),
-            'created_at' => now()->toIso8601String(),
-        ], JSON_THROW_ON_ERROR));
-
-        return [
-            'upload_id' => $uploadId,
-            'batch_count' => $batchCount,
-        ];
-    }
-
-    /**
-     * @return array{
-     *     finished: bool,
-     *     processed_batches: int,
-     *     total_batches: int,
-     *     result: array{created: int, updated: int, skipped: int, errors: list<string>}
-     * }
-     */
-    public function processNextBatch(string $uploadId, int $userId): array
-    {
-        $this->assertValidUploadId($uploadId);
-        $job = $this->readJob($uploadId);
-
-        if ((int) $job['user_id'] !== $userId) {
-            throw new \InvalidArgumentException('No autorizado para procesar esta importación.');
-        }
-
-        $nextBatch = (int) $job['next_batch'];
-        $batchCount = (int) $job['batch_count'];
-
-        if ($nextBatch >= $batchCount) {
-            return [
-                'finished' => true,
-                'processed_batches' => $batchCount,
-                'total_batches' => $batchCount,
-                'result' => $job['result'],
-            ];
-        }
-
-        $batchPath = $this->jobDirectory($uploadId).'/batch-'.str_pad((string) $nextBatch, 6, '0', STR_PAD_LEFT).'.csv';
-
-        if (! File::exists($batchPath)) {
-            throw new \InvalidArgumentException('No se encontró el lote '.($nextBatch + 1).' de la importación.');
-        }
-
-        $uploaded = new UploadedFile(
-            $batchPath,
-            $job['original_name'],
-            'text/csv',
-            null,
-            true
-        );
-
-        $batchResult = $this->importService->importFromUploadedFile($uploaded);
-        $job['result'] = $this->mergeResults($job['result'], $batchResult);
-        $job['next_batch'] = $nextBatch + 1;
-
-        File::delete($batchPath);
-        $this->writeJob($uploadId, $job);
-
-        $finished = $job['next_batch'] >= $batchCount;
-
-        if ($finished) {
-            $this->cleanup($uploadId);
-        }
-
-        return [
-            'finished' => $finished,
-            'processed_batches' => (int) $job['next_batch'],
-            'total_batches' => $batchCount,
-            'result' => $job['result'],
-        ];
+        return $batchCount;
     }
 
     /**
@@ -204,14 +275,7 @@ class ShippingWeightRateImportJobService
     }
 
     /**
-     * @return array{
-     *     user_id: int,
-     *     original_name: string,
-     *     next_batch: int,
-     *     batch_count: int,
-     *     result: array{created: int, updated: int, skipped: int, errors: list<string>},
-     *     created_at: string
-     * }
+     * @return array<string, mixed>
      */
     protected function readJob(string $uploadId): array
     {

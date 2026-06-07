@@ -74,7 +74,7 @@ class ShippingWeightRateChunkUploadService
         $mergedPath = $this->mergeChunks($uploadId, $totalChunks);
 
         try {
-            $prepared = $this->importJob->prepareFromMergedCsv(
+            $this->importJob->registerPendingUpload(
                 $uploadId,
                 $mergedPath,
                 $userId,
@@ -82,16 +82,12 @@ class ShippingWeightRateChunkUploadService
             );
         } finally {
             $this->cleanup($uploadId);
-
-            if (File::exists($mergedPath)) {
-                File::delete($mergedPath);
-            }
         }
 
         return [
             'ready' => true,
-            'upload_id' => $prepared['upload_id'],
-            'batch_count' => $prepared['batch_count'],
+            'upload_id' => $uploadId,
+            'batch_count' => 0,
         ];
     }
 

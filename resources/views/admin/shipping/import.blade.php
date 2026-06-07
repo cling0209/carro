@@ -91,7 +91,7 @@
                             <label class="form-label">Archivo CSV *</label>
                             <input type="file" id="importFile" accept=".csv,text/csv" class="form-control" required>
                             <div class="form-text">
-                                Hasta 50 MB. Se sube en fragmentos de ~6 MB e importa en lotes de 250 filas.
+                                Hasta 50 MB. Se sube en fragmentos de ~6 MB e importa en lotes de 50 filas.
                                 Puedes exportar los tramos actuales, editar precios y volver a subirlos.
                             </div>
                         </div>
@@ -139,9 +139,10 @@ function importErrorMessage(payload, status) {
 }
 
 async function processImportBatches(uploadId, batchCount, progressBar, progressLabel, progressPercent) {
+    let totalBatches = batchCount;
     let processed = 0;
 
-    while (processed < batchCount) {
+    while (!totalBatches || processed < totalBatches) {
         const formData = new FormData();
         formData.append('upload_id', uploadId);
         formData.append('_token', csrfToken);
@@ -163,12 +164,25 @@ async function processImportBatches(uploadId, batchCount, progressBar, progressL
             throw new Error(importErrorMessage(payload, response.status));
         }
 
+        if (!totalBatches && payload.total_batches) {
+            totalBatches = payload.total_batches;
+            progressBar.style.width = '50%';
+            progressBar.setAttribute('aria-valuenow', '50');
+            progressPercent.textContent = '50%';
+            progressLabel.textContent = `Preparado: ${totalBatches} lotes. Importando...`;
+            continue;
+        }
+
         processed = payload.processed_batches ?? processed + 1;
-        const percent = Math.round((processed / batchCount) * 100);
+        const percent = totalBatches
+            ? 50 + Math.round((processed / totalBatches) * 50)
+            : 45;
         progressBar.style.width = percent + '%';
         progressBar.setAttribute('aria-valuenow', String(percent));
         progressPercent.textContent = percent + '%';
-        progressLabel.textContent = `Importando tramos (${processed}/${batchCount} lotes)...`;
+        progressLabel.textContent = totalBatches
+            ? `Importando tramos (${processed}/${totalBatches} lotes)...`
+            : 'Preparando importación...';
 
         if (payload.finished && payload.redirect) {
             window.location.href = payload.redirect;
@@ -248,10 +262,13 @@ document.getElementById('importForm').addEventListener('submit', async (event) =
             progressPercent.textContent = uploadPercent + '%';
 
             if (payload.done && payload.upload_id) {
-                progressLabel.textContent = 'Preparando importación...';
+                progressBar.style.width = '45%';
+                progressBar.setAttribute('aria-valuenow', '45');
+                progressPercent.textContent = '45%';
+                progressLabel.textContent = 'Archivo recibido. Preparando lotes...';
                 await processImportBatches(
                     payload.upload_id,
-                    payload.batch_count,
+                    payload.batch_count || 0,
                     progressBar,
                     progressLabel,
                     progressPercent

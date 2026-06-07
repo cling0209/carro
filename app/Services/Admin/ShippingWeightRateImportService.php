@@ -118,53 +118,52 @@ class ShippingWeightRateImportService
             ];
         }
 
-        $created = 0;
-        $updated = 0;
-        $skipped = 0;
+        $staging = [];
         $errors = [];
+        $skipped = 0;
+        $regionComunaPairs = [];
 
-        DB::transaction(function () use ($rows, &$created, &$updated, &$skipped, &$errors) {
-            foreach ($rows as $lineNumber => $row) {
-                $displayLine = $lineNumber + 2;
-                $normalized = $this->normalizeRow($row);
+        foreach ($rows as $lineNumber => $row) {
+            $displayLine = $lineNumber + 2;
+            $normalized = $this->normalizeRow($row);
+            $location = $this->resolveLocation($normalized);
 
-                $location = $this->resolveLocation($normalized);
+            if ($location === null) {
+                $errors[] = 'Fila '.$displayLine.': código de comuna inválido o corresponde a RM (no aplica).';
+                $skipped++;
 
-                if ($location === null) {
-                    $errors[] = 'Fila '.$displayLine.': código de comuna inválido o corresponde a RM (no aplica).';
-                    $skipped++;
+                continue;
+            }
 
-                    continue;
-                }
+            $normalized['region'] = $location['region'];
+            $normalized['comuna'] = $location['comuna'];
 
-                $normalized['region'] = $location['region'];
-                $normalized['comuna'] = $location['comuna'];
+            $validator = Validator::make($normalized, [
+                'id' => ['nullable', 'integer', 'exists:shipping_comuna_weight_rates,id'],
+                'region' => ['required', 'string', 'max:80'],
+                'comuna' => ['required', 'string', 'max:80'],
+                'etiqueta' => ['nullable', 'string', 'max:120'],
+                'peso_min_kg' => ['required', 'numeric', 'min:0'],
+                'peso_max_kg' => ['nullable', 'numeric', 'gt:peso_min_kg'],
+                'adicional_clp' => ['required', 'numeric', 'min:0'],
+                'orden' => ['nullable', 'integer', 'min:0'],
+                'activo' => ['nullable'],
+            ]);
 
-                $validator = Validator::make($normalized, [
-                    'id' => ['nullable', 'integer', 'exists:shipping_comuna_weight_rates,id'],
-                    'region' => ['required', 'string', 'max:80'],
-                    'comuna' => ['required', 'string', 'max:80'],
-                    'etiqueta' => ['nullable', 'string', 'max:120'],
-                    'peso_min_kg' => ['required', 'numeric', 'min:0'],
-                    'peso_max_kg' => ['nullable', 'numeric', 'gt:peso_min_kg'],
-                    'adicional_clp' => ['required', 'numeric', 'min:0'],
-                    'orden' => ['nullable', 'integer', 'min:0'],
-                    'activo' => ['nullable'],
-                ]);
+            if ($validator->fails()) {
+                $errors[] = 'Fila '.$displayLine.': '.$validator->errors()->first();
+                $skipped++;
 
-                if ($validator->fails()) {
-                    $errors[] = 'Fila '.$displayLine.': '.$validator->errors()->first();
-                    $skipped++;
+                continue;
+            }
 
-                    continue;
-                }
+            $data = $validator->validated();
+            $minWeight = (float) $data['peso_min_kg'];
+            $maxWeight = isset($data['peso_max_kg']) ? (float) $data['peso_max_kg'] : null;
 
-                $data = $validator->validated();
-
-                $minWeight = (float) $data['peso_min_kg'];
-                $maxWeight = isset($data['peso_max_kg']) ? (float) $data['peso_max_kg'] : null;
-
-                $payload = [
+            $staging[] = [
+                'id' => $data['id'] ?? null,
+                'payload' => [
                     'region' => $data['region'],
                     'comuna' => $data['comuna'],
                     'label' => ShippingComunaWeightRate::formatLabelFromWeight($minWeight, $maxWeight),
@@ -173,34 +172,84 @@ class ShippingWeightRateImportService
                     'price' => $data['adicional_clp'],
                     'sort_order' => $data['orden'] ?? 0,
                     'is_active' => $this->parseBoolean($data['activo'] ?? null, true),
-                ];
+                ],
+                'lookup_key' => $this->rateLookupKey($data['region'], $data['comuna'], $minWeight, $maxWeight),
+            ];
 
+            $regionComunaPairs[$data['region']."\0".$data['comuna']] = [
+                'region' => $data['region'],
+                'comuna' => $data['comuna'],
+            ];
+        }
+
+        if ($staging === []) {
+            return [
+                'created' => 0,
+                'updated' => 0,
+                'skipped' => $skipped,
+                'errors' => $errors,
+            ];
+        }
+
+        $existingById = [];
+        $existingByRange = [];
+
+        $query = ShippingComunaWeightRate::query();
+
+        $query->where(function ($builder) use ($regionComunaPairs) {
+            foreach ($regionComunaPairs as $pair) {
+                $builder->orWhere(function ($nested) use ($pair) {
+                    $nested->where('region', $pair['region'])
+                        ->where('comuna', $pair['comuna']);
+                });
+            }
+        });
+
+        foreach ($query->get() as $rate) {
+            $existingById[$rate->id] = $rate;
+            $existingByRange[$this->rateLookupKey(
+                $rate->region,
+                $rate->comuna,
+                (float) $rate->min_weight_kg,
+                $rate->max_weight_kg !== null ? (float) $rate->max_weight_kg : null,
+            )] = $rate;
+        }
+
+        $created = 0;
+        $updated = 0;
+
+        DB::transaction(function () use ($staging, &$existingById, &$existingByRange, &$created, &$updated) {
+            foreach ($staging as $item) {
                 $rate = null;
 
-                if (! empty($data['id'])) {
-                    $rate = ShippingComunaWeightRate::query()->find($data['id']);
+                if (! empty($item['id'])) {
+                    $rate = $existingById[$item['id']] ?? null;
                 }
 
                 if (! $rate) {
-                    $rate = ShippingComunaWeightRate::findByComunaAndWeightRange(
-                        $payload['region'],
-                        $payload['comuna'],
-                        $minWeight,
-                        $maxWeight,
-                    );
+                    $rate = $existingByRange[$item['lookup_key']] ?? null;
                 }
 
                 if ($rate) {
-                    $rate->update($payload);
+                    $rate->update($item['payload']);
                     $updated++;
                 } else {
-                    ShippingComunaWeightRate::create($payload);
+                    $rate = ShippingComunaWeightRate::create($item['payload']);
                     $created++;
+                    $existingById[$rate->id] = $rate;
+                    $existingByRange[$item['lookup_key']] = $rate;
                 }
             }
         });
 
         return compact('created', 'updated', 'skipped', 'errors');
+    }
+
+    protected function rateLookupKey(string $region, string $comuna, float $minWeight, ?float $maxWeight): string
+    {
+        return $region."\0".$comuna."\0".$this->formatDecimal($minWeight)."\0".(
+            $maxWeight === null ? 'null' : $this->formatDecimal($maxWeight)
+        );
     }
 
     /**
