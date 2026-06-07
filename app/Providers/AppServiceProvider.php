@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use Illuminate\Mail\Markdown;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,7 +21,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \Illuminate\Pagination\Paginator::useBootstrapFive();
-        Markdown::theme('romulo');
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
