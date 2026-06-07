@@ -1,7 +1,7 @@
 <x-mail::layout>
 <x-slot:header>
 <x-mail::header :url="config('app.url')">
-{{ config('app.name', 'Rómulo') }}
+{{ config('app.name', 'Tienda Rómulo') }}
 </x-mail::header>
 </x-slot:header>
 
@@ -17,7 +17,7 @@
 
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} {{ config('app.name', 'Rómulo') }} — Comercializadora Rómulo
+© {{ date('Y') }} {{ config('app.name', 'Tienda Rómulo') }} — Comercializadora Rómulo
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

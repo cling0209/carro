@@ -56,7 +56,7 @@ class AuthController extends Controller
             $this->adminOtp->send(
                 $user,
                 AdminOtpService::PURPOSE_LOGIN,
-                'Código de acceso al panel — '.config('app.name', 'Rómulo'),
+                'Código de acceso al panel — '.config('app.name', 'Tienda Rómulo'),
                 'Para completar tu inicio de sesión en el panel de administración, ingresa este código.',
             );
         } catch (\Throwable $e) {

@@ -17,7 +17,7 @@ class CustomerResetPasswordNotification extends ResetPassword
         $expire = (string) config('auth.passwords.users.expire', 60);
 
         return (new MailMessage)
-            ->subject('Recuperar contraseña — '.config('app.name', 'Rómulo'))
+            ->subject('Recuperar contraseña — '.config('app.name', 'Tienda Rómulo'))
             ->greeting('Hola, '.$notifiable->name)
             ->line('Recibiste este correo porque se solicitó restablecer la contraseña de tu cuenta.')
             ->action('Restablecer contraseña', $url)

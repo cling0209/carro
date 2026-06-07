@@ -17,7 +17,7 @@ class AdminResetPasswordNotification extends ResetPassword
         $expire = (string) config('auth.passwords.users.expire', 60);
 
         return (new MailMessage)
-            ->subject('Recuperar contraseña del panel — '.config('app.name', 'Rómulo'))
+            ->subject('Recuperar contraseña del panel — '.config('app.name', 'Tienda Rómulo'))
             ->greeting('Hola, '.$notifiable->name)
             ->line('Recibiste este correo porque se solicitó restablecer la contraseña de tu cuenta de administrador.')
             ->action('Restablecer contraseña', $url)

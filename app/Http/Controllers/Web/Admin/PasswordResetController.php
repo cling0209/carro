@@ -83,7 +83,7 @@ class PasswordResetController extends Controller
             $this->adminOtp->send(
                 $user,
                 AdminOtpService::PURPOSE_PASSWORD_RESET,
-                'Recuperar contraseña del panel — '.config('app.name', 'Rómulo'),
+                'Recuperar contraseña del panel — '.config('app.name', 'Tienda Rómulo'),
                 'Para restablecer la contraseña de tu cuenta de administrador, usa este código en el formulario.',
             );
 
