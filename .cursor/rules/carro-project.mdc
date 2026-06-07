@@ -1,0 +1,165 @@
+---
+description: Contexto del proyecto Carro — tienda online Laravel Chile
+alwaysApply: true
+---
+
+# Carro — Tienda online Chile
+
+Monolito **Laravel 13** + **PHP 8.4**. Frontend **Blade + Bootstrap 5** (sin Vue/React). API REST + Swagger. Pagos **Webpay Plus** (Transbank). BD **PostgreSQL** (carrito, órdenes, sesiones/cache en prod sin Redis).
+
+Raíz del repo: `C:\Users\csoto\Documents\workspace84\carro`
+
+## Stack y restricciones
+
+- **No** usar Vue, React ni SPA separado para la tienda.
+- **No** crear carpeta `backend/` — todo vive en la raíz Laravel (a diferencia de `ventaonline`).
+- Controladores en `app/Http/` (nunca en `app/Models/Http/`).
+- Locale: español (`es` / `es_CL`), timezone **`America/Santiago`** (`APP_TIMEZONE`).
+
+## Estructura clave
+
+```
+app/Http/Controllers/Web/     → tienda Blade (Shop, Cart, Checkout, PaymentWeb)
+app/Http/Controllers/Api/V1/  → API REST + atributos OpenAPI
+app/Http/Traits/ApiResponse.php → respuestas JSON { data, meta, errors }
+app/Http/Middleware/EnsureAdmin.php → alias 'admin'
+app/Services/CartService.php  → carro guest (cookie cart_session) + usuario
+app/Services/OrderService.php
+app/Services/ShippingService.php
+app/Services/Payments/WebpayGateway.php
+resources/views/shop/         → vistas tienda
+resources/views/layouts/shop.blade.php → layout + loader overlay
+public/css/shop.css, public/js/shop-loader.js, public/images/loading.*
+routes/web.php, routes/api.php
+config/l5-swagger.php, config/transbank.php, config/products.php
+docker-compose.yml, docker/, Dockerfile, KOYEB.md
+```
+
+## URLs locales (Docker puerto **8081**)
+
+| Servicio | URL |
+|----------|-----|
+| Tienda | http://localhost:8081 |
+| Swagger UI | http://localhost:8081/api/documentation |
+| OpenAPI JSON | http://localhost:8081/docs?api-docs.json |
+| Health | http://localhost:8081/up |
+| Mailpit | http://localhost:8026 |
+
+Puerto **8081** porque **8080** lo usa `ventaonline`. Postgres expuesto en **5433**.
+
+## Credenciales demo
+
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| Admin | admin@carro.local |  Admin123!Secure|
+| Cliente | cliente@carro.local | Cliente123! |
+
+## Rutas web (tienda)
+
+- `/`, `/catalogo`, `/producto/{slug}`
+- `/carro`, POST `/carro/agregar`, PATCH/DELETE `/carro/{id}`
+- `/checkout`, POST `/checkout`
+- GET/POST `/checkout/webpay/return` → retorno Webpay
+
+## Panel admin (solo rol `admin`, sesión web)
+
+- Login: `/admin/login` — demo: `admin@carro.local` / `Admin123!Secure`
+- Productos (CRUD): `/admin/productos`
+- Ventas (listado + detalle): `/admin/ventas`, `/admin/ventas/{id}`
+- Envíos (tarifa RM + tramos por peso): `/admin/envios`
+- Controladores: `app/Http/Controllers/Web/Admin/*`
+- Vistas: `resources/views/admin/`, layout `layouts/admin.blade.php`
+- Middleware: `auth` + `admin` (`EnsureAdmin` redirige a login en web)
+
+## API REST (`/api/v1`)
+
+- Público: products, categories, cart, orders, locations/chile, auth register/login
+- Pagos: `POST /payments/webpay/create`, `POST /payments/webpay/commit`
+- Admin (Sanctum + middleware `admin`): CRUD categories/products, list/update orders
+- Respuestas: trait `ApiResponse` → `{ data, meta, errors }`
+- Swagger: atributos PHP 8 `#[OA\...]` en controladores; título **Carro API**
+
+## Flujo de compra
+
+Catálogo → carro (PostgreSQL + cookie `cart_session`) → checkout (datos envío Chile) → redirect Webpay → return → confirmación.
+
+Transbank integración: `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY`, `TRANSBANK_ENV=integration`, `TRANSBANK_RETURN_URL`.
+
+### Tarjetas de prueba Transbank (ambiente integración)
+
+Usar con `TRANSBANK_ENV=integration`. CVV y fecha de expiración según tipo; donde no aplica CVV, solo el número de tarjeta.
+
+| Tipo | Detalle | Resultado |
+|------|---------|-----------|
+| VISA | `4051 8856 0044 6623` — CVV `123`, cualquier fecha de expiración | Aprobada |
+| AMEX | `3700 0000 0002 032` — CVV `1234`, cualquier fecha de expiración | Aprobada |
+| MASTERCARD | `5186 0595 5959 0568` — CVV `123`, cualquier fecha de expiración | Rechazada |
+| Redcompra | `4051 8842 3993 7763` | Aprobada (débito Redcompra) |
+| Redcompra | `4511 3466 6003 7060` | Aprobada (débito Redcompra) |
+| Redcompra | `5186 0085 4123 3829` | Rechazada (débito Redcompra) |
+| Prepago VISA | `4051 8860 0005 6590` — CVV `123`, cualquier fecha de expiración | Aprobada |
+| Prepago MASTERCARD | `5186 1741 1062 9480` — CVV `123`, cualquier fecha de expiración | Rechazada |
+
+**Autenticación Redcompra / banco:** si aparece formulario con RUT y clave → RUT `11.111.111-1`, clave `123`.
+
+## Envíos
+
+- **RM**: tarifa fija editable en admin (`shipping_settings.rm_flat_rate`).
+- **Otras regiones**: según peso total del carrito (`shipping_weight_rates`).
+- Peso por producto: `products.weight_kg`; fallback `default_product_weight_kg`.
+- Servicio: `ShippingService::quote($cart, $region)` — usado en checkout (AJAX) y al crear orden.
+- Snapshot en `orders`: `shipping_zone`, `shipping_total_weight_kg`, `shipping_rate_type`, `shipping_rate_label`, `shipping_weight_rate_id`, `shipping_metadata`.
+- Checkout cotiza en `GET /checkout/envio?region=...` al cambiar región.
+
+## Imágenes de productos (URL externa Romulo)
+
+- Config en `config/products.php` + `.env`:
+  - `PRODUCT_IMAGE_BASE_URL` — ej. `https://www.romulo.cl/allproducts/imagenes/productos`
+  - `PRODUCT_IMAGE_FILENAME_PATTERN` — ej. `{codigo}_medium.jpg` (`{codigo}` = `sku`)
+  - `PRODUCT_IMAGE_FALLBACK_URL` — placeholder si falta data
+- Campo **`products.familia`** = carpeta en la URL externa
+- URL final: `{base}/{familia}/{sku}_medium.jpg`
+- Prioridad: URL calculada → `product_images.url` manual → fallback
+- Uso: helper `product_image($product)`, componente `<x-product-image>`, accessor API `image_url`
+- Mientras carga: spinner `public/images/loading.svg`; si falla o no hay URL: `no-image.svg` + texto "Sin imagen"
+- **No** guardar imágenes en Neon; solo URLs
+
+## Docker local
+
+```bash
+docker compose up -d
+docker compose exec app php artisan migrate --seed
+docker compose exec app php artisan l5-swagger:generate
+```
+
+- `L5_SWAGGER_GENERATE_ALWAYS=false` en compose (evita 500/lentitud en Windows).
+- Volumen `.:/var/www/html` es **lento en Windows**; en Koyeb será rápido.
+- Si recreas solo `app` y hay **502**, reinicia nginx: `docker compose restart nginx`.
+- Entrypoint (`docker/php/entrypoint.sh`) no genera `APP_KEY`; definirla en `.env`.
+- Redis **sin** puerto expuesto (evita conflicto 6380).
+
+## Producción (Koyeb + Neon)
+
+Ver `KOYEB.md`. Puerto **8000**, health `/up`. Variables críticas: `APP_KEY`, `APP_URL`, `TRANSBANK_RETURN_URL`, `RUN_MIGRATIONS`, `RUN_SEED` (solo una vez). Sin Upstash: `CACHE_STORE=database`, `SESSION_DRIVER=database`, `QUEUE_CONNECTION=database`.
+
+## Comandos útiles
+
+```bash
+composer install && composer dump-autoload -o   # IDE Intelephense en Windows
+docker compose exec app php artisan test
+docker compose exec app php artisan l5-swagger:generate
+```
+
+## IDE (Cursor)
+
+- Extensión **PHP Intelephense**; desactivar validador PHP nativo.
+- Config en `.vscode/settings.json` del proyecto.
+- `vendor/` debe existir localmente para quitar errores rojos en el editor.
+
+## Patrones al implementar
+
+- Lógica de negocio en `app/Services/`, no en controladores.
+- API: usar `ApiResponse` (`success()`, `error()`).
+- Web: controladores delgados que delegan a servicios y retornan vistas Blade.
+- Nuevos endpoints API: ruta en `routes/api.php`, controlador en `Api/V1/`, atributos OpenAPI, regenerar swagger.
+- Carro invitado: cookie `cart_session` (excluida de encrypt en `bootstrap/app.php`).
