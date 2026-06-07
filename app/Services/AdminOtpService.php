@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Notifications\AdminEmailCodeNotification;
+use App\Support\MailDevelopmentLogger;
 use Illuminate\Support\Facades\Cache;
 
 class AdminOtpService
@@ -18,6 +19,11 @@ class AdminOtpService
     {
         $code = (string) random_int(100000, 999999);
 
+        MailDevelopmentLogger::info('OTP admin: generando código', [
+            'email' => $user->email,
+            'purpose' => $purpose,
+        ]);
+
         Cache::put(
             $this->cacheKey($user->id, $purpose),
             $code,
@@ -30,6 +36,11 @@ class AdminOtpService
             introLine: $intro,
             expiresMinutes: self::TTL_MINUTES,
         ));
+
+        MailDevelopmentLogger::info('OTP admin: notificación encolada/enviada', [
+            'email' => $user->email,
+            'purpose' => $purpose,
+        ]);
     }
 
     public function verify(User $user, string $purpose, string $code): bool

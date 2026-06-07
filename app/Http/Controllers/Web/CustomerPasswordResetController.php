@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\MailDevelopmentLogger;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,8 +30,33 @@ class CustomerPasswordResetController extends Controller
 
         $user = User::query()->where('email', $data['email'])->first();
 
+        MailDevelopmentLogger::info('Recuperación cliente solicitada', [
+            'email' => $data['email'],
+            'usuario_encontrado' => $user !== null,
+            'es_cliente' => $user !== null && ! $user->isAdmin(),
+        ]);
+
         if ($user && ! $user->isAdmin()) {
-            Password::sendResetLink(['email' => $data['email']]);
+            try {
+                Password::sendResetLink(['email' => $data['email']]);
+                MailDevelopmentLogger::info('Enlace de recuperación cliente procesado', [
+                    'email' => $data['email'],
+                ]);
+            } catch (\Throwable $e) {
+                report($e);
+                MailDevelopmentLogger::error('Fallo al enviar enlace de recuperación cliente', [
+                    'email' => $data['email'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        } elseif ($user?->isAdmin()) {
+            MailDevelopmentLogger::info('Recuperación cliente sin envío (correo es admin)', [
+                'email' => $data['email'],
+            ]);
+        } else {
+            MailDevelopmentLogger::info('Recuperación cliente sin envío (correo no registrado)', [
+                'email' => $data['email'],
+            ]);
         }
 
         return back()->with(

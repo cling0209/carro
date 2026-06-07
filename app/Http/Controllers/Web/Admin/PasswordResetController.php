@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AdminOtpService;
+use App\Support\MailDevelopmentLogger;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,15 +35,34 @@ class PasswordResetController extends Controller
 
         $user = User::query()->where('email', $data['email'])->first();
 
+        MailDevelopmentLogger::info('Recuperación admin solicitada', [
+            'email' => $data['email'],
+            'usuario_encontrado' => $user !== null,
+            'es_admin' => $user?->isAdmin() ?? false,
+            'otp_habilitado' => config('admin.otp_enabled'),
+        ]);
+
         if ($user?->isAdmin()) {
             if (config('admin.otp_enabled')) {
                 return $this->storeWithOtp($request, $user);
             }
 
             try {
+                MailDevelopmentLogger::info('Enviando enlace de recuperación admin', [
+                    'email' => $data['email'],
+                ]);
+
                 Password::sendResetLink(['email' => $data['email']]);
+
+                MailDevelopmentLogger::info('Enlace de recuperación admin procesado', [
+                    'email' => $data['email'],
+                ]);
             } catch (\Throwable $e) {
                 report($e);
+                MailDevelopmentLogger::error('Fallo al enviar enlace de recuperación admin', [
+                    'email' => $data['email'],
+                    'error' => $e->getMessage(),
+                ]);
 
                 return back()->with('error', 'No se pudo enviar el enlace. Revisa la configuración de correo.');
             }
@@ -52,6 +72,10 @@ class PasswordResetController extends Controller
                 'Te enviamos un enlace para restablecer la contraseña. Si no lo ves, revisa también la carpeta de spam o correo no deseado.'
             );
         }
+
+        MailDevelopmentLogger::info('Recuperación admin sin envío (correo no es admin)', [
+            'email' => $data['email'],
+        ]);
 
         return back()->with(
             'success',
@@ -94,6 +118,10 @@ class PasswordResetController extends Controller
                 ->with('success', 'Te enviamos un código de verificación a tu correo. Si no lo ves, revisa también la carpeta de spam o correo no deseado.');
         } catch (\Throwable $e) {
             report($e);
+            MailDevelopmentLogger::error('Fallo al enviar código OTP de recuperación admin', [
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
 
             return back()->with('error', 'No se pudo enviar el código. Revisa la configuración de correo.');
         }

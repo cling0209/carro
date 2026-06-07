@@ -69,6 +69,7 @@ Puerto **8081** porque **8080** lo usa `ventaonline`. Postgres expuesto en **543
 - Variable: `ADMIN_OTP_ENABLED` (default `true` en prod; `false` en local sin SMTP)
 - Recuperar contraseña cliente: `/cuenta/password/olvidada` (enlace por correo)
 - Correos: plantilla Markdown tema `romulo` (colores tienda)
+- Local: log de correo en `storage/logs/mail.log` (`MailDevelopmentLogger`, solo `APP_ENV=local`)
 - Administradores: `/admin/usuarios` (crear admins; quitar rol admin sin borrar cuenta)
 - Productos (CRUD): `/admin/productos`
 - Ventas (listado + detalle): `/admin/ventas`, `/admin/ventas/{id}`
