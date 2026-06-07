@@ -14,12 +14,12 @@ class AdminEmailCodeNotification extends Notification
         public int $expiresMinutes = 15,
     ) {}
 
-    public function via(object $notifiable): array
+    public function via($notifiable): array
     {
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject($this->subjectLine)

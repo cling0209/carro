@@ -7,12 +7,12 @@ use Illuminate\Notifications\Notification;
 
 class AdminWelcomeNotification extends Notification
 {
-    public function via(object $notifiable): array
+    public function via($notifiable): array
     {
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail($notifiable): MailMessage
     {
         return (new MailMessage)
             ->subject('Cuenta de administrador — '.config('app.name', 'Tienda Rómulo'))
