@@ -18,7 +18,7 @@
     </div>
 
     <div class="checkout-card card p-4 p-lg-5 mb-4">
-        <p class="lead fw-semibold text-primary mb-3">Comercializadora Rómulo Ltda.</p>
+        <p class="lead fw-semibold text-primary mb-3">Comercializadora Rómulo</p>
         <p class="mb-0 text-secondary">
             Llevamos desde 2011 trabajando cara a cara, caja por caja, pedido por pedido.
             Conocemos a nuestros clientes, sus rutinas y lo que necesitan cuando lo necesitan.
