@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\ShippingComunaWeightRate;
 use App\Models\ShippingRegionRate;
 use App\Models\ShippingSetting;
+use App\Services\Admin\ShippingWeightRateChunkUploadService;
+use App\Services\Admin\ShippingWeightRateImportJobService;
 use App\Services\Admin\ShippingWeightRateImportService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -157,14 +160,99 @@ class ShippingController extends Controller
         return $this->rateImport->exportCsvResponse();
     }
 
-    public function processImport(Request $request): RedirectResponse
+    public function storeImportChunk(Request $request, ShippingWeightRateChunkUploadService $chunkUpload): JsonResponse
     {
-        $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
+        if (! $request->hasFile('chunk') || ! $request->file('chunk')->isValid()) {
+            return response()->json([
+                'message' => 'El fragmento no llegó al servidor. Reintenta la carga.',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'upload_id' => ['required', 'uuid'],
+            'chunk_index' => ['required', 'integer', 'min:0'],
+            'total_chunks' => ['required', 'integer', 'min:1', 'max:500'],
+            'original_name' => ['required', 'string', 'max:255'],
+            'chunk' => ['required', 'file', 'max:7168'],
         ]);
 
-        $result = $this->rateImport->importFromUploadedFile($request->file('file'));
+        try {
+            $result = $chunkUpload->storeChunk(
+                $data['upload_id'],
+                (int) $data['chunk_index'],
+                (int) $data['total_chunks'],
+                $data['original_name'],
+                $request->file('chunk'),
+                (int) $request->user()->id,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
 
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Error interno al procesar la carga. Reintenta en unos minutos.',
+            ], 500);
+        }
+
+        if (! $result['ready']) {
+            return response()->json([
+                'done' => false,
+                'received' => (int) $data['chunk_index'] + 1,
+                'total' => (int) $data['total_chunks'],
+            ]);
+        }
+
+        return response()->json([
+            'done' => true,
+            'upload_id' => $result['upload_id'],
+            'batch_count' => $result['batch_count'],
+        ]);
+    }
+
+    public function processImportBatch(Request $request, ShippingWeightRateImportJobService $importJob): JsonResponse
+    {
+        $data = $request->validate([
+            'upload_id' => ['required', 'uuid'],
+        ]);
+
+        try {
+            $progress = $importJob->processNextBatch(
+                $data['upload_id'],
+                (int) $request->user()->id,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'Error interno al importar tramos. Reintenta en unos minutos.',
+            ], 500);
+        }
+
+        $payload = [
+            'finished' => $progress['finished'],
+            'processed_batches' => $progress['processed_batches'],
+            'total_batches' => $progress['total_batches'],
+        ];
+
+        if ($progress['finished']) {
+            $payload['redirect'] = $this->flashImportResultAndGetRedirectUrl($progress['result']);
+        }
+
+        return response()->json($payload);
+    }
+
+    /**
+     * @param  array{created: int, updated: int, skipped: int, errors: list<string>}  $result
+     */
+    protected function flashImportResultAndGetRedirectUrl(array $result): string
+    {
         $parts = [];
 
         if ($result['created'] > 0) {
@@ -176,21 +264,23 @@ class ShippingController extends Controller
         }
 
         if ($parts === []) {
-            return redirect()
-                ->route('admin.shipping.import')
-                ->with('error', 'No se importó ningún tramo.')
-                ->with('import_errors', array_slice($result['errors'], 0, 30));
+            session()->flash('error', 'No se importó ningún tramo.');
+            session()->flash('import_errors', array_slice($result['errors'], 0, 30));
+
+            return route('admin.shipping.import');
         }
 
-        $redirect = redirect()
-            ->route('admin.shipping.index')
-            ->with('success', 'Importación completada: '.implode(', ', $parts).'.');
+        session()->flash('success', 'Importación completada: '.implode(', ', $parts).'.');
 
         if ($result['errors'] !== []) {
-            $redirect->with('import_errors', array_slice($result['errors'], 0, 30));
+            session()->flash('import_errors', array_slice($result['errors'], 0, 30));
+
+            if (count($result['errors']) > 30) {
+                session()->flash('error', 'Algunas filas fallaron. Se muestran los primeros 30 errores.');
+            }
         }
 
-        return $redirect;
+        return route('admin.shipping.index');
     }
 
     protected function validatedRate(Request $request, ?ShippingComunaWeightRate $existing = null): array

@@ -73,7 +73,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('envios/carga-masiva', [AdminShippingController::class, 'importForm'])->name('shipping.import');
         Route::get('envios/carga-masiva/plantilla', [AdminShippingController::class, 'downloadImportTemplate'])->name('shipping.import.template');
         Route::get('envios/exportar-tramos', [AdminShippingController::class, 'exportRates'])->name('shipping.export');
-        Route::post('envios/carga-masiva', [AdminShippingController::class, 'processImport'])->name('shipping.import.store');
+        Route::post('envios/carga-masiva/chunk', [AdminShippingController::class, 'storeImportChunk'])->name('shipping.import.chunk');
+        Route::post('envios/carga-masiva/procesar', [AdminShippingController::class, 'processImportBatch'])->name('shipping.import.process');
         Route::put('envios', [AdminShippingController::class, 'updateSettings'])->name('shipping.settings');
         Route::put('envios/regiones', [AdminShippingController::class, 'updateRegionRates'])->name('shipping.regions');
         Route::post('envios/tramos', [AdminShippingController::class, 'storeRate'])->name('shipping.rates.store');
