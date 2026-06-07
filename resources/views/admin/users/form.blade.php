@@ -11,6 +11,7 @@
         <h1 class="h3 fw-bold mt-2">Nuevo administrador</h1>
         <p class="text-muted mb-0">
             Si el correo ya existe como cliente, la cuenta se promoverá a administrador.
+            Al guardar, se enviará un correo de bienvenida. Al ingresar al panel se pedirá un código enviado por correo.
         </p>
     </div>
 
@@ -76,23 +77,5 @@
 @endsection
 
 @push('scripts')
-<script>
-document.querySelectorAll('.js-password-toggle').forEach(function (button) {
-    button.addEventListener('click', function () {
-        const input = document.getElementById(button.dataset.target);
-
-        if (!input) {
-            return;
-        }
-
-        const icon = button.querySelector('i');
-        const show = input.type === 'password';
-
-        input.type = show ? 'text' : 'password';
-        icon.classList.toggle('bi-eye', !show);
-        icon.classList.toggle('bi-eye-slash', show);
-        button.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
-    });
-});
-</script>
+<script src="{{ asset('js/password-toggle.js') }}" defer></script>
 @endpush

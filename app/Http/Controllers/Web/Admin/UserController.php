@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\AdminWelcomeNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -62,21 +63,20 @@ class UserController extends Controller
                 'role' => 'admin',
             ]);
 
-            return redirect()
-                ->route('admin.users.index')
-                ->with('success', 'La cuenta existente fue promovida a administrador.');
+            return $this->redirectAfterAdminSaved(
+                $existing,
+                'La cuenta existente fue promovida a administrador.'
+            );
         }
 
-        User::create([
+        $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
             'role' => 'admin',
         ]);
 
-        return redirect()
-            ->route('admin.users.index')
-            ->with('success', 'Administrador creado correctamente.');
+        return $this->redirectAfterAdminSaved($user, 'Administrador creado correctamente.');
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
@@ -102,6 +102,21 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'El usuario ya no tiene permisos de administrador.');
+    }
+
+    protected function redirectAfterAdminSaved(User $user, string $message): RedirectResponse
+    {
+        try {
+            $user->notify(new AdminWelcomeNotification());
+            $message .= ' Se envió un correo de bienvenida al administrador.';
+        } catch (\Throwable $e) {
+            report($e);
+            $message .= ' No se pudo enviar el correo de bienvenida; revisa la configuración SMTP.';
+        }
+
+        return redirect()
+            ->route('admin.users.index')
+            ->with('success', $message);
     }
 
     /**

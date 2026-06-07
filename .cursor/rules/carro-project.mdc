@@ -64,6 +64,10 @@ Puerto **8081** porque **8080** lo usa `ventaonline`. Postgres expuesto en **543
 ## Panel admin (solo rol `admin`, sesión web)
 
 - Login: `/admin/login` — demo: `admin@carro.local` / `Admin123!Secure`
+- Recuperar contraseña admin: `/admin/password/olvidada` (código por correo; también al crear admin)
+- Login admin: correo + contraseña → código OTP por correo (`/admin/login/verificar`)
+- Recuperar contraseña cliente: `/cuenta/password/olvidada` (enlace por correo)
+- Correos: plantilla Markdown tema `romulo` (colores tienda)
 - Administradores: `/admin/usuarios` (crear admins; quitar rol admin sin borrar cuenta)
 - Productos (CRUD): `/admin/productos`
 - Ventas (listado + detalle): `/admin/ventas`, `/admin/ventas/{id}`

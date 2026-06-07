@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\CustomerResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -21,6 +22,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        if ($this->isAdmin()) {
+            return;
+        }
+
+        $this->notify(new CustomerResetPasswordNotification($token));
     }
 
     public function addresses(): HasMany

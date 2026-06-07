@@ -35,6 +35,9 @@
                     <label class="form-check-label" for="remember">Recordarme</label>
                 </div>
                 <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                <div class="text-center mt-3">
+                    <a href="{{ route('admin.password.request') }}" class="small">¿Olvidaste tu contraseña?</a>
+                </div>
             </form>
         </div>
     </div>
@@ -42,23 +45,5 @@
 @endsection
 
 @push('scripts')
-<script>
-document.querySelectorAll('.js-password-toggle').forEach(function (button) {
-    button.addEventListener('click', function () {
-        const input = document.getElementById(button.dataset.target);
-
-        if (!input) {
-            return;
-        }
-
-        const icon = button.querySelector('i');
-        const show = input.type === 'password';
-
-        input.type = show ? 'text' : 'password';
-        icon.classList.toggle('bi-eye', !show);
-        icon.classList.toggle('bi-eye-slash', show);
-        button.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
-    });
-});
-</script>
+<script src="{{ asset('js/password-toggle.js') }}" defer></script>
 @endpush

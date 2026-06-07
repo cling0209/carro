@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Web\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Web\Admin\PasswordResetController as AdminPasswordResetController;
 use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Web\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Web\Admin\ProductController as AdminProductController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Web\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Web\CartWebController;
 use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\CustomerAuthController;
+use App\Http\Controllers\Web\CustomerPasswordResetController;
 use App\Http\Controllers\Web\PaymentWebController;
 use App\Http\Controllers\Web\ShopController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +31,14 @@ Route::get('/cuenta/ingresar', [CustomerAuthController::class, 'showLogin'])->na
 Route::post('/cuenta/ingresar', [CustomerAuthController::class, 'login'])
     ->middleware('throttle:10,1')
     ->name('account.login.store');
+Route::get('/cuenta/password/olvidada', [CustomerPasswordResetController::class, 'create'])->name('account.password.request');
+Route::post('/cuenta/password/olvidada', [CustomerPasswordResetController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('account.password.email');
+Route::get('/cuenta/password/restablecer/{token}', [CustomerPasswordResetController::class, 'edit'])->name('account.password.reset');
+Route::post('/cuenta/password/restablecer', [CustomerPasswordResetController::class, 'update'])
+    ->middleware('throttle:5,1')
+    ->name('account.password.update');
 Route::post('/cuenta/salir', [CustomerAuthController::class, 'logout'])->name('account.logout')->middleware('auth');
 
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
@@ -45,6 +55,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('login', [AdminAuthController::class, 'login'])
         ->middleware('throttle:5,1')
         ->name('login.store');
+    Route::get('login/verificar', [AdminAuthController::class, 'showVerify'])->name('login.verify');
+    Route::post('login/verificar', [AdminAuthController::class, 'verify'])
+        ->middleware('throttle:10,1')
+        ->name('login.verify.store');
+
+    Route::get('password/olvidada', [AdminPasswordResetController::class, 'create'])->name('password.request');
+    Route::post('password/olvidada', [AdminPasswordResetController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('password.email');
+    Route::get('password/restablecer', [AdminPasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('password/restablecer', [AdminPasswordResetController::class, 'update'])
+        ->middleware('throttle:5,1')
+        ->name('password.update');
 
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');

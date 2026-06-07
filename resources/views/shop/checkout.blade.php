@@ -104,15 +104,27 @@
                         </div>
                         <div id="create-account-fields" class="row g-3 mt-3 @unless(old('create_account')) d-none @endunless">
                             <div class="col-md-6">
-                                <label class="form-label">Contraseña *</label>
-                                <input type="password" name="password" id="password"
-                                       class="form-control @error('password') is-invalid @enderror" autocomplete="new-password">
-                                @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <label class="form-label" for="password">Contraseña *</label>
+                                <div class="input-group">
+                                    <input type="password" name="password" id="password"
+                                           class="form-control @error('password') is-invalid @enderror" autocomplete="new-password">
+                                    <button type="button" class="btn btn-outline-secondary js-password-toggle"
+                                            data-target="password" aria-label="Mostrar contraseña">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                @error('password')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Confirmar contraseña *</label>
-                                <input type="password" name="password_confirmation" id="password_confirmation"
-                                       class="form-control" autocomplete="new-password">
+                                <label class="form-label" for="password_confirmation">Confirmar contraseña *</label>
+                                <div class="input-group">
+                                    <input type="password" name="password_confirmation" id="password_confirmation"
+                                           class="form-control" autocomplete="new-password">
+                                    <button type="button" class="btn btn-outline-secondary js-password-toggle"
+                                            data-target="password_confirmation" aria-label="Mostrar contraseña">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -309,4 +321,5 @@ if (checkoutForm) {
 if (regionSelect.value) loadComunas();
 updateCheckoutSubmitState();
 </script>
+<script src="{{ asset('js/password-toggle.js') }}" defer></script>
 @endpush
