@@ -244,30 +244,43 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Etiqueta *</label>
-                        <input type="text" name="label" id="rateLabel" class="form-control" required
-                               placeholder="Ej. Hasta 1 kg">
-                    </div>
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label">Peso mínimo (kg) *</label>
                             <input type="number" name="min_weight_kg" id="rateMin" min="0" step="0.001"
-                                   class="form-control" value="0" required>
+                                   class="form-control @error('min_weight_kg') is-invalid @enderror"
+                                   value="{{ old('min_weight_kg', '0') }}" required>
+                            @error('min_weight_kg')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-6">
                             <label class="form-label">Peso máximo (kg)</label>
                             <input type="number" name="max_weight_kg" id="rateMax" min="0" step="0.001"
-                                   class="form-control" placeholder="Vacío = sin límite">
+                                   class="form-control @error('max_weight_kg') is-invalid @enderror"
+                                   value="{{ old('max_weight_kg') }}" placeholder="Vacío = sin límite">
+                            @error('max_weight_kg')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Vacío = desde el peso mínimo en adelante, sin límite superior.</div>
+                        </div>
+                        <div class="col-12">
+                            <p class="text-muted small mb-0">
+                                <span class="fw-semibold">Etiqueta (automática):</span>
+                                <span id="rateLabelPreview" class="text-body">Hasta 0 kg</span>
+                                — se genera según el rango de peso; no se edita manualmente.
+                            </p>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Adicional (CLP) *</label>
                             <input type="number" name="price" id="ratePrice" min="0" step="1"
-                                   class="form-control" required>
+                                   class="form-control @error('price') is-invalid @enderror"
+                                   value="{{ old('price') }}" required>
+                            @error('price')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-6">
                             <label class="form-label">Orden</label>
-                            <input type="number" name="sort_order" id="rateSort" min="0" class="form-control" value="0">
+                            <input type="number" name="sort_order" id="rateSort" min="0"
+                                   class="form-control @error('sort_order') is-invalid @enderror"
+                                   value="{{ old('sort_order', '0') }}">
+                            @error('sort_order')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Debe ser único entre los tramos de esta comuna.</div>
                         </div>
                     </div>
                     <div class="form-check mt-3">
@@ -291,12 +304,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.hash === '#comuna-tramos') {
         document.getElementById('comuna-tramos')?.scrollIntoView({ block: 'start' });
     }
+
+    ['rateMin', 'rateMax'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('input', updateRateLabelPreview);
+    });
 });
 
 const rateStoreUrl = @json(route('admin.shipping.rates.store'));
 const rateUpdateUrlTemplate = @json(route('admin.shipping.rates.update', ['rate' => 0]));
 const selectedRegion = @json($selectedRegion);
 const selectedComuna = @json($selectedComuna);
+
+function formatWeightForLabel(kg) {
+    return Number(kg).toFixed(3).replace(/\.?0+$/, '');
+}
+
+function formatLabelFromWeight(minKg, maxKg) {
+    const min = parseFloat(minKg);
+
+    if (Number.isNaN(min)) {
+        return '—';
+    }
+
+    const maxRaw = maxKg === '' || maxKg === null || maxKg === undefined ? null : parseFloat(maxKg);
+
+    if (maxRaw === null || Number.isNaN(maxRaw)) {
+        return min <= 0 ? 'Sin límite de peso' : `Más de ${formatWeightForLabel(min)} kg`;
+    }
+
+    if (min <= 0) {
+        return `Hasta ${formatWeightForLabel(maxRaw)} kg`;
+    }
+
+    return `${formatWeightForLabel(min)} a ${formatWeightForLabel(maxRaw)} kg`;
+}
+
+function updateRateLabelPreview() {
+    const preview = document.getElementById('rateLabelPreview');
+
+    if (!preview) {
+        return;
+    }
+
+    preview.textContent = formatLabelFromWeight(
+        document.getElementById('rateMin')?.value ?? '',
+        document.getElementById('rateMax')?.value ?? '',
+    );
+}
 
 function openRateModal(rate = null) {
     const form = document.getElementById('rateForm');
@@ -308,7 +362,6 @@ function openRateModal(rate = null) {
         method.value = 'PUT';
         document.getElementById('rateRegion').value = rate.region;
         document.getElementById('rateComuna').value = rate.comuna;
-        document.getElementById('rateLabel').value = rate.label;
         document.getElementById('rateMin').value = rate.min_weight_kg;
         document.getElementById('rateMax').value = rate.max_weight_kg ?? '';
         document.getElementById('ratePrice').value = rate.price;
@@ -323,9 +376,16 @@ function openRateModal(rate = null) {
         document.getElementById('rateActive').checked = true;
         document.getElementById('rateSort').value = 0;
         document.getElementById('rateMin').value = 0;
+        document.getElementById('rateMax').value = '';
     }
 
+    updateRateLabelPreview();
     bootstrap.Modal.getOrCreateInstance(document.getElementById('rateModal')).show();
 }
+
+@if($errors->hasAny(['min_weight_kg', 'max_weight_kg', 'price', 'sort_order']))
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('rateModal')).show();
+    updateRateLabelPreview();
+@endif
 </script>
 @endpush

@@ -12,6 +12,7 @@ use App\Services\Admin\ShippingWeightRateImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -298,11 +299,21 @@ class ShippingController extends Controller
         $data = $request->validate([
             'region' => ['required', 'string', 'max:80'],
             'comuna' => ['required', 'string', 'max:80'],
-            'label' => ['required', 'string', 'max:120'],
             'min_weight_kg' => ['required', 'numeric', 'min:0'],
             'max_weight_kg' => ['nullable', 'numeric', 'gt:min_weight_kg'],
             'price' => ['required', 'numeric', 'min:0'],
-            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'sort_order' => [
+                'nullable',
+                'integer',
+                'min:0',
+                Rule::unique('shipping_comuna_weight_rates', 'sort_order')
+                    ->where(fn ($query) => $query
+                        ->where('region', $request->input('region'))
+                        ->where('comuna', $request->input('comuna')))
+                    ->ignore($existing?->id),
+            ],
+        ], [
+            'sort_order.unique' => 'Ya existe otro tramo con ese orden en esta comuna.',
         ]);
 
         if (! ShippingComunaWeightRate::isValidComuna($data['region'], $data['comuna'])) {
@@ -311,6 +322,10 @@ class ShippingController extends Controller
             ]);
         }
 
+        $minWeight = (float) $data['min_weight_kg'];
+        $maxWeight = isset($data['max_weight_kg']) ? (float) $data['max_weight_kg'] : null;
+
+        $data['label'] = ShippingComunaWeightRate::formatLabelFromWeight($minWeight, $maxWeight);
         $data['is_active'] = $request->boolean('is_active');
         $data['sort_order'] = $data['sort_order'] ?? 0;
 
