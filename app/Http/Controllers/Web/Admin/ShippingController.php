@@ -108,10 +108,7 @@ class ShippingController extends Controller
         ShippingComunaWeightRate::create($data);
 
         return redirect()
-            ->route('admin.shipping.index', [
-                'region' => $data['region'],
-                'comuna' => $data['comuna'],
-            ])
+            ->to($this->shippingComunaTramosUrl($data['region'], $data['comuna']))
             ->with('success', 'Tramo de peso creado.');
     }
 
@@ -121,10 +118,7 @@ class ShippingController extends Controller
         $rate->update($data);
 
         return redirect()
-            ->route('admin.shipping.index', [
-                'region' => $rate->region,
-                'comuna' => $rate->comuna,
-            ])
+            ->to($this->shippingComunaTramosUrl($rate->region, $rate->comuna))
             ->with('success', 'Tramo de peso actualizado.');
     }
 
@@ -135,7 +129,7 @@ class ShippingController extends Controller
         $rate->delete();
 
         return redirect()
-            ->route('admin.shipping.index', compact('region', 'comuna'))
+            ->to($this->shippingComunaTramosUrl($region, $comuna))
             ->with('success', 'Tramo de peso eliminado.');
     }
 
@@ -284,7 +278,19 @@ class ShippingController extends Controller
             }
         }
 
-        return route('admin.shipping.index');
+        return $this->shippingComunaTramosUrl();
+    }
+
+    protected function shippingComunaTramosUrl(?string $region = null, ?string $comuna = null): string
+    {
+        $params = array_filter([
+            'region' => $region,
+            'comuna' => $comuna,
+        ], fn (mixed $value): bool => $value !== null && $value !== '');
+
+        $url = route('admin.shipping.index', $params);
+
+        return str_contains($url, '#') ? $url : $url.'#comuna-tramos';
     }
 
     protected function validatedRate(Request $request, ?ShippingComunaWeightRate $existing = null): array

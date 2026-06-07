@@ -120,7 +120,7 @@
             </div>
         </div>
 
-        <div class="col-12">
+        <div class="col-12" id="comuna-tramos">
             <div class="card admin-card">
                 <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold">Tramos por peso por comuna</span>
@@ -136,7 +136,7 @@
                     </div>
                 </div>
                 <div class="card-body border-bottom">
-                    <form method="get" action="{{ route('admin.shipping.index') }}" class="row g-3 align-items-end">
+                    <form method="get" action="{{ route('admin.shipping.index') }}#comuna-tramos" class="row g-3 align-items-end">
                         <div class="col-md-5">
                             <label class="form-label">Región</label>
                             <select name="region" id="adminRegion" class="form-select" onchange="this.form.submit()">
@@ -287,6 +287,12 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.location.hash === '#comuna-tramos') {
+        document.getElementById('comuna-tramos')?.scrollIntoView({ block: 'start' });
+    }
+});
+
 const rateStoreUrl = @json(route('admin.shipping.rates.store'));
 const rateUpdateUrlTemplate = @json(route('admin.shipping.rates.update', ['rate' => 0]));
 const selectedRegion = @json($selectedRegion);
