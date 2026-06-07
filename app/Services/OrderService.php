@@ -32,7 +32,9 @@ class OrderService
                     throw new \InvalidArgumentException('Producto no disponible.');
                 }
                 if ($product->stock < $item->quantity) {
-                    throw new \InvalidArgumentException("Stock insuficiente para {$product->name}.");
+                    throw new \InvalidArgumentException(
+                        $this->cartService->stockInsufficientMessage($product, $item->quantity)
+                    );
                 }
                 $subtotal += $item->unit_price * $item->quantity;
             }

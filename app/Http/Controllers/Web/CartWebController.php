@@ -55,12 +55,35 @@ class CartWebController extends Controller
         $product = $item->product;
 
         if ($product->stock < $data['quantity']) {
-            return redirect()->back()->with('error', 'Stock insuficiente.');
+            return redirect()->back()->with('error', $this->cartService->stockInsufficientMessage($product, (int) $data['quantity']));
         }
 
         $item->update(['quantity' => $data['quantity'], 'unit_price' => $product->price]);
 
         return redirect()->route('cart.index')->with('success', 'Carro actualizado.');
+    }
+
+    public function sync(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'items' => ['required', 'array'],
+            'items.*' => ['required', 'integer', 'min:1', 'max:99'],
+        ]);
+
+        try {
+            $cart = $this->cartService->resolve($request);
+            $this->cartService->syncQuantities($cart, $data['items']);
+
+            $response = redirect()->route('checkout.index');
+
+            if ($cart->session_id) {
+                $response->cookie('cart_session', $cart->session_id, 60 * 24 * 30);
+            }
+
+            return $response;
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('cart.index')->with('error', $e->getMessage());
+        }
     }
 
     public function remove(Request $request, int $id): RedirectResponse

@@ -66,10 +66,66 @@ class CartService
         }
     }
 
+    public function stockInsufficientMessage(Product $product, int $requested): string
+    {
+        if ($product->stock < 1) {
+            return "Lamentamos informarte que {$product->name} ya no tiene stock disponible.";
+        }
+
+        return "Lamentamos informarte que no hay stock suficiente para {$product->name}. Solo hay {$product->stock} unidad(es) disponible(s).";
+    }
+
+    /**
+     * @param  array<int|string, int>  $quantities
+     */
+    public function syncQuantities(Cart $cart, array $quantities): void
+    {
+        $cart->loadMissing('items.product');
+
+        if ($cart->items->isEmpty()) {
+            throw new \InvalidArgumentException('Tu carro está vacío.');
+        }
+
+        $messages = [];
+
+        foreach ($cart->items as $item) {
+            $qty = (int) ($quantities[$item->id] ?? $quantities[(string) $item->id] ?? $item->quantity);
+            $product = $item->product;
+
+            if ($product === null || ! $product->is_active) {
+                $messages[] = 'Lamentamos informarte que un producto de tu carro ya no está disponible.';
+
+                continue;
+            }
+
+            if ($product->stock < $qty) {
+                $messages[] = $this->stockInsufficientMessage($product, $qty);
+            }
+        }
+
+        if ($messages !== []) {
+            throw new \InvalidArgumentException(implode(' ', array_unique($messages)));
+        }
+
+        foreach ($cart->items as $item) {
+            $qty = (int) ($quantities[$item->id] ?? $quantities[(string) $item->id] ?? $item->quantity);
+            $product = $item->product;
+
+            if ($product === null) {
+                continue;
+            }
+
+            $item->update([
+                'quantity' => $qty,
+                'unit_price' => $product->price,
+            ]);
+        }
+    }
+
     public function addItem(Cart $cart, Product $product, int $quantity): CartItem
     {
         if ($product->stock < $quantity) {
-            throw new \InvalidArgumentException('Stock insuficiente.');
+            throw new \InvalidArgumentException($this->stockInsufficientMessage($product, $quantity));
         }
 
         $item = $cart->items()->where('product_id', $product->id)->first();
@@ -77,7 +133,7 @@ class CartService
         if ($item) {
             $newQty = $item->quantity + $quantity;
             if ($product->stock < $newQty) {
-                throw new \InvalidArgumentException('Stock insuficiente.');
+                throw new \InvalidArgumentException($this->stockInsufficientMessage($product, $newQty));
             }
             $item->update(['quantity' => $newQty, 'unit_price' => $product->price]);
 

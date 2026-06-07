@@ -20,6 +20,7 @@ Route::get('/producto/{slug}', [ShopController::class, 'show'])->name('product.s
 
 Route::get('/carro', [CartWebController::class, 'index'])->name('cart.index');
 Route::post('/carro/agregar', [CartWebController::class, 'add'])->name('cart.add');
+Route::post('/carro/ir-a-pagar', [CartWebController::class, 'sync'])->name('cart.sync');
 Route::patch('/carro/{id}', [CartWebController::class, 'update'])->name('cart.update');
 Route::delete('/carro/{id}', [CartWebController::class, 'remove'])->name('cart.remove');
 
