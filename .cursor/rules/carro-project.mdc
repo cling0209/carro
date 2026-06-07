@@ -140,7 +140,13 @@ docker compose exec app php artisan l5-swagger:generate
 
 ## Producción (Koyeb + Neon)
 
-Ver `KOYEB.md`. Puerto **8000**, health `/up`. Variables críticas: `APP_KEY`, `APP_URL`, `TRANSBANK_RETURN_URL`, `RUN_MIGRATIONS`, `RUN_SEED` (solo una vez). Sin Upstash: `CACHE_STORE=database`, `SESSION_DRIVER=database`, `QUEUE_CONNECTION=database`.
+Ver `KOYEB.md`. Puerto **8000**, health `/up`. Variables críticas: `APP_KEY`, `APP_URL`, `TRANSBANK_RETURN_URL`, `RUN_MIGRATIONS`, `RUN_SEED` (solo una vez). Sin Upstash: `CACHE_STORE=database`, `SESSION_DRIVER=database`, `QUEUE_CONNECTION=database`, `SESSION_SECURE_COOKIE=true`, `APP_DEBUG=false`.
+
+## Seguridad (resumen)
+
+- `GET /api/v1/orders/{uuid}`: solo dueño (`user_id`) o sesión con `pending_order_uuid` coincidente.
+- Swagger (`/api/documentation`): en `APP_ENV=production` requiere login admin.
+- Throttle login web: admin `5/min`, cliente `10/min` (API auth igual).
 
 ## Comandos útiles
 

@@ -57,9 +57,18 @@ class OrderController extends Controller
 
     #[OA\Get(path: '/api/v1/orders/{uuid}', summary: 'Detalle de orden', tags: ['Orders'])]
     #[OA\Response(response: 200, description: 'OK')]
-    public function show(string $uuid): JsonResponse
+    #[OA\Response(response: 403, description: 'Acceso no autorizado')]
+    public function show(Request $request, string $uuid): JsonResponse
     {
         $order = Order::with(['items', 'paymentTransactions'])->where('uuid', $uuid)->firstOrFail();
+
+        if (! $this->orderService->canViewOrder(
+            $order,
+            $request->user(),
+            $request->session()->get('pending_order_uuid'),
+        )) {
+            return $this->error('Acceso no autorizado.', 403);
+        }
 
         return $this->success($order);
     }

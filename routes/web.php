@@ -25,7 +25,9 @@ Route::patch('/carro/{id}', [CartWebController::class, 'update'])->name('cart.up
 Route::delete('/carro/{id}', [CartWebController::class, 'remove'])->name('cart.remove');
 
 Route::get('/cuenta/ingresar', [CustomerAuthController::class, 'showLogin'])->name('account.login');
-Route::post('/cuenta/ingresar', [CustomerAuthController::class, 'login'])->name('account.login.store');
+Route::post('/cuenta/ingresar', [CustomerAuthController::class, 'login'])
+    ->middleware('throttle:10,1')
+    ->name('account.login.store');
 Route::post('/cuenta/salir', [CustomerAuthController::class, 'logout'])->name('account.logout')->middleware('auth');
 
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
@@ -39,7 +41,9 @@ Route::get('/checkout/webpay/retry/{uuid}', [PaymentWebController::class, 'retry
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('login', [AdminAuthController::class, 'showLogin'])->name('login');
-    Route::post('login', [AdminAuthController::class, 'login'])->name('login.store');
+    Route::post('login', [AdminAuthController::class, 'login'])
+        ->middleware('throttle:5,1')
+        ->name('login.store');
 
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');

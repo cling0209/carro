@@ -131,17 +131,22 @@ class OrderService
         });
     }
 
+    public function canViewOrder(Order $order, ?User $user, ?string $sessionOrderUuid): bool
+    {
+        if ($user !== null && $order->user_id === $user->id) {
+            return true;
+        }
+
+        return $sessionOrderUuid !== null && $sessionOrderUuid === $order->uuid;
+    }
+
     public function canRetryPayment(Order $order, ?User $user, ?string $sessionOrderUuid): bool
     {
         if (! in_array($order->status, ['pending_payment', 'payment_failed'], true)) {
             return false;
         }
 
-        if ($sessionOrderUuid === $order->uuid) {
-            return true;
-        }
-
-        return $user !== null && $order->user_id === $user->id;
+        return $this->canViewOrder($order, $user, $sessionOrderUuid);
     }
 
     public function prepareForPaymentRetry(Order $order): void

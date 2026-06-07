@@ -65,16 +65,18 @@ return [
              * Middleware allows to prevent unexpected access to API documentation
              */
             'middleware' => [
-                'api' => [],
-                'asset' => [],
-                'docs' => [],
-                'oauth2_callback' => [],
+                'api' => env('APP_ENV') === 'production' ? ['web', 'auth', 'admin'] : [],
+                'asset' => env('APP_ENV') === 'production' ? ['web', 'auth', 'admin'] : [],
+                'docs' => env('APP_ENV') === 'production' ? ['web', 'auth', 'admin'] : [],
+                'oauth2_callback' => env('APP_ENV') === 'production' ? ['web', 'auth', 'admin'] : [],
             ],
 
             /*
              * Route Group options
              */
-            'group_options' => [],
+            'group_options' => [
+                'middleware' => env('APP_ENV') === 'production' ? ['web'] : [],
+            ],
         ],
 
         'paths' => [
