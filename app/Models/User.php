@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\AdminResetPasswordNotification;
 use App\Notifications\CustomerResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -27,6 +28,10 @@ class User extends Authenticatable
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
         if ($this->isAdmin()) {
+            if (! config('admin.otp_enabled')) {
+                $this->notify(new AdminResetPasswordNotification($token));
+            }
+
             return;
         }
 

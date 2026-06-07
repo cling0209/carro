@@ -65,6 +65,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         ->middleware('throttle:5,1')
         ->name('password.email');
     Route::get('password/restablecer', [AdminPasswordResetController::class, 'edit'])->name('password.reset');
+    Route::get('password/restablecer/{token}', [AdminPasswordResetController::class, 'edit'])->name('password.reset.link');
     Route::post('password/restablecer', [AdminPasswordResetController::class, 'update'])
         ->middleware('throttle:5,1')
         ->name('password.update');

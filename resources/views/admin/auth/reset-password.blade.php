@@ -8,18 +8,27 @@
         <div class="card-body p-4 p-md-5">
             <h1 class="h4 fw-bold mb-1">Nueva contraseña</h1>
             <p class="text-muted mb-4">
-                Ingresa el código enviado a <strong>{{ $email }}</strong> y define tu nueva contraseña.
+                @if ($otpEnabled)
+                    Ingresa el código enviado a <strong>{{ $email }}</strong> y define tu nueva contraseña.
+                @else
+                    Define una nueva contraseña para <strong>{{ $email }}</strong>.
+                @endif
             </p>
 
             <form method="post" action="{{ route('admin.password.update') }}">
                 @csrf
-                <div class="mb-3">
-                    <label class="form-label" for="code">Código de verificación *</label>
-                    <input type="text" name="code" id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
-                           class="form-control text-center @error('code') is-invalid @enderror"
-                           required autofocus autocomplete="one-time-code" placeholder="000000">
-                    @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
+                @if ($otpEnabled)
+                    <div class="mb-3">
+                        <label class="form-label" for="code">Código de verificación *</label>
+                        <input type="text" name="code" id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+                               class="form-control text-center @error('code') is-invalid @enderror"
+                               required autofocus autocomplete="one-time-code" placeholder="000000">
+                        @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                @else
+                    <input type="hidden" name="token" value="{{ $token }}">
+                    <input type="hidden" name="email" value="{{ $email }}">
+                @endif
                 <div class="mb-3">
                     <label class="form-label" for="password">Nueva contraseña *</label>
                     <div class="input-group">

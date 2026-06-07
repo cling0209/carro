@@ -45,6 +45,13 @@ class AuthController extends Controller
                 ->with('error', 'Esta cuenta no tiene permisos de administrador.');
         }
 
+        if (! config('admin.otp_enabled')) {
+            Auth::login($user, $request->boolean('remember'));
+            $request->session()->regenerate();
+
+            return redirect()->intended(route('admin.products.index'));
+        }
+
         try {
             $this->adminOtp->send(
                 $user,
@@ -70,6 +77,10 @@ class AuthController extends Controller
 
     public function showVerify(Request $request): View|RedirectResponse
     {
+        if (! config('admin.otp_enabled')) {
+            return redirect()->route('admin.login');
+        }
+
         if (! $request->session()->has('admin_pending_user_id')) {
             return redirect()->route('admin.login');
         }
@@ -81,6 +92,10 @@ class AuthController extends Controller
 
     public function verify(Request $request): RedirectResponse
     {
+        if (! config('admin.otp_enabled')) {
+            return redirect()->route('admin.login');
+        }
+
         $data = $request->validate([
             'code' => ['required', 'string', 'size:6'],
         ]);

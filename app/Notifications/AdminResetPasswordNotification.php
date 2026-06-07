@@ -5,11 +5,11 @@ namespace App\Notifications;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class CustomerResetPasswordNotification extends ResetPassword
+class AdminResetPasswordNotification extends ResetPassword
 {
     public function toMail($notifiable): MailMessage
     {
-        $url = url(route('account.password.reset', [
+        $url = url(route('admin.password.reset.link', [
             'token' => $this->token,
             'email' => $notifiable->getEmailForPasswordReset(),
         ], false));
@@ -17,9 +17,9 @@ class CustomerResetPasswordNotification extends ResetPassword
         $expire = (string) config('auth.passwords.users.expire', 60);
 
         return (new MailMessage)
-            ->subject('Recuperar contraseña — '.config('app.name', 'Rómulo'))
+            ->subject('Recuperar contraseña del panel — '.config('app.name', 'Rómulo'))
             ->greeting('Hola, '.$notifiable->name)
-            ->line('Recibiste este correo porque se solicitó restablecer la contraseña de tu cuenta.')
+            ->line('Recibiste este correo porque se solicitó restablecer la contraseña de tu cuenta de administrador.')
             ->action('Restablecer contraseña', $url)
             ->line('Este enlace expira en '.$expire.' minutos.')
             ->line('Si no solicitaste este cambio, puedes ignorar el mensaje.');
