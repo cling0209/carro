@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController
 use App\Http\Controllers\Web\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Web\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Web\Admin\ShippingController as AdminShippingController;
+use App\Http\Controllers\Web\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Web\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Web\CartWebController;
 use App\Http\Controllers\Web\CheckoutController;
@@ -79,6 +80,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('usuarios/nuevo', [AdminUserController::class, 'create'])->name('users.create');
         Route::post('usuarios', [AdminUserController::class, 'store'])->name('users.store');
         Route::delete('usuarios/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('clientes', [AdminCustomerController::class, 'index'])->name('customers.index');
+        Route::delete('clientes/{user}', [AdminCustomerController::class, 'destroy'])->name('customers.destroy');
 
         Route::redirect('/', '/admin/productos');
 
