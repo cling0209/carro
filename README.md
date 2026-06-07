@@ -31,6 +31,8 @@ docker compose exec app php artisan db:seed --force
 | Admin | admin@carro.local | Admin123!Secure |
 | Cliente | cliente@carro.local | Cliente123! |
 
+Admin adicional tras `db:seed` (solo local): en `.env` define `SEED_EXTRA_ADMIN_EMAIL` y `SEED_EXTRA_ADMIN_PASSWORD` (ver `.env.example`).
+
 ## Flujo de compra
 
 1. Catálogo → agregar al carro

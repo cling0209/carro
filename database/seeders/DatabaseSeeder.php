@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Cliente Demo', 'password' => 'Cliente123!', 'role' => 'customer']
         );
 
+        $this->seedExtraAdmin();
+
         $this->call(ShippingSeeder::class);
 
         if (Category::query()->exists()) {
@@ -72,6 +74,25 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Talla', 'value' => '42'],
             ['name' => 'Color', 'value' => 'Blanco'],
         ]);
+    }
+
+    protected function seedExtraAdmin(): void
+    {
+        $email = env('SEED_EXTRA_ADMIN_EMAIL');
+        $password = env('SEED_EXTRA_ADMIN_PASSWORD');
+
+        if (! is_string($email) || $email === '' || ! is_string($password) || $password === '') {
+            return;
+        }
+
+        User::query()->updateOrCreate(
+            ['email' => $email],
+            [
+                'name' => env('SEED_EXTRA_ADMIN_NAME', 'Administrador'),
+                'password' => $password,
+                'role' => 'admin',
+            ]
+        );
     }
 
     protected function seedProduct(

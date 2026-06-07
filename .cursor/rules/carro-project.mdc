@@ -37,22 +37,24 @@ docker-compose.yml, docker/, Dockerfile, KOYEB.md
 
 ## URLs locales (Docker puerto **8081**)
 
-| Servicio | URL |
-|----------|-----|
-| Tienda | http://localhost:8081 |
-| Swagger UI | http://localhost:8081/api/documentation |
+| Servicio     | URL                                      |
+| ------------ | ---------------------------------------- |
+| Tienda       | http://localhost:8081                    |
+| Swagger UI   | http://localhost:8081/api/documentation  |
 | OpenAPI JSON | http://localhost:8081/docs?api-docs.json |
-| Health | http://localhost:8081/up |
-| Mailpit | http://localhost:8026 |
+| Health       | http://localhost:8081/up                 |
+| Mailpit      | http://localhost:8026                    |
 
 Puerto **8081** porque **8080** lo usa `ventaonline`. Postgres expuesto en **5433**.
 
 ## Credenciales demo
 
-| Rol | Email | Contraseña |
-|-----|-------|------------|
-| Admin | admin@carro.local |  Admin123!Secure|
-| Cliente | cliente@carro.local | Cliente123! |
+| Rol     | Email               | Contraseña      |
+| ------- | ------------------- | --------------- |
+| Admin   | admin@carro.local   | Admin123!Secure |
+| Cliente | cliente@carro.local | Cliente123!     |
+
+Admin extra local (opcional, `db:seed`): definir en `.env` `SEED_EXTRA_ADMIN_EMAIL`, `SEED_EXTRA_ADMIN_PASSWORD` y opcional `SEED_EXTRA_ADMIN_NAME`. No commitear `.env`; en prod dejar variables vacías.
 
 ## Rutas web (tienda)
 
@@ -97,16 +99,16 @@ Transbank integración: `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY`, `TRANSBA
 
 Usar con `TRANSBANK_ENV=integration`. CVV y fecha de expiración según tipo; donde no aplica CVV, solo el número de tarjeta.
 
-| Tipo | Detalle | Resultado |
-|------|---------|-----------|
-| VISA | `4051 8856 0044 6623` — CVV `123`, cualquier fecha de expiración | Aprobada |
-| AMEX | `3700 0000 0002 032` — CVV `1234`, cualquier fecha de expiración | Aprobada |
-| MASTERCARD | `5186 0595 5959 0568` — CVV `123`, cualquier fecha de expiración | Rechazada |
-| Redcompra | `4051 8842 3993 7763` | Aprobada (débito Redcompra) |
-| Redcompra | `4511 3466 6003 7060` | Aprobada (débito Redcompra) |
-| Redcompra | `5186 0085 4123 3829` | Rechazada (débito Redcompra) |
-| Prepago VISA | `4051 8860 0005 6590` — CVV `123`, cualquier fecha de expiración | Aprobada |
-| Prepago MASTERCARD | `5186 1741 1062 9480` — CVV `123`, cualquier fecha de expiración | Rechazada |
+| Tipo               | Detalle                                                          | Resultado                    |
+| ------------------ | ---------------------------------------------------------------- | ---------------------------- |
+| VISA               | `4051 8856 0044 6623` — CVV `123`, cualquier fecha de expiración | Aprobada                     |
+| AMEX               | `3700 0000 0002 032` — CVV `1234`, cualquier fecha de expiración | Aprobada                     |
+| MASTERCARD         | `5186 0595 5959 0568` — CVV `123`, cualquier fecha de expiración | Rechazada                    |
+| Redcompra          | `4051 8842 3993 7763`                                            | Aprobada (débito Redcompra)  |
+| Redcompra          | `4511 3466 6003 7060`                                            | Aprobada (débito Redcompra)  |
+| Redcompra          | `5186 0085 4123 3829`                                            | Rechazada (débito Redcompra) |
+| Prepago VISA       | `4051 8860 0005 6590` — CVV `123`, cualquier fecha de expiración | Aprobada                     |
+| Prepago MASTERCARD | `5186 1741 1062 9480` — CVV `123`, cualquier fecha de expiración | Rechazada                    |
 
 **Autenticación Redcompra / banco:** si aparece formulario con RUT y clave → RUT `11.111.111-1`, clave `123`.
 
@@ -122,9 +124,9 @@ Usar con `TRANSBANK_ENV=integration`. CVV y fecha de expiración según tipo; do
 ## Imágenes de productos (URL externa Romulo)
 
 - Config en `config/products.php` + `.env`:
-  - `PRODUCT_IMAGE_BASE_URL` — ej. `https://www.romulo.cl/allproducts/imagenes/productos`
-  - `PRODUCT_IMAGE_FILENAME_PATTERN` — ej. `{codigo}_medium.jpg` (`{codigo}` = `sku`)
-  - `PRODUCT_IMAGE_FALLBACK_URL` — placeholder si falta data
+    - `PRODUCT_IMAGE_BASE_URL` — ej. `https://www.romulo.cl/allproducts/imagenes/productos`
+    - `PRODUCT_IMAGE_FILENAME_PATTERN` — ej. `{codigo}_medium.jpg` (`{codigo}` = `sku`)
+    - `PRODUCT_IMAGE_FALLBACK_URL` — placeholder si falta data
 - Campo **`products.familia`** = carpeta en la URL externa
 - URL final: `{base}/{familia}/{sku}_medium.jpg`
 - Prioridad: URL calculada → `product_images.url` manual → fallback
@@ -177,3 +179,9 @@ docker compose exec app php artisan l5-swagger:generate
 - Web: controladores delgados que delegan a servicios y retornan vistas Blade.
 - Nuevos endpoints API: ruta en `routes/api.php`, controlador en `Api/V1/`, atributos OpenAPI, regenerar swagger.
 - Carro invitado: cookie `cart_session` (excluida de encrypt en `bootstrap/app.php`).
+
+## Para hacer consultas con tinker
+
+```bash
+docker compose exec app php artisan tinker
+```
