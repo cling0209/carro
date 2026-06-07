@@ -35,7 +35,7 @@ class CustomerPasswordResetController extends Controller
 
         return back()->with(
             'success',
-            'Si el correo corresponde a una cuenta de cliente, recibirás un enlace para restablecer la contraseña.'
+            'Si el correo corresponde a una cuenta de cliente, recibirás un enlace para restablecer la contraseña. Si no lo ves, revisa también la carpeta de spam o correo no deseado.'
         );
     }
 

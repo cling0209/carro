@@ -43,7 +43,7 @@ class PasswordResetController extends Controller
 
                 return redirect()
                     ->route('admin.password.reset')
-                    ->with('success', 'Te enviamos un código de verificación a tu correo.');
+                    ->with('success', 'Te enviamos un código de verificación a tu correo. Si no lo ves, revisa también la carpeta de spam o correo no deseado.');
             } catch (\Throwable $e) {
                 report($e);
 
@@ -53,7 +53,7 @@ class PasswordResetController extends Controller
 
         return back()->with(
             'success',
-            'Si el correo corresponde a un administrador, recibirás un código para restablecer la contraseña.'
+            'Si el correo corresponde a un administrador, recibirás un código para restablecer la contraseña. Si no lo ves, revisa también la carpeta de spam o correo no deseado.'
         );
     }
 

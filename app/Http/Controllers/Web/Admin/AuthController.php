@@ -65,7 +65,7 @@ class AuthController extends Controller
 
         return redirect()
             ->route('admin.login.verify')
-            ->with('success', 'Te enviamos un código de verificación a '.$user->email.'.');
+            ->with('success', 'Te enviamos un código de verificación a '.$user->email.'. Si no lo ves, revisa también la carpeta de spam o correo no deseado.');
     }
 
     public function showVerify(Request $request): View|RedirectResponse
