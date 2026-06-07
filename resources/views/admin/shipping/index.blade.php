@@ -72,6 +72,7 @@
                 <div class="card-header bg-white fw-semibold">Tarifa fija por región (fuera de RM)</div>
                 <div class="card-body border-bottom py-3 text-muted small">
                     Monto base de cada región. Se suma el tramo de peso de la comuna elegida al pagar.
+                    Si <strong>Activa</strong> no está marcada, esa región no se toma en el cálculo de envío en el checkout.
                 </div>
                 <form method="post" action="{{ route('admin.shipping.regions') }}">
                     @csrf
@@ -161,7 +162,8 @@
                     @if($selectedRegion && $selectedComuna)
                         <p class="text-muted small mb-0 mt-3">
                             Tramos de peso para <strong>{{ $selectedComuna }}</strong>. El adicional se suma a la tarifa fija de la región.
-                            Si no aplica ningún tramo, se usa el adicional fijo global ({{ clp($fallbackAdditional) }}).
+                            Si no aplica ningún tramo activo, se usa el adicional fijo global ({{ clp($fallbackAdditional) }}).
+                            Los tramos con <strong>Activo</strong> desmarcado no se toman en el cálculo.
                         </p>
                     @endif
                 </div>
@@ -286,6 +288,7 @@
                     <div class="form-check mt-3">
                         <input class="form-check-input" type="checkbox" name="is_active" id="rateActive" value="1" checked>
                         <label class="form-check-label" for="rateActive">Tramo activo</label>
+                        <div class="form-text">Si no está marcado, este tramo no se toma en el cálculo de envío.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
