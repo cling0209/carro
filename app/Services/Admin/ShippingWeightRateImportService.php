@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\ShippingComunaWeightRate;
+use App\Services\ChileLocationCatalog;
 use App\Services\ProductImportService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -20,8 +21,9 @@ class ShippingWeightRateImportService
     public function templateHeaders(): array
     {
         return [
-            'region',
-            'comuna',
+            'codigo_comuna',
+            'comuna (no editar)',
+            'region (no editar)',
             'etiqueta',
             'peso_min_kg',
             'peso_max_kg',
@@ -36,16 +38,23 @@ class ShippingWeightRateImportService
         $handle = fopen('php://temp', 'r+');
         fwrite($handle, "\xEF\xBB\xBF");
         fputcsv($handle, $this->templateHeaders(), ';');
-        fputcsv($handle, [
-            'Región de Valparaíso',
-            'Viña del Mar',
-            'Hasta 1 kg',
-            '0',
-            '1',
-            '4990',
-            '1',
-            '1',
-        ], ';');
+
+        foreach (ChileLocationCatalog::allComunasExcludingRm() as $comuna) {
+            foreach (ShippingComunaWeightRate::defaultBands() as $band) {
+                fputcsv($handle, [
+                    $comuna['codigo'],
+                    $comuna['nombre'],
+                    $comuna['region'],
+                    $band['label'],
+                    $this->formatDecimal($band['min']),
+                    $band['max'] !== null ? $this->formatDecimal($band['max']) : '',
+                    number_format((float) $band['price'], 0, '', ''),
+                    (string) $band['sort'],
+                    '1',
+                ], ';');
+            }
+        }
+
         rewind($handle);
         $content = stream_get_contents($handle) ?: '';
         fclose($handle);
@@ -67,10 +76,13 @@ class ShippingWeightRateImportService
                 ->orderBy('min_weight_kg')
                 ->chunk(500, function ($rates) use ($handle) {
                     foreach ($rates as $rate) {
+                        $codigo = ChileLocationCatalog::lookupCutForComuna($rate->region, $rate->comuna) ?? '';
+
                         fputcsv($handle, [
                             $rate->id,
-                            $rate->region,
+                            $codigo,
                             $rate->comuna,
+                            $rate->region,
                             $rate->label,
                             $this->formatDecimal($rate->min_weight_kg),
                             $rate->max_weight_kg !== null ? $this->formatDecimal($rate->max_weight_kg) : '',
@@ -113,6 +125,18 @@ class ShippingWeightRateImportService
                 $displayLine = $lineNumber + 2;
                 $normalized = $this->normalizeRow($row);
 
+                $location = $this->resolveLocation($normalized);
+
+                if ($location === null) {
+                    $errors[] = 'Fila '.$displayLine.': código de comuna inválido o corresponde a RM (no aplica).';
+                    $skipped++;
+
+                    continue;
+                }
+
+                $normalized['region'] = $location['region'];
+                $normalized['comuna'] = $location['comuna'];
+
                 $validator = Validator::make($normalized, [
                     'id' => ['nullable', 'integer', 'exists:shipping_comuna_weight_rates,id'],
                     'region' => ['required', 'string', 'max:80'],
@@ -133,13 +157,6 @@ class ShippingWeightRateImportService
                 }
 
                 $data = $validator->validated();
-
-                if (! ShippingComunaWeightRate::isValidComuna($data['region'], $data['comuna'])) {
-                    $errors[] = 'Fila '.$displayLine.': la comuna no pertenece a la región indicada.';
-                    $skipped++;
-
-                    continue;
-                }
 
                 $payload = [
                     'region' => $data['region'],
@@ -192,12 +209,19 @@ class ShippingWeightRateImportService
             'price' => 'adicional_clp',
             'sort_order' => 'orden',
             'is_active' => 'activo',
+            'codigo' => 'codigo_comuna',
+            'cut' => 'codigo_comuna',
+            'comuna_no_editar' => 'comuna_referencia',
+            'comuna_(no_editar)' => 'comuna_referencia',
+            'region_no_editar' => 'region_referencia',
+            'region_(no_editar)' => 'region_referencia',
         ];
 
         $normalized = [];
 
         foreach ($row as $key => $value) {
             $header = Str::lower(trim(str_replace([' ', '-'], '_', $key)));
+            $header = preg_replace('/_+/', '_', $header) ?? $header;
             $header = $aliases[$header] ?? $header;
             $normalized[$header] = trim((string) $value);
         }
@@ -211,6 +235,36 @@ class ShippingWeightRateImportService
         }
 
         return $normalized;
+    }
+
+    /**
+     * @param  array<string, mixed>  $normalized
+     * @return array{region: string, comuna: string}|null
+     */
+    protected function resolveLocation(array $normalized): ?array
+    {
+        $codigo = trim((string) ($normalized['codigo_comuna'] ?? ''));
+
+        if ($codigo !== '') {
+            if (ChileLocationCatalog::isMetropolitanaCut($codigo)) {
+                return null;
+            }
+
+            $resolved = ChileLocationCatalog::resolveByCut($codigo);
+
+            return $resolved !== null
+                ? ['region' => $resolved['region'], 'comuna' => $resolved['comuna']]
+                : null;
+        }
+
+        $region = trim((string) ($normalized['region'] ?? ''));
+        $comuna = trim((string) ($normalized['comuna'] ?? ''));
+
+        if ($region !== '' && $comuna !== '' && ShippingComunaWeightRate::isValidComuna($region, $comuna)) {
+            return ['region' => $region, 'comuna' => $comuna];
+        }
+
+        return null;
     }
 
     protected function parseBoolean(?string $value, bool $default): bool

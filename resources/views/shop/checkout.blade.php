@@ -230,10 +230,12 @@ function loadComunas() {
         return;
     }
     region.comunas.forEach(c => {
+        const name = typeof c === 'string' ? c : (c.nombre || '');
+        if (!name) return;
         const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        if (c === savedComuna) opt.selected = true;
+        opt.value = name;
+        opt.textContent = name;
+        if (name === savedComuna) opt.selected = true;
         comunaSelect.appendChild(opt);
     });
     quoteShipping();

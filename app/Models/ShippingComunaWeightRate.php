@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
+use App\Services\ChileLocationCatalog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
 
 class ShippingComunaWeightRate extends Model
 {
@@ -144,45 +143,17 @@ class ShippingComunaWeightRate extends Model
         }
     }
 
-    /** @var array<string, list<string>>|null */
-    protected static ?array $chileRegionComunasCache = null;
-
     /**
      * @return array<string, list<string>>
      */
     public static function chileRegionComunasExcludingRm(): array
     {
-        if (self::$chileRegionComunasCache !== null) {
-            return self::$chileRegionComunasCache;
-        }
-
-        $path = database_path('data/chile_regions.json');
-
-        if (! File::exists($path)) {
-            return self::$chileRegionComunasCache = [];
-        }
-
-        $regions = json_decode(File::get($path), true) ?? [];
-        $map = [];
-
-        foreach ($regions as $entry) {
-            $name = $entry['region'] ?? '';
-
-            if ($name === '' || Str::contains(Str::lower($name), 'metropolitana')) {
-                continue;
-            }
-
-            $map[$name] = $entry['comunas'] ?? [];
-        }
-
-        return self::$chileRegionComunasCache = $map;
+        return ChileLocationCatalog::regionComunasExcludingRm();
     }
 
     public static function isValidComuna(string $region, string $comuna): bool
     {
-        $comunas = self::chileRegionComunasExcludingRm()[$region] ?? [];
-
-        return in_array($comuna, $comunas, true);
+        return ChileLocationCatalog::isValidComuna($region, $comuna);
     }
 
     /**

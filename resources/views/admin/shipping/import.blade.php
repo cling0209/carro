@@ -7,7 +7,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h1 class="h3 fw-bold mb-1">Carga masiva de tramos por peso</h1>
-            <p class="text-muted mb-0">Importa o actualiza tramos de envío por región y comuna (fuera de RM).</p>
+            <p class="text-muted mb-0">Importa o actualiza tramos de envío por comuna (fuera de RM) usando el código CUT oficial.</p>
         </div>
         <a href="{{ route('admin.shipping.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Volver a envíos
@@ -36,8 +36,16 @@
                     <dl class="small mb-4">
                         <dt class="fw-semibold">Columnas obligatorias</dt>
                         <dd>
-                            <code>region</code>, <code>comuna</code>, <code>etiqueta</code>,
-                            <code>peso_min_kg</code>, <code>adicional_clp</code>
+                            <code>codigo_comuna</code> (CUT oficial, 5 dígitos),
+                            <code>etiqueta</code>,
+                            <code>peso_min_kg</code>,
+                            <code>adicional_clp</code>
+                        </dd>
+                        <dt class="fw-semibold">Columnas de referencia (no editar)</dt>
+                        <dd>
+                            <code>comuna (no editar)</code>,
+                            <code>region (no editar)</code>
+                            — solo para identificar la fila en Excel; el sistema ignora su contenido al importar.
                         </dd>
                         <dt class="fw-semibold">Columnas opcionales</dt>
                         <dd>
@@ -45,10 +53,15 @@
                             <code>peso_max_kg</code> (vacío = sin límite),
                             <code>orden</code>, <code>activo</code> (1/0)
                         </dd>
-                        <dt class="fw-semibold">Actualización</dt>
+                        <dt class="fw-semibold">Plantilla</dt>
+                        <dd>
+                            Incluye todas las comunas fuera de RM con <strong>4 tramos por defecto</strong> cada una.
+                            Solo debes ajustar precios o tramos; no borres el <code>codigo_comuna</code>.
+                        </dd>
+                        <dt class="fw-semibold">Excel</dt>
                         <dd class="mb-0">
-                            Si no hay <code>id</code>, se busca por región + comuna + etiqueta.
-                            Si no existe, se crea el tramo.
+                            Formatea <code>codigo_comuna</code> como <strong>texto</strong> para conservar ceros a la izquierda
+                            (ej. <code>05101</code>).
                         </dd>
                     </dl>
                     <div class="d-flex flex-wrap gap-2">
@@ -73,7 +86,7 @@
                             <label class="form-label">Archivo CSV *</label>
                             <input type="file" name="file" accept=".csv,text/csv" class="form-control @error('file') is-invalid @enderror" required>
                             @error('file')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                            <div class="form-text">Hasta 10 MB. Puedes exportar los tramos actuales, editarlos y volver a subirlos.</div>
+                            <div class="form-text">Hasta 10 MB. Puedes exportar los tramos actuales, editar precios y volver a subirlos.</div>
                         </div>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-upload"></i> Importar tramos

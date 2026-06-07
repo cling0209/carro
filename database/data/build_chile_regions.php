@@ -1,8 +1,12 @@
 <?php
 
+/**
+ * @deprecated Usar build_chile_regions_from_cut.php (códigos CUT oficiales).
+ */
+
 $sourcePath = __DIR__.'/resumen_source.json';
 if (! file_exists($sourcePath)) {
-    fwrite(STDERR, "Missing resumen_source.json\n");
+    fwrite(STDERR, "Missing resumen_source.json — ejecuta: php database/data/build_chile_regions_from_cut.php\n");
     exit(1);
 }
 
