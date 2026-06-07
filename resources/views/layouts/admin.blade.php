@@ -36,6 +36,9 @@
             <a href="{{ route('admin.shipping.index') }}" class="nav-link-admin {{ request()->routeIs('admin.shipping.*') ? 'active' : '' }}">
                 <i class="bi bi-truck"></i> Envíos
             </a>
+            <a href="{{ route('admin.users.index') }}" class="nav-link-admin {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                <i class="bi bi-people"></i> <span class="d-none d-xl-inline">Administradores</span>
+            </a>
             <a href="{{ route('home') }}" class="nav-link-admin" target="_blank">
                 <i class="bi bi-shop"></i> Tienda
             </a>

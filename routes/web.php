@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController
 use App\Http\Controllers\Web\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Web\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Web\Admin\ShippingController as AdminShippingController;
+use App\Http\Controllers\Web\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Web\CartWebController;
 use App\Http\Controllers\Web\CheckoutController;
 use App\Http\Controllers\Web\CustomerAuthController;
@@ -49,6 +50,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('logout');
         Route::get('cuenta/clave', [AdminAccountController::class, 'editPassword'])->name('account.password');
         Route::put('cuenta/clave', [AdminAccountController::class, 'updatePassword'])->name('account.password.update');
+
+        Route::get('usuarios', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('usuarios/nuevo', [AdminUserController::class, 'create'])->name('users.create');
+        Route::post('usuarios', [AdminUserController::class, 'store'])->name('users.store');
+        Route::delete('usuarios/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
         Route::redirect('/', '/admin/productos');
 
         Route::get('productos', [AdminProductController::class, 'index'])->name('products.index');
