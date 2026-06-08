@@ -1,7 +1,7 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Carro API",
+        "title": "Rómulo API",
         "description": "API REST tienda online con carrito, Redis y Webpay Plus (Chile)",
         "version": "1.0.0"
     },
@@ -239,6 +239,9 @@
                 "responses": {
                     "200": {
                         "description": "OK"
+                    },
+                    "403": {
+                        "description": "Acceso no autorizado"
                     }
                 }
             }
