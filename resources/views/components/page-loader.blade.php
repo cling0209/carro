@@ -1,3 +1,15 @@
+@push('head')
+<script>
+(function () {
+    try {
+        if (sessionStorage.getItem('page-loader-pending') === '1' || document.readyState !== 'complete') {
+            document.documentElement.classList.add('page-loader-active');
+        }
+    } catch (e) {}
+})();
+</script>
+@endpush
+
 <div id="page-loader" aria-hidden="true" aria-live="polite" role="status">
     <div class="page-loader__scene">
         <span class="page-loader__track" aria-hidden="true"></span>

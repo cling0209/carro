@@ -14,7 +14,8 @@
     transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-#page-loader.is-active {
+#page-loader.is-active,
+html.page-loader-active #page-loader {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
@@ -80,6 +81,7 @@
     }
 }
 
-body.is-loading {
+body.is-loading,
+html.page-loader-active body {
     overflow: hidden;
 }

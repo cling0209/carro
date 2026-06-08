@@ -2,8 +2,32 @@
     const loader = document.getElementById('page-loader');
     if (!loader) return;
 
+    const PENDING_KEY = 'page-loader-pending';
     let downloadUntil = 0;
-    let autoHideTimer = null;
+
+    function markNavigationPending() {
+        try {
+            sessionStorage.setItem(PENDING_KEY, '1');
+        } catch (error) {
+            // sessionStorage unavailable
+        }
+    }
+
+    function clearNavigationPending() {
+        try {
+            sessionStorage.removeItem(PENDING_KEY);
+        } catch (error) {
+            // sessionStorage unavailable
+        }
+    }
+
+    function isNavigationPending() {
+        try {
+            return sessionStorage.getItem(PENDING_KEY) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
 
     function showLoader() {
         if (Date.now() < downloadUntil) {
@@ -12,21 +36,16 @@
 
         loader.classList.add('is-active');
         loader.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('page-loader-active');
         document.body.classList.add('is-loading');
-
-        window.clearTimeout(autoHideTimer);
-        autoHideTimer = window.setTimeout(() => {
-            if (document.visibilityState === 'visible') {
-                hideLoader();
-            }
-        }, 3000);
     }
 
     function hideLoader() {
         loader.classList.remove('is-active');
         loader.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('page-loader-active');
         document.body.classList.remove('is-loading');
-        window.clearTimeout(autoHideTimer);
+        clearNavigationPending();
     }
 
     function markDownloadIntent() {
@@ -44,7 +63,16 @@
         return /\/(exportar|export|plantilla)(\/|\?|$)/i.test(href);
     }
 
+    function beginNavigation() {
+        markNavigationPending();
+        showLoader();
+    }
+
     window.PageLoader = { show: showLoader, hide: hideLoader };
+
+    if (document.readyState !== 'complete' || isNavigationPending()) {
+        showLoader();
+    }
 
     document.addEventListener('click', (event) => {
         const link = event.target.closest('a');
@@ -73,7 +101,7 @@
             return;
         }
 
-        showLoader();
+        beginNavigation();
     });
 
     document.addEventListener('submit', (event) => {
@@ -87,7 +115,7 @@
             return;
         }
 
-        showLoader();
+        beginNavigation();
     });
 
     window.addEventListener('beforeunload', () => {
@@ -95,6 +123,7 @@
             return;
         }
 
+        markNavigationPending();
         showLoader();
     });
 
