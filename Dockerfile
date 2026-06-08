@@ -1,4 +1,4 @@
-# Producción: Laravel + Blade + Nginx + PHP-FPM — Koyeb (puerto 8000)
+# Producción: Laravel + Blade + Nginx + PHP-FPM — Render / Koyeb (puerto 8000)
 
 FROM php:8.4-cli-alpine AS composer-build
 RUN apk add --no-cache git unzip libzip-dev postgresql-dev icu-dev oniguruma-dev \

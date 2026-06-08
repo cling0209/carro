@@ -56,9 +56,14 @@ docker compose exec app php artisan l5-swagger:generate
 docker compose exec app php artisan test
 ```
 
-## Despliegue Koyeb + Neon
+## Despliegue producción
 
-Ver **[KOYEB.md](KOYEB.md)** — Dockerfile de producción en la raíz.
+| Plataforma | Documentación |
+|------------|---------------|
+| **Render** + Neon + Resend (`@romulo.cl`) | **[RENDER.md](RENDER.md)** — plan free OK |
+| **Koyeb** + Neon | **[KOYEB.md](KOYEB.md)** |
+
+Dockerfile de producción en la raíz (puerto **8000**, health `/up`).
 
 ## Estructura
 

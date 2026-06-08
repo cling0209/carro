@@ -148,9 +148,12 @@ docker compose exec app php artisan l5-swagger:generate
 - Entrypoint (`docker/php/entrypoint.sh`) no genera `APP_KEY`; definirla en `.env`.
 - Redis **sin** puerto expuesto (evita conflicto 6380).
 
-## Producción (Koyeb + Neon)
+## Producción
 
-Ver `KOYEB.md`. Puerto **8000**, health `/up`. Variables críticas: `APP_KEY`, `APP_URL`, `TRANSBANK_RETURN_URL`, `RUN_MIGRATIONS`, `RUN_SEED` (solo una vez). Sin Upstash: `CACHE_STORE=database`, `SESSION_DRIVER=database`, `QUEUE_CONNECTION=database`, `SESSION_SECURE_COOKIE=true`, `APP_DEBUG=false`.
+- **Render** (`tienda.romulo.cl`): ver `RENDER.md` + `.env.render.example`. Correo prod: **Resend** (`MAIL_MAILER=resend`, `RESEND_API_KEY`, dominio `romulo.cl` verificado) — funciona en **plan free**. Remitente `tienda@romulo.cl`. Local sigue con SMTP `mail.romulo.cl`. Logs: `LOG_CHANNEL=stderr`. Alternativa: SMTP solo en Render de pago.
+- **Koyeb + Neon**: ver `KOYEB.md`.
+
+Común: puerto **8000**, health `/up`, `APP_KEY`, `APP_URL`, `TRANSBANK_RETURN_URL`, `RUN_MIGRATIONS`, `RUN_SEED` (solo una vez). Sin Redis en prod: `CACHE_STORE=database`, `SESSION_DRIVER=database`, `QUEUE_CONNECTION=database`, `SESSION_SECURE_COOKIE=true`, `APP_DEBUG=false`.
 
 ## Seguridad (resumen)
 
