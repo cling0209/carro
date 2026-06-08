@@ -4,6 +4,7 @@ namespace App\Services\Payments;
 
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Services\OrderConfirmationMailer;
 use App\Support\WebpayPaymentType;
 use Transbank\Webpay\Options;
 use Transbank\Webpay\WebpayPlus;
@@ -11,6 +12,10 @@ use Transbank\Webpay\WebpayPlus\Transaction;
 
 class WebpayGateway implements PaymentGatewayInterface
 {
+    public function __construct(
+        protected OrderConfirmationMailer $confirmationMailer,
+    ) {}
+
     protected function options(): Options
     {
         $env = config('transbank.environment') === 'production'
@@ -104,6 +109,21 @@ class WebpayGateway implements PaymentGatewayInterface
                 'status' => 'paid',
             ]);
             $order->recordStatus('paid', $previousStatus, 'Pago Webpay aprobado');
+
+            if ($previousStatus !== 'paid') {
+                try {
+                    $this->confirmationMailer->send(
+                        $order->fresh(['items']),
+                        [
+                            'payment_type_label' => WebpayPaymentType::label($paymentTypeCode),
+                            'card_last_four' => $cardLastFour,
+                            'installments_number' => $installmentsNumber,
+                        ],
+                    );
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
         } else {
             $order->update([
                 'payment_status' => 'failed',

@@ -26,13 +26,26 @@
                     <span>{{ clp($item->line_total) }}</span>
                 </div>
             @endforeach
+            <div class="d-flex justify-content-between py-1 border-top mt-2 pt-2">
+                <span>Subtotal</span>
+                <span>{{ clp($order->subtotal) }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 text-muted small">
+                <span>
+                    Envío
+                    @if($order->shipping_rate_label)
+                        <span class="text-muted">({{ $order->shipping_rate_label }})</span>
+                    @endif
+                </span>
+                <span>{{ clp($order->shipping_amount) }}</span>
+            </div>
             <hr>
             <div class="d-flex justify-content-between fw-bold">
                 <span>Total pagado</span>
                 <span class="text-primary">{{ clp($order->total) }}</span>
             </div>
         </div>
-        <p class="small text-muted">Recibirás un correo de confirmación en {{ $order->customer_email }}.</p>
+        <p class="small text-muted">Te enviamos un correo de confirmación a {{ $order->customer_email }}.</p>
         <a href="{{ route('catalog') }}" class="btn btn-primary rounded-pill">Seguir comprando</a>
     </div>
 </section>
