@@ -9,7 +9,7 @@
             <h1 class="h3 fw-bold mb-1">Ventas realizadas</h1>
             <p class="text-muted mb-0">Pedidos y pagos en la tienda. Por defecto se muestra la última semana.</p>
         </div>
-        <a href="{{ route('admin.orders.export', request()->query()) }}" class="btn btn-outline-success" data-no-loader>
+        <a href="{{ route('admin.orders.export', request()->query()) }}" class="btn btn-outline-success">
             <i class="bi bi-download"></i> Descargar CSV
         </a>
     </div>

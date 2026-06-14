@@ -51,10 +51,10 @@
                         </dd>
                     </dl>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ route('admin.products.import.template') }}" class="btn btn-outline-primary" data-no-loader>
+                        <a href="{{ route('admin.products.import.template') }}" class="btn btn-outline-primary">
                             <i class="bi bi-download"></i> Descargar plantilla
                         </a>
-                        <a href="{{ route('admin.products.export') }}" class="btn btn-outline-success" data-no-loader>
+                        <a href="{{ route('admin.products.export') }}" class="btn btn-outline-success">
                             <i class="bi bi-file-earmark-spreadsheet"></i> Descargar productos actuales
                         </a>
                     </div>

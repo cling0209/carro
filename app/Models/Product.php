@@ -52,10 +52,10 @@ class Product extends Model
 
     public function resolveImageUrl(): string
     {
-        $computed = $this->buildExternalImageUrl();
+        $candidates = $this->imageUrlCandidates();
 
-        if ($computed !== null) {
-            return $computed;
+        if ($candidates !== []) {
+            return $candidates[0];
         }
 
         $image = $this->relationLoaded('images')
@@ -70,17 +70,60 @@ class Product extends Model
         return '';
     }
 
-    public function buildExternalImageUrl(): ?string
+    /**
+     * @return list<string>
+     */
+    public function imageUrlCandidates(): array
     {
         $base = rtrim((string) config('products.image_base_url'), '/');
         $folder = trim((string) $this->familia);
-        $filename = trim((string) $this->image_filename);
 
-        if ($base === '' || $folder === '' || $filename === '') {
-            return null;
+        if ($base === '' || $folder === '') {
+            return [];
         }
 
-        return $base.'/'.trim($folder, '/').'/'.ltrim($filename, '/');
+        $filenames = $this->imageFilenameCandidates();
+
+        if ($filenames === []) {
+            return [];
+        }
+
+        $urls = [];
+
+        foreach ($filenames as $filename) {
+            $urls[] = $base.'/'.trim($folder, '/').'/'.ltrim($filename, '/');
+        }
+
+        return array_values(array_unique($urls));
+    }
+
+    public function buildExternalImageUrl(): ?string
+    {
+        $candidates = $this->imageUrlCandidates();
+
+        return $candidates[0] ?? null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function imageFilenameCandidates(): array
+    {
+        $primary = trim((string) $this->image_filename);
+
+        if ($primary === '') {
+            return [];
+        }
+
+        $candidates = [$primary];
+
+        if (preg_match('/^(.+)_medium(\.[^.]+)$/i', $primary, $matches)) {
+            $candidates[] = $matches[1].$matches[2];
+        } elseif (preg_match('/^(.+)(\.[^.]+)$/i', $primary, $matches)) {
+            $candidates[] = $matches[1].'_medium'.$matches[2];
+        }
+
+        return array_values(array_unique($candidates));
     }
 
     public function scopeActive(Builder $query): Builder

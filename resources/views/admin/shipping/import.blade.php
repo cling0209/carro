@@ -71,10 +71,10 @@
                         </dd>
                     </dl>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ route('admin.shipping.import.template') }}" class="btn btn-outline-primary" data-no-loader>
+                        <a href="{{ route('admin.shipping.import.template') }}" class="btn btn-outline-primary">
                             <i class="bi bi-download"></i> Descargar plantilla
                         </a>
-                        <a href="{{ route('admin.shipping.export') }}" class="btn btn-outline-success" data-no-loader>
+                        <a href="{{ route('admin.shipping.export') }}" class="btn btn-outline-success">
                             <i class="bi bi-file-earmark-spreadsheet"></i> Descargar tramos actuales
                         </a>
                     </div>

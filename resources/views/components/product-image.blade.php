@@ -26,10 +26,14 @@
     @if($hasSrc)
         <img
             src="{{ $imageSrc }}"
+            @if($product && count($product->imageUrlCandidates()) > 1)
+                data-image-fallbacks="{{ json_encode(array_slice($product->imageUrlCandidates(), 1)) }}"
+            @endif
             alt="{{ $altText }}"
             class="product-image__img {{ $class }}"
-            loading="lazy"
+            loading="{{ $variant === 'admin-preview' || $variant === 'detail' ? 'eager' : 'lazy' }}"
             decoding="async"
+            referrerpolicy="no-referrer"
         >
     @endif
 </div>

@@ -10,7 +10,7 @@
             <p class="text-muted mb-0">Alta, edición y baja del catálogo.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('admin.products.export') }}" class="btn btn-outline-success" data-no-loader>
+            <a href="{{ route('admin.products.export') }}" class="btn btn-outline-success">
                 <i class="bi bi-download"></i> Descargar productos
             </a>
             <a href="{{ route('admin.products.import') }}" class="btn btn-outline-primary">

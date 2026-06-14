@@ -126,7 +126,7 @@
                 <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span class="fw-semibold">Tramos por peso por comuna</span>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ route('admin.shipping.export') }}" class="btn btn-sm btn-outline-success" data-no-loader>
+                        <a href="{{ route('admin.shipping.export') }}" class="btn btn-sm btn-outline-success">
                             <i class="bi bi-download"></i> Exportar CSV
                         </a>
                         @if($selectedRegion && $selectedComuna)
