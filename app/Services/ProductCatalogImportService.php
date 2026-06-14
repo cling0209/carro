@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Support\ProductImportColumnMapping;
 use App\Support\ProductImportError;
+use App\Support\ProductImportHeartbeat;
 use App\Support\ProductImportFileTypes;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -345,6 +346,7 @@ class ProductCatalogImportService
         $preview = [];
         $summary = ['crear' => 0, 'actualizar' => 0, 'error' => 0];
         $limit = max(1, min($limit, 50));
+        app(ProductImportService::class)->ensureCategoryCacheLoaded();
 
         foreach (array_slice($rows, 0, $limit) as $lineNumber => $rawRow) {
             $csvLine = (int) ($rawRow['_csv_line'] ?? ($lineNumber + 2));
@@ -430,14 +432,6 @@ class ProductCatalogImportService
             $validation = $this->validateRow($row, $csvLine);
             if ($validation !== null) {
                 $this->pushError($result, $validation);
-                $result['skipped']++;
-
-                continue;
-            }
-
-            $categoryError = app(ProductImportService::class)->familiaImportError(trim((string) $row['prod_familia']));
-            if ($categoryError !== null) {
-                $this->pushError($result, ProductImportError::row($csvLine, $row, $categoryError));
                 $result['skipped']++;
 
                 continue;

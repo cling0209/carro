@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\ProductImportHeartbeat;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -225,6 +226,12 @@ class ProductImportService
 
         foreach ($rows as $lineNumber => $row) {
             $outcome = $this->prepareRow($row, is_int($lineNumber) ? $lineNumber : 0);
+
+            ProductImportHeartbeat::rowProcessed(
+                is_int($lineNumber) ? $lineNumber + 1 : 1,
+                count($rows),
+                $result,
+            );
 
             if ($outcome['error'] !== null) {
                 $result['errors'][] = $this->structuredRowError($row, $lineNumber, $outcome['error']);
@@ -810,21 +817,26 @@ class ProductImportService
      */
     public function familiaImportError(string $familia): ?string
     {
-        $this->warmImportCaches([]);
+        $this->ensureCategoryCacheLoaded();
 
         if ($this->findCategoryIdFromFamilia($familia) !== null) {
-            $this->resetImportCaches();
-
             return null;
         }
-
-        $this->resetImportCaches();
 
         if (config('products.import.auto_create_categories', true)) {
             return null;
         }
 
         return 'No existe categoría para la familia "'.$familia.'".';
+    }
+
+    public function ensureCategoryCacheLoaded(): void
+    {
+        if ($this->categoryIdByKey !== []) {
+            return;
+        }
+
+        $this->warmImportCaches([]);
     }
 
     protected function findCategoryIdFromFamilia(string $familia): ?int

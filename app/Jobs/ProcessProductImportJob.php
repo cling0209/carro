@@ -18,6 +18,8 @@ class ProcessProductImportJob implements ShouldBeUnique, ShouldQueue
 
     public int $tries = 1;
 
+    public int $uniqueFor = 3700;
+
     /**
      * @param  array<string, string|null>|null  $columnMapping
      */

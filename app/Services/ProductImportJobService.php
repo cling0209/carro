@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\ProcessProductImportJob;
 use App\Models\ProductImportRun;
 use App\Models\ProductImportStaging;
+use App\Support\ProductImportHeartbeat;
 use App\Support\ProductImportColumnMapping;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
@@ -408,8 +409,8 @@ class ProductImportJobService
 
             $dispatch = ProcessProductImportJob::dispatch($uploadId, $userId, $mode, $columnMapping);
 
-            if (config('queue.default') !== 'sync') {
-                $dispatch->afterResponse();
+            if (config('queue.default') === 'sync') {
+                return;
             }
         } catch (\Throwable $e) {
             $progress->fail($uploadId, $e->getMessage());
@@ -438,6 +439,7 @@ class ProductImportJobService
 
         try {
             $lock->touch($uploadId);
+            ProductImportHeartbeat::bind($uploadId);
 
             if (! File::exists($this->jobDirectory($uploadId).'/job.json')) {
                 $progress->setPhase(
@@ -498,6 +500,8 @@ class ProductImportJobService
             $lock->release($uploadId);
 
             throw $e;
+        } finally {
+            ProductImportHeartbeat::clear();
         }
     }
 

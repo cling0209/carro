@@ -11,9 +11,9 @@ class ProductImportProgressService
 {
     public const TTL_SECONDS = 7200;
 
-    public const STALE_WARNING_SECONDS = 480;
+    public const STALE_WARNING_SECONDS = 120;
 
-    public const ZOMBIE_FAIL_SECONDS = 2700;
+    public const ZOMBIE_FAIL_SECONDS = 600;
 
     public const PHASE_QUEUED = 'queued';
 
@@ -161,7 +161,7 @@ class ProductImportProgressService
             && in_array($phase, [self::PHASE_QUEUED, self::PHASE_PREPARE, self::PHASE_PROCESS], true)) {
             $minutes = max(1, (int) floor($secondsSinceUpdate / 60));
             $progress['stale_warning'] = "Sin actualización desde hace {$minutes} min. "
-                .'Cada lote procesa hasta 5.000 filas y en producción puede tardar varios minutos.';
+                .'Si no avanza, verifique RUN_QUEUE_WORKER=true en el servidor o use «Liberar carga atascada».';
         }
 
         return $progress;
@@ -293,6 +293,20 @@ class ProductImportProgressService
             'stage' => 'Error',
             'detail' => $message,
             'error' => $message,
+            'updated_at' => now()->toIso8601String(),
+        ]));
+    }
+
+    public function pulse(string $uploadId, string $detail): void
+    {
+        $current = $this->read($uploadId);
+
+        if ($current === null) {
+            return;
+        }
+
+        $this->write($uploadId, array_merge($current, [
+            'detail' => $detail,
             'updated_at' => now()->toIso8601String(),
         ]));
     }
