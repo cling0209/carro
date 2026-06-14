@@ -221,6 +221,7 @@ const currentUserId = @json((int) auth()->id());
 let customUploadId = null;
 let customColumns = [];
 let importResumeRunning = false;
+let importPollCancelled = false;
 
 const ALLOWED_IMPORT_EXTENSIONS = ['csv', 'txt', 'xlsx', 'xls'];
 
@@ -351,6 +352,43 @@ function buildProgressRefs(prefix) {
         label: document.getElementById(`importProgressLabel${prefix}`),
         percent: document.getElementById(`importProgressPercent${prefix}`),
     };
+}
+
+function resetImportProgressUI() {
+    ['Template', 'Custom'].forEach(prefix => {
+        const progress = buildProgressRefs(prefix);
+        progress.wrap?.classList.add('d-none');
+        progress.bar?.classList.remove('progress-bar-animated');
+        setImportProgress(progress, {
+            step: 1,
+            totalSteps: 1,
+            stage: 'Iniciando',
+            percent: 0,
+            detail: 'Iniciando...',
+        });
+    });
+}
+
+async function resolveActiveImportUploadId() {
+    if (customUploadId) {
+        return customUploadId;
+    }
+
+    try {
+        const response = await fetch(importStatusUrl, {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin',
+        });
+        const payload = await readJsonResponse(response);
+
+        if (response.ok && payload.lock?.upload_id) {
+            return payload.lock.upload_id;
+        }
+    } catch (error) {
+        return null;
+    }
+
+    return null;
 }
 
 function setImportLocked(locked, message = '') {
@@ -528,6 +566,8 @@ async function resumeActiveImport(lock) {
                 errorBox.textContent = payload.error || payload.detail || 'La importación falló.';
                 errorBox.classList.remove('d-none');
             }
+            resetImportProgressUI();
+            setImportLocked(false);
             return;
         }
 
@@ -842,7 +882,15 @@ async function pollBackgroundImport(uploadId, progress, plan) {
     const maxTransientFailures = 30;
 
     while (true) {
+        if (importPollCancelled) {
+            return null;
+        }
+
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        if (importPollCancelled) {
+            return null;
+        }
 
         let response;
         let payload;
@@ -1312,10 +1360,16 @@ document.getElementById('importUnlockBtn')?.addEventListener('click', async () =
     if (btn) btn.disabled = true;
 
     try {
-        await releaseImportLock();
+        importPollCancelled = true;
+        const uploadId = await resolveActiveImportUploadId();
+        await releaseImportLock(uploadId);
+        customUploadId = null;
+        importResumeRunning = false;
+        resetImportProgressUI();
         await refreshImportStatus();
         setImportLocked(false);
     } finally {
+        importPollCancelled = false;
         if (btn) btn.disabled = false;
     }
 });

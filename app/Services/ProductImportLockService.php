@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ProductImportStaging;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
 class ProductImportLockService
@@ -151,5 +152,31 @@ class ProductImportLockService
     public function forceRelease(): void
     {
         Cache::forget(self::CACHE_KEY);
+    }
+
+    /**
+     * Libera bloqueo, progreso en cache y jobs en cola para una importación.
+     */
+    public function releaseFully(?string $uploadId = null): ?string
+    {
+        if ($uploadId === null || $uploadId === '') {
+            $current = $this->current();
+            $uploadId = is_array($current) ? (string) ($current['upload_id'] ?? '') : '';
+            $this->forceRelease();
+        } else {
+            $this->release($uploadId);
+        }
+
+        if ($uploadId === '') {
+            return null;
+        }
+
+        app(ProductImportProgressService::class)->forget($uploadId);
+
+        DB::table(config('queue.connections.database.table', 'jobs'))
+            ->where('payload', 'like', '%'.$uploadId.'%')
+            ->delete();
+
+        return $uploadId;
     }
 }

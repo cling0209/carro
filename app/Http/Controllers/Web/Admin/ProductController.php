@@ -196,12 +196,7 @@ class ProductController extends Controller
             'upload_id' => ['nullable', 'uuid'],
         ]);
 
-        if (! empty($data['upload_id'])) {
-            $importLock->release($data['upload_id']);
-            app(ProductImportProgressService::class)->forget($data['upload_id']);
-        } else {
-            $importLock->forceRelease();
-        }
+        $importLock->releaseFully($data['upload_id'] ?? null);
 
         return response()->json(['released' => true]);
     }
