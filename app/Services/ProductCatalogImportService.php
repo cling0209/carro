@@ -367,6 +367,25 @@ class ProductCatalogImportService
                 continue;
             }
 
+            $familia = trim((string) $row['prod_familia']);
+            $categoryError = app(ProductImportService::class)->familiaImportError($familia);
+
+            if ($categoryError !== null) {
+                $preview[] = [
+                    'fila' => $csvLine,
+                    'accion' => 'error',
+                    'codigo' => $row['prod_item'] ?? '',
+                    'nombre' => $row['prod_nombre'] ?? '',
+                    'familia' => $familia,
+                    'precio' => $row['prod_valor'] ?? '',
+                    'mensaje' => $categoryError,
+                    'detalle' => null,
+                ];
+                $summary['error']++;
+
+                continue;
+            }
+
             $codigo = trim((string) $row['prod_item']);
             $existe = Product::withTrashed()->where('sku', $codigo)->exists();
             $accion = $existe ? 'actualizar' : 'crear';
@@ -414,6 +433,18 @@ class ProductCatalogImportService
                 $result['skipped']++;
 
                 continue;
+            }
+
+            $categoryError = app(ProductImportService::class)->familiaImportError(trim((string) $row['prod_familia']));
+            if ($categoryError !== null) {
+                $this->pushError($result, ProductImportError::row($csvLine, $row, $categoryError));
+                $result['skipped']++;
+
+                continue;
+            }
+
+            if (isset($rawRow['_csv_line'])) {
+                $row['_csv_line'] = (string) $rawRow['_csv_line'];
             }
 
             $pending[] = $row;
@@ -485,8 +516,21 @@ class ProductCatalogImportService
         $result['updated'] += $batchResult['updated'] + $batchResult['reactivated'];
         $result['skipped'] += $batchResult['skipped'];
 
-        foreach ($batchResult['errors'] as $errorMessage) {
-            $this->pushError($result, ProductImportError::general($errorMessage));
+        foreach ($batchResult['errors'] as $error) {
+            if (is_array($error)) {
+                $this->pushError($result, [
+                    'fila' => $error['fila'] ?? null,
+                    'codigo' => $error['sku'] ?? '',
+                    'nombre' => $error['nombre'] ?? '',
+                    'familia' => $error['familia'] ?? '',
+                    'mensaje' => $error['mensaje'] ?? '',
+                    'detalle' => null,
+                ]);
+
+                continue;
+            }
+
+            $this->pushError($result, ProductImportError::general((string) $error));
         }
     }
 
@@ -496,7 +540,7 @@ class ProductCatalogImportService
      */
     private function mappedRowToCarro(array $row): array
     {
-        return [
+        $mapped = [
             'sku' => trim((string) ($row['prod_item'] ?? '')),
             'nombre' => trim((string) ($row['prod_nombre'] ?? '')),
             'familia' => trim((string) ($row['prod_familia'] ?? '')),
@@ -510,6 +554,12 @@ class ProductCatalogImportService
             'activo' => trim((string) ($row['activo'] ?? '1')) !== '' ? trim((string) ($row['activo'] ?? '1')) : '1',
             'destacado' => trim((string) ($row['destacado'] ?? '0')) !== '' ? trim((string) ($row['destacado'] ?? '0')) : '0',
         ];
+
+        if (isset($row['_csv_line']) && trim((string) $row['_csv_line']) !== '') {
+            $mapped['_csv_line'] = trim((string) $row['_csv_line']);
+        }
+
+        return $mapped;
     }
 
     /**

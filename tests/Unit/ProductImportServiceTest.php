@@ -167,4 +167,43 @@ class ProductImportServiceTest extends TestCase
             'name' => 'Pizarra Acrílica Arcovi',
         ]);
     }
+
+    public function test_auto_creates_category_when_familia_has_no_match(): void
+    {
+        $csv = "sku;nombre;precio;stock;familia\n";
+        $csv .= '3M2;Adhesivo spray;11200;10;3M';
+
+        $file = UploadedFile::fake()->createWithContent('productos.csv', "\xEF\xBB\xBF".$csv);
+
+        $result = app(ProductImportService::class)->importFromUploadedFile($file);
+
+        $this->assertSame(1, $result['created']);
+        $this->assertSame(0, $result['skipped']);
+        $this->assertDatabaseHas('categories', [
+            'name' => '3M',
+            'slug' => '3m',
+        ]);
+        $this->assertDatabaseHas('products', [
+            'sku' => '3M2',
+            'familia' => '3M',
+        ]);
+    }
+
+    public function test_import_errors_include_row_context(): void
+    {
+        $csv = "sku;nombre;precio;stock;familia\n";
+        $csv .= ';Sin codigo;1000;1;LIB';
+
+        $file = UploadedFile::fake()->createWithContent('productos.csv', $csv);
+
+        $result = app(ProductImportService::class)->importParsedRows([
+            ['sku' => '', 'nombre' => 'Sin codigo', 'precio' => '1000', 'stock' => '1', 'familia' => 'LIB', '_csv_line' => '42'],
+        ]);
+
+        $this->assertSame(1, $result['skipped']);
+        $this->assertCount(1, $result['errors']);
+        $this->assertSame(42, $result['errors'][0]['fila']);
+        $this->assertSame('', $result['errors'][0]['sku']);
+        $this->assertSame('Sin codigo', $result['errors'][0]['nombre']);
+    }
 }

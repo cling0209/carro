@@ -24,6 +24,7 @@ return [
 
     'import' => [
         'background' => filter_var(env('PRODUCT_IMPORT_BACKGROUND', true), FILTER_VALIDATE_BOOL),
+        'auto_create_categories' => filter_var(env('PRODUCT_IMPORT_AUTO_CREATE_CATEGORIES', true), FILTER_VALIDATE_BOOL),
     ],
 
 ];

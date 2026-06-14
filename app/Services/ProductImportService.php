@@ -227,7 +227,7 @@ class ProductImportService
             $outcome = $this->prepareRow($row, is_int($lineNumber) ? $lineNumber : 0);
 
             if ($outcome['error'] !== null) {
-                $result['errors'][] = $outcome['error'];
+                $result['errors'][] = $this->structuredRowError($row, $lineNumber, $outcome['error']);
                 $result['skipped']++;
 
                 continue;
@@ -269,10 +269,13 @@ class ProductImportService
         $this->categoryIdByKey = [];
         Category::query()
             ->whereNull('deleted_at')
-            ->get(['id', 'slug'])
+            ->get(['id', 'slug', 'name'])
             ->each(function (Category $category): void {
-                $this->categoryIdByKey[$category->slug] = $category->id;
-                $this->categoryIdByKey[Str::lower($category->slug)] = $category->id;
+                $this->registerCategoryKeys($category->id, $category->slug);
+
+                if ($category->name !== null && $category->name !== '') {
+                    $this->registerCategoryKeys($category->id, $category->name);
+                }
             });
 
         $skus = [];
@@ -640,7 +643,7 @@ class ProductImportService
      */
     protected function prepareRow(array $row, int $lineNumber): array
     {
-        $displayLine = $lineNumber + 2;
+        $displayLine = $this->displayLineForRow($row, $lineNumber);
 
         $validator = Validator::make($row, [
             'sku' => ['required', 'string', 'max:60'],
@@ -789,13 +792,150 @@ class ProductImportService
 
     protected function resolveCategoryIdFromFamilia(string $familia): ?int
     {
-        foreach (array_unique([$familia, Str::lower($familia), Str::slug($familia)]) as $candidate) {
+        $existingId = $this->findCategoryIdFromFamilia($familia);
+
+        if ($existingId !== null) {
+            return $existingId;
+        }
+
+        if (! config('products.import.auto_create_categories', true)) {
+            return null;
+        }
+
+        return $this->createCategoryForFamilia($familia);
+    }
+
+    /**
+     * Valida si la familia se puede importar (sin crear categorías).
+     */
+    public function familiaImportError(string $familia): ?string
+    {
+        $this->warmImportCaches([]);
+
+        if ($this->findCategoryIdFromFamilia($familia) !== null) {
+            $this->resetImportCaches();
+
+            return null;
+        }
+
+        $this->resetImportCaches();
+
+        if (config('products.import.auto_create_categories', true)) {
+            return null;
+        }
+
+        return 'No existe categoría para la familia "'.$familia.'".';
+    }
+
+    protected function findCategoryIdFromFamilia(string $familia): ?int
+    {
+        foreach ($this->familiaLookupKeys($familia) as $candidate) {
             if (isset($this->categoryIdByKey[$candidate])) {
                 return $this->categoryIdByKey[$candidate];
             }
         }
 
         return null;
+    }
+
+    protected function createCategoryForFamilia(string $familia): int
+    {
+        $slug = $this->uniqueCategorySlug($familia);
+
+        $existing = Category::withTrashed()->where('slug', $slug)->first();
+
+        if ($existing !== null) {
+            if ($existing->trashed()) {
+                $existing->restore();
+                $existing->update(['is_active' => true, 'name' => $familia]);
+            }
+
+            $this->registerCategoryKeys($existing->id, $existing->slug);
+            $this->registerCategoryKeys($existing->id, $familia);
+
+            return $existing->id;
+        }
+
+        $category = Category::create([
+            'name' => $familia,
+            'slug' => $slug,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        $this->registerCategoryKeys($category->id, $category->slug);
+        $this->registerCategoryKeys($category->id, $familia);
+
+        return $category->id;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function familiaLookupKeys(string $familia): array
+    {
+        $trimmed = trim($familia);
+
+        return array_values(array_unique(array_filter([
+            $trimmed,
+            Str::lower($trimmed),
+            Str::upper($trimmed),
+            Str::slug($trimmed),
+            Str::lower(Str::slug($trimmed)),
+        ], fn (string $value): bool => $value !== '')));
+    }
+
+    protected function registerCategoryKeys(int $categoryId, string $key): void
+    {
+        foreach ($this->familiaLookupKeys($key) as $candidate) {
+            $this->categoryIdByKey[$candidate] = $categoryId;
+        }
+    }
+
+    protected function uniqueCategorySlug(string $familia): string
+    {
+        $base = Str::slug($familia) ?: Str::lower(trim($familia)) ?: 'familia';
+        $candidate = $base;
+        $i = 1;
+
+        while (Category::withTrashed()->where('slug', $candidate)->exists()) {
+            $candidate = $base.'-'.$i;
+            $i++;
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * @param  array<string, string>  $row
+     */
+    protected function displayLineForRow(array $row, int $lineNumber): int
+    {
+        $csvLine = trim((string) ($row['_csv_line'] ?? ''));
+
+        if ($csvLine !== '' && ctype_digit($csvLine)) {
+            return (int) $csvLine;
+        }
+
+        return $lineNumber + 2;
+    }
+
+    /**
+     * @param  array<string, string>  $row
+     * @return array{fila: int, sku: string, nombre: string, familia: string, mensaje: string}
+     */
+    protected function structuredRowError(array $row, int $lineNumber, string $message): array
+    {
+        $displayLine = $this->displayLineForRow($row, $lineNumber);
+        $normalizedMessage = preg_replace('/^Fila \d+: /', '', $message) ?? $message;
+
+        return [
+            'fila' => $displayLine,
+            'sku' => trim((string) ($row['sku'] ?? '')),
+            'nombre' => trim((string) ($row['nombre'] ?? '')),
+            'familia' => trim((string) ($row['familia'] ?? '')),
+            'mensaje' => $normalizedMessage,
+        ];
     }
 
     protected function nullableNumeric(?string $value): ?float
