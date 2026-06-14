@@ -25,7 +25,7 @@ class Cart extends Model
         $subtotal = $this->items->sum(fn (CartItem $item) => $item->unit_price * $item->quantity);
 
         return [
-            'subtotal' => round($subtotal, 2),
+            'subtotal' => clp_amount($subtotal),
             'item_count' => $this->items->sum('quantity'),
         ];
     }

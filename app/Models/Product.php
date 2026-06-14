@@ -21,8 +21,8 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:2',
-            'compare_at_price' => 'decimal:2',
+            'price' => 'integer',
+            'compare_at_price' => 'integer',
             'weight_kg' => 'decimal:3',
             'is_active' => 'boolean',
             'is_featured' => 'boolean',

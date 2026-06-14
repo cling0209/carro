@@ -169,7 +169,7 @@ class CartService
                     'product_id' => $item->product_id,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,
-                    'line_total' => round($item->unit_price * $item->quantity, 2),
+                    'line_total' => clp_amount($item->unit_price * $item->quantity),
                     'product' => [
                         'id' => $item->product->id,
                         'name' => $item->product->name,

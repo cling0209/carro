@@ -1,9 +1,16 @@
 <?php
 
+if (! function_exists('clp_amount')) {
+    function clp_amount(float|int|string|null $amount): int
+    {
+        return (int) round((float) $amount);
+    }
+}
+
 if (! function_exists('clp')) {
     function clp(float|int|string|null $amount): string
     {
-        return '$'.number_format((float) $amount, 0, ',', '.');
+        return '$'.number_format(clp_amount($amount), 0, ',', '.');
     }
 }
 

@@ -70,14 +70,14 @@
                                 <label class="form-label">Precio de venta *</label>
                                 <input type="number" name="price" min="0" step="1"
                                        class="form-control @error('price') is-invalid @enderror"
-                                       value="{{ old('price', $product->price) }}" required>
+                                       value="{{ old('price', $product->price !== null ? clp_amount($product->price) : '') }}" required>
                                 <div class="form-text">Lo que paga el cliente en el carrito y al pagar.</div>
                                 @error('price')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Precio comparación</label>
                                 <input type="number" name="compare_at_price" min="0" step="1" class="form-control"
-                                       value="{{ old('compare_at_price', $product->compare_at_price) }}"
+                                       value="{{ old('compare_at_price', $product->compare_at_price !== null ? clp_amount($product->compare_at_price) : '') }}"
                                        placeholder="Opcional">
                                 <div class="form-text">
                                     Precio anterior o de referencia. Solo se muestra en la tienda si es

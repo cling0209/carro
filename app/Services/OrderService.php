@@ -39,13 +39,15 @@ class OrderService
                 $subtotal += $item->unit_price * $item->quantity;
             }
 
+            $subtotal = clp_amount($subtotal);
+
             $quote = $this->shippingService->quote(
                 $cart,
                 $shipping['region'] ?? '',
                 $shipping['comuna'] ?? null,
             );
             $shippingAmount = $quote['amount'];
-            $total = round($subtotal + $shippingAmount, 2);
+            $total = clp_amount($subtotal + $shippingAmount);
 
             $order = Order::create([
                 'user_id' => $user?->id,
@@ -73,7 +75,7 @@ class OrderService
             ]);
 
             foreach ($cart->items as $item) {
-                $lineTotal = round($item->unit_price * $item->quantity, 2);
+                $lineTotal = clp_amount($item->unit_price * $item->quantity);
                 $order->items()->create([
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->name,

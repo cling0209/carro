@@ -691,13 +691,15 @@ class ProductImportService
             ];
         }
 
+        $compareAtPrice = $this->nullableNumeric($validated['precio_referencia'] ?? null);
+
         $payload = [
             'category_id' => $categoryId,
             'sku' => $validated['sku'],
             'name' => $validated['nombre'],
             'description' => $validated['descripcion'] ?? null,
-            'price' => $validated['precio'],
-            'compare_at_price' => $this->nullableNumeric($validated['precio_referencia'] ?? null),
+            'price' => clp_amount($validated['precio']),
+            'compare_at_price' => $compareAtPrice !== null ? clp_amount($compareAtPrice) : null,
             'stock' => (int) $validated['stock'],
             'weight_kg' => $this->nullableNumeric($validated['peso_kg'] ?? null),
             'is_active' => $this->parseBoolean($validated['activo'] ?? null, true),

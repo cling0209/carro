@@ -3,7 +3,10 @@
     const stockNotice = document.getElementById('js-cart-stock-notice');
 
     function formatClp(amount) {
-        return '$' + Math.round(amount).toLocaleString('es-CL');
+        return '$' + Math.round(amount).toLocaleString('es-CL', {
+            maximumFractionDigits: 0,
+            minimumFractionDigits: 0,
+        });
     }
 
     function getMaxStock(row) {

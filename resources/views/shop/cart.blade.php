@@ -38,7 +38,7 @@
                                         $maxQty = min(99, max(1, $stock));
                                     @endphp
                                     <tr data-cart-row
-                                        data-unit-price="{{ $item['unit_price'] }}"
+                                        data-unit-price="{{ clp_amount($item['unit_price']) }}"
                                         data-stock="{{ $stock }}"
                                         data-product-name="{{ data_get($item, 'product.name') }}">
                                         <td>
