@@ -11,7 +11,7 @@ if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
   exit 1
 fi
 
-mkdir -p storage/app/imports/chunks storage/app/imports/merged storage/app/imports/jobs
+mkdir -p storage/app/imports/chunks storage/app/imports/merged storage/app/imports/pending storage/app/imports/jobs storage/app/imports/errors storage/app/imports/staging
 chown -R www-data:www-data storage/app/imports 2>/dev/null || true
 
 php artisan package:discover --ansi 2>/dev/null || true
@@ -19,15 +19,19 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-if [ "$RUN_MIGRATIONS" = "true" ]; then
-  php artisan migrate --force
-fi
+# Siempre aplica migraciones pendientes (idempotente; evita tablas faltantes tras nuevos deploys).
+php artisan migrate --force
 
 if [ "$RUN_SEED" = "true" ]; then
   php artisan db:seed --force
 fi
 
 php artisan l5-swagger:generate 2>/dev/null || true
+
+if [ "$RUN_QUEUE_WORKER" = "true" ]; then
+  echo "Iniciando queue worker en segundo plano (mismo contenedor que la web)..."
+  php artisan queue:work database --sleep=3 --tries=1 --timeout=3600 >> storage/logs/queue-worker.log 2>&1 &
+fi
 
 php-fpm -D
 exec nginx -g 'daemon off;'

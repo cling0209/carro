@@ -45,11 +45,24 @@ Variables en Koyeb (`.env.koyeb.example`):
 | `APP_KEY` | `base64:...` |
 | `APP_URL` | `https://tu-app.koyeb.app` |
 | `TRANSBANK_RETURN_URL` | `https://tu-app.koyeb.app/checkout/webpay/return` |
-| `RUN_MIGRATIONS` | `true` (primer deploy; crea tablas cache/sessions/jobs) |
+| `RUN_MIGRATIONS` | Opcional (`true`/`false`); las migraciones pendientes se aplican en **cada** arranque del contenedor |
 | `RUN_SEED` | `true` (demo, solo una vez) |
 | `CACHE_STORE` | `database` |
 | `SESSION_DRIVER` | `database` |
 | `QUEUE_CONNECTION` | `database` (o `sync` si no usas jobs async) |
+| `PRODUCT_IMPORT_BACKGROUND` | `true` — import masivo en cola (recomendado) |
+| `RUN_QUEUE_WORKER` | `true` — worker en el mismo contenedor web (necesario con `QUEUE_CONNECTION=database`) |
+| `DB_QUEUE_RETRY_AFTER` | `3700` — timeout jobs de import largos |
+
+## 4.1 Carga masiva de productos
+
+Tras desplegar commits con nuevas migraciones, el contenedor ejecuta `php artisan migrate --force` en cada arranque. Si ves `relation "product_import_staging" does not exist`, redeploya o ejecuta en la consola de Koyeb:
+
+```bash
+php artisan migrate --force
+```
+
+Con import en background activo, define `RUN_QUEUE_WORKER=true` para procesar la cola `jobs` en PostgreSQL.
 
 ## 5. URLs
 
