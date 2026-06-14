@@ -127,6 +127,10 @@
                                 <div id="importProgressBarCustom" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
+                        <div id="customUploadDone" class="alert alert-success py-2 mb-3 d-none" role="status">
+                            <i class="bi bi-check-circle-fill me-1"></i>
+                            <span id="customUploadDoneText">Finalizado.</span>
+                        </div>
                         <div id="importErrorCustom" class="alert alert-danger d-none mb-0"></div>
                         <button type="submit" id="importSubmitBtnCustom" class="btn btn-outline-primary" @if(!empty($activeImport)) disabled @endif>
                             <i class="bi bi-cloud-upload"></i> Subir y mapear columnas
@@ -367,6 +371,34 @@ function resetImportProgressUI() {
             detail: 'Iniciando...',
         });
     });
+    hideCustomUploadFinished();
+}
+
+function hideCustomUploadFinished() {
+    document.getElementById('customUploadDone')?.classList.add('d-none');
+}
+
+function showCustomUploadFinished(message) {
+    const progress = buildProgressRefs('Custom');
+    progress.wrap?.classList.add('d-none');
+    progress.bar?.classList.remove('progress-bar-animated');
+
+    const text = document.getElementById('customUploadDoneText');
+    if (text) {
+        text.textContent = message;
+    }
+
+    document.getElementById('customUploadDone')?.classList.remove('d-none');
+}
+
+function scrollToImportProgress(progress) {
+    progress.wrap?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function showImportProgressWithScroll(progress, detail = 'Preparando importación...', totalSteps = 3) {
+    showImportProgressImmediate(progress, detail, totalSteps);
+    progress.bar?.classList.add('progress-bar-animated');
+    scrollToImportProgress(progress);
 }
 
 async function resolveActiveImportUploadId() {
@@ -1179,6 +1211,7 @@ document.getElementById('importFormCustom').addEventListener('submit', async (ev
     submitBtn.disabled = true;
     fileInput.disabled = true;
     errorBox.classList.add('d-none');
+    hideCustomUploadFinished();
     showImportProgressImmediate(progress, 'Iniciando subida fragmentada...', 2);
 
     document.getElementById('customPreviewCard').classList.add('d-none');
@@ -1226,13 +1259,10 @@ document.getElementById('importFormCustom').addEventListener('submit', async (ev
         populateMappingSelects(customColumns, staging.suggested_mapping || {});
         document.getElementById('customMappingCard').classList.remove('d-none');
 
-        setImportProgress(progress, {
-            step: 2,
-            totalSteps: 2,
-            stage: 'Listo para mapear',
-            percent: 100,
-            detail: `Archivo recibido: ${(staging.total_rows || 0).toLocaleString('es-CL')} filas, ${customColumns.length} columnas detectadas.`,
-        });
+        showCustomUploadFinished(
+            `Finalizado — ${(staging.total_rows || 0).toLocaleString('es-CL')} filas, ${customColumns.length} columnas detectadas. Configure el mapeo en el paso 2.`,
+        );
+        document.getElementById('customMappingCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
     } catch (error) {
         errorBox.textContent = error.message || 'Error al subir el archivo.';
         errorBox.classList.remove('d-none');
@@ -1255,8 +1285,19 @@ document.getElementById('customPreviewBtn').addEventListener('click', async () =
 
     const btn = document.getElementById('customPreviewBtn');
     btn.disabled = true;
+    const progress = buildProgressRefs('Custom');
 
     try {
+        hideCustomUploadFinished();
+        showImportProgressWithScroll(progress, 'Generando vista previa...', 1);
+        setImportProgress(progress, {
+            step: 1,
+            totalSteps: 1,
+            stage: 'Vista previa',
+            percent: 30,
+            detail: 'Validando mapeo de columnas...',
+        });
+
         const response = await fetch(previewImportUrl, {
             method: 'POST',
             headers: {
@@ -1272,11 +1313,34 @@ document.getElementById('customPreviewBtn').addEventListener('click', async () =
             }),
         });
 
+        setImportProgress(progress, {
+            step: 1,
+            totalSteps: 1,
+            stage: 'Vista previa',
+            percent: 70,
+            detail: 'Procesando filas de muestra...',
+        });
+
         const payload = await readJsonResponse(response);
         if (!response.ok) throw new Error(importErrorMessage(payload, response.status));
 
+        setImportProgress(progress, {
+            step: 1,
+            totalSteps: 1,
+            stage: 'Finalizado',
+            percent: 100,
+            detail: 'Vista previa lista.',
+        });
+        progress.bar?.classList.remove('progress-bar-animated');
+
         renderPreviewRows(payload);
+        document.getElementById('customPreviewCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+
+        window.setTimeout(() => {
+            progress.wrap?.classList.add('d-none');
+        }, 600);
     } catch (error) {
+        progress.wrap?.classList.add('d-none');
         errorBox.textContent = error.message || 'No se pudo generar la vista previa.';
         errorBox.classList.remove('d-none');
     } finally {
@@ -1295,7 +1359,7 @@ document.getElementById('customConfirmBtn').addEventListener('click', async () =
     setImportLocked(true, 'Importación en curso. No cierre esta ventana.');
 
     const progress = buildProgressRefs('Custom');
-    showImportProgressImmediate(progress, 'Validando mapeo de columnas...', 2);
+    showImportProgressWithScroll(progress, 'Validando mapeo de columnas...', 2);
 
     try {
         const mapping = getCustomMapping();
