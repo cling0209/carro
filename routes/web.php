@@ -88,10 +88,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('productos', [AdminProductController::class, 'index'])->name('products.index');
         Route::get('productos/carga-masiva', [AdminProductController::class, 'importForm'])->name('products.import');
+        Route::get('productos/carga-masiva/estado', [AdminProductController::class, 'importStatus'])->name('products.import.status');
+        Route::post('productos/carga-masiva/liberar', [AdminProductController::class, 'releaseImportLock'])->name('products.import.unlock');
+        Route::get('productos/carga-masiva/resultado/{run}', [AdminProductController::class, 'importResult'])->name('products.import.resultado')->whereNumber('run');
+        Route::get('productos/carga-masiva/errores/{run}', [AdminProductController::class, 'importErrors'])->name('products.import.errores')->whereNumber('run');
+        Route::get('productos/carga-masiva/errores/{run}/exportar', [AdminProductController::class, 'exportImportErrors'])->name('products.import.errores.exportar')->whereNumber('run');
         Route::get('productos/carga-masiva/plantilla', [AdminProductController::class, 'downloadImportTemplate'])->name('products.import.template');
-        Route::get('productos/exportar', [AdminProductController::class, 'exportProducts'])->name('products.export');
+        Route::get('productos/carga-masiva/plantilla-excel', [AdminProductController::class, 'downloadImportTemplateExcel'])->name('products.import.template.excel');
         Route::post('productos/carga-masiva/chunk', [AdminProductController::class, 'storeImportChunk'])->name('products.import.chunk');
+        Route::post('productos/carga-masiva/inicializar', [AdminProductController::class, 'initializeCustomImport'])->name('products.import.initialize');
+        Route::post('productos/carga-masiva/vista-previa', [AdminProductController::class, 'previewImportMapping'])->name('products.import.preview');
+        Route::post('productos/carga-masiva/preparar-plantilla', [AdminProductController::class, 'prepareTemplateImport'])->name('products.import.prepare.template');
+        Route::post('productos/carga-masiva/preparar', [AdminProductController::class, 'prepareCustomImport'])->name('products.import.prepare');
         Route::post('productos/carga-masiva/procesar', [AdminProductController::class, 'processImportBatch'])->name('products.import.process');
+        Route::post('productos/carga-masiva/procesar-background', [AdminProductController::class, 'startBackgroundImport'])->name('products.import.background');
+        Route::get('productos/carga-masiva/progreso', [AdminProductController::class, 'importProgress'])->name('products.import.progress');
+        Route::get('productos/exportar', [AdminProductController::class, 'exportProducts'])->name('products.export');
         Route::get('productos/nuevo', [AdminProductController::class, 'create'])->name('products.create');
         Route::post('productos', [AdminProductController::class, 'store'])->name('products.store');
         Route::get('productos/{product}/editar', [AdminProductController::class, 'edit'])->name('products.edit');

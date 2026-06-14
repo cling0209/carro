@@ -22,4 +22,8 @@ return [
         '/images/no-image.svg'
     ),
 
+    'import' => [
+        'background' => filter_var(env('PRODUCT_IMPORT_BACKGROUND', true), FILTER_VALIDATE_BOOL),
+    ],
+
 ];

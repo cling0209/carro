@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Support\ProductImportFileTypes;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -11,6 +13,8 @@ class ProductChunkUploadService
     public const MAX_CHUNK_BYTES = 6291456;
 
     public const MAX_TOTAL_BYTES = 52428800;
+
+    public const META_CACHE_TTL_SECONDS = 7200;
 
     /**
      * @return array{ready: bool, upload_id?: string, batch_count?: int}
@@ -22,9 +26,11 @@ class ProductChunkUploadService
         string $originalName,
         UploadedFile $chunk,
         int $userId,
+        string $username,
+        string $mode = 'template',
     ): array {
         $this->assertValidUploadId($uploadId);
-        $this->assertCsvFileName($originalName);
+        $this->assertImportFileName($originalName);
 
         if ($totalChunks < 1 || $chunkIndex < 0 || $chunkIndex >= $totalChunks) {
             throw new \InvalidArgumentException('Índice de chunk inválido.');
@@ -40,20 +46,48 @@ class ProductChunkUploadService
             throw new \InvalidArgumentException('El archivo completo supera el tamaño máximo permitido.');
         }
 
+        if (! in_array($mode, ['template', 'custom'], true)) {
+            throw new \InvalidArgumentException('Modo de importación inválido.');
+        }
+
         $dir = $this->uploadDirectory($uploadId);
         File::ensureDirectoryExists($dir);
 
         if ($chunkIndex === 0) {
             File::cleanDirectory($dir);
-            File::put($dir.'/meta.json', json_encode([
+            $this->writeMeta($uploadId, [
                 'user_id' => $userId,
+                'username' => $username,
                 'original_name' => $originalName,
                 'total_chunks' => $totalChunks,
+                'mode' => $mode,
                 'created_at' => now()->toIso8601String(),
-            ], JSON_THROW_ON_ERROR));
+            ]);
+        } else {
+            $this->recoverMetaIfNeeded(
+                $uploadId,
+                $chunkIndex,
+                $totalChunks,
+                $originalName,
+                $userId,
+                $username,
+                $mode,
+            );
         }
 
         $meta = $this->readMeta($uploadId);
+        $mode = (string) ($meta['mode'] ?? $mode);
+
+        if ($chunkIndex === 0 && $mode !== 'custom') {
+            app(ProductImportLockService::class)->acquire(
+                $userId,
+                $username,
+                $uploadId,
+                $originalName,
+            );
+        } elseif ($chunkIndex > 0 && $mode !== 'custom') {
+            app(ProductImportLockService::class)->touch($uploadId);
+        }
 
         if ((int) $meta['user_id'] !== $userId) {
             throw new \InvalidArgumentException('No autorizado para continuar esta carga.');
@@ -64,18 +98,104 @@ class ProductChunkUploadService
         }
 
         $this->storeChunkFile($chunk, $dir.'/'.$this->chunkFilename($chunkIndex));
+        $this->appendChunkToMergedFile(
+            $uploadId,
+            (string) $meta['original_name'],
+            $dir.'/'.$this->chunkFilename($chunkIndex),
+            $chunkIndex === 0,
+        );
 
         if ($chunkIndex !== $totalChunks - 1) {
             return ['ready' => false];
         }
 
-        $mergedPath = $this->mergeChunks($uploadId, $totalChunks);
+        @set_time_limit(120);
+        @ini_set('memory_limit', '512M');
+
+        $mergedPath = $this->mergedPathFor($uploadId, (string) $meta['original_name']);
+        $isSpreadsheet = ProductImportFileTypes::isSpreadsheet((string) $meta['original_name']);
+
+        if ($isSpreadsheet) {
+            $extension = ProductImportFileTypes::extensionFromName((string) $meta['original_name']);
+            $jobDir = storage_path('app/imports/jobs/'.$uploadId);
+            File::ensureDirectoryExists($jobDir);
+
+            if (File::isDirectory($jobDir)) {
+                foreach (File::glob($jobDir.'/*') ?: [] as $artifact) {
+                    if (is_file($artifact)) {
+                        File::delete($artifact);
+                    }
+                }
+            }
+
+            $stablePath = $jobDir.'/source.'.$extension;
+
+            if (! @rename($mergedPath, $stablePath)) {
+                if (! File::copy($mergedPath, $stablePath)) {
+                    throw new \RuntimeException('No se pudo resguardar el archivo Excel para la importación.');
+                }
+
+                File::delete($mergedPath);
+            }
+            File::put($jobDir.'/upload-meta.json', json_encode([
+                'user_id' => $userId,
+                'username' => (string) $meta['username'],
+                'original_name' => (string) $meta['original_name'],
+            ], JSON_THROW_ON_ERROR));
+
+            app(ProductImportPendingService::class)->register(
+                $uploadId,
+                $stablePath,
+                $userId,
+                (string) $meta['username'],
+                (string) $meta['original_name'],
+                $mode,
+            );
+
+            $this->cleanup($uploadId);
+
+            if ($mode === 'custom') {
+                return [
+                    'ready' => true,
+                    'mode' => 'custom',
+                    'upload_id' => $uploadId,
+                    'pending_parse' => true,
+                ];
+            }
+
+            return [
+                'ready' => true,
+                'mode' => 'template',
+                'upload_id' => $uploadId,
+                'pending_parse' => true,
+            ];
+        }
 
         try {
-            $prepared = app(ProductImportJobService::class)->prepareFromMergedCsv(
+            if ($mode === 'custom') {
+                $staged = app(ProductImportStagingService::class)->storeFromMergedCsv(
+                    $uploadId,
+                    $mergedPath,
+                    $userId,
+                    $meta['username'],
+                    $meta['original_name'],
+                );
+
+                return [
+                    'ready' => true,
+                    'mode' => 'custom',
+                    'upload_id' => $staged['upload_id'],
+                    'columns' => $staged['columns'],
+                    'total_rows' => $staged['total_rows'],
+                    'suggested_mapping' => $staged['suggested_mapping'],
+                ];
+            }
+
+            $prepared = app(ProductImportJobService::class)->beginStreamJobFromMergedFile(
                 $uploadId,
                 $mergedPath,
                 $userId,
+                $meta['username'],
                 $meta['original_name'],
             );
         } finally {
@@ -86,57 +206,156 @@ class ProductChunkUploadService
             }
         }
 
+        $totalRows = (int) $prepared['total_rows'];
+
         return [
             'ready' => true,
+            'mode' => 'template',
             'upload_id' => $prepared['upload_id'],
-            'batch_count' => $prepared['batch_count'],
+            'stream_mode' => true,
+            'ready_to_process' => true,
+            'total_rows' => $totalRows,
+            'batch_count' => max(1, (int) ceil($totalRows / ProductImportJobService::ROWS_PER_STREAM_CHUNK)),
         ];
     }
 
     protected function mergeChunks(string $uploadId, int $totalChunks): string
     {
-        $dir = $this->uploadDirectory($uploadId);
+        $meta = $this->readMeta($uploadId);
+        $mergedPath = $this->mergedPathFor($uploadId, (string) $meta['original_name']);
+
+        if (! File::exists($mergedPath)) {
+            throw new \InvalidArgumentException('El archivo fusionado no está completo.');
+        }
+
+        return $mergedPath;
+    }
+
+    protected function mergedPathFor(string $uploadId, string $originalName): string
+    {
         File::ensureDirectoryExists(storage_path('app/imports/merged'));
 
-        $mergedPath = storage_path('app/imports/merged/'.$uploadId.'.csv');
-        $output = fopen($mergedPath, 'wb');
+        $extension = ProductImportFileTypes::extensionFromName($originalName);
+
+        return storage_path('app/imports/merged/'.$uploadId.'.'.$extension);
+    }
+
+    protected function appendChunkToMergedFile(
+        string $uploadId,
+        string $originalName,
+        string $partPath,
+        bool $truncate,
+    ): void {
+        $mergedPath = $this->mergedPathFor($uploadId, $originalName);
+        $output = fopen($mergedPath, $truncate ? 'wb' : 'ab');
 
         if ($output === false) {
             throw new \RuntimeException('No se pudo crear el archivo temporal.');
         }
 
-        for ($index = 0; $index < $totalChunks; $index++) {
-            $partPath = $dir.'/'.$this->chunkFilename($index);
+        $input = fopen($partPath, 'rb');
 
-            if (! File::exists($partPath)) {
-                fclose($output);
-                File::delete($mergedPath);
-                throw new \InvalidArgumentException('Falta el fragmento '.($index + 1).' de '.$totalChunks.'.');
-            }
-
-            $input = fopen($partPath, 'rb');
-
-            if ($input === false) {
-                fclose($output);
-                File::delete($mergedPath);
-                throw new \RuntimeException('No se pudo leer un fragmento de la carga.');
-            }
-
-            stream_copy_to_stream($input, $output);
-            fclose($input);
+        if ($input === false) {
+            fclose($output);
+            throw new \RuntimeException('No se pudo leer un fragmento de la carga.');
         }
 
-        fclose($output);
-
-        return $mergedPath;
+        try {
+            stream_copy_to_stream($input, $output);
+        } finally {
+            fclose($input);
+            fclose($output);
+        }
     }
 
     /**
-     * @return array{user_id: int, original_name: string, total_chunks: int, created_at: string}
+     * @param  array{user_id: int, username: string, original_name: string, total_chunks: int, mode: string, created_at: string}  $meta
+     */
+    protected function writeMeta(string $uploadId, array $meta): void
+    {
+        $metaPath = $this->metaFilePath($uploadId);
+        $encoded = json_encode($meta, JSON_THROW_ON_ERROR);
+
+        if (! File::put($metaPath, $encoded)) {
+            throw new \RuntimeException('No se pudo guardar el estado de la carga en el servidor. Verifique permisos de storage.');
+        }
+
+        Cache::put($this->metaCacheKey($uploadId), $meta, self::META_CACHE_TTL_SECONDS);
+    }
+
+    protected function recoverMetaIfNeeded(
+        string $uploadId,
+        int $chunkIndex,
+        int $totalChunks,
+        string $originalName,
+        int $userId,
+        string $username,
+        string $mode,
+    ): void {
+        if ($this->hasMeta($uploadId)) {
+            return;
+        }
+
+        if (! $this->canRecoverUploadState($uploadId, $chunkIndex, $originalName)) {
+            throw new \InvalidArgumentException(
+                'Se perdió el estado de la carga en el servidor. Pulse «Liberar carga atascada» e intente de nuevo sin cerrar esta ventana.',
+            );
+        }
+
+        $this->writeMeta($uploadId, [
+            'user_id' => $userId,
+            'username' => $username,
+            'original_name' => $originalName,
+            'total_chunks' => $totalChunks,
+            'mode' => $mode,
+            'created_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    protected function canRecoverUploadState(string $uploadId, int $chunkIndex, string $originalName): bool
+    {
+        if ($chunkIndex < 1) {
+            return false;
+        }
+
+        $mergedPath = $this->mergedPathFor($uploadId, $originalName);
+
+        if (File::exists($mergedPath) && (int) File::size($mergedPath) > 0) {
+            return true;
+        }
+
+        $dir = $this->uploadDirectory($uploadId);
+
+        for ($index = 0; $index < $chunkIndex; $index++) {
+            if (File::exists($dir.'/'.$this->chunkFilename($index))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function hasMeta(string $uploadId): bool
+    {
+        if (Cache::has($this->metaCacheKey($uploadId))) {
+            return true;
+        }
+
+        return File::exists($this->metaFilePath($uploadId));
+    }
+
+    /**
+     * @return array{user_id: int, username: string, original_name: string, total_chunks: int, created_at: string, mode?: string}
      */
     protected function readMeta(string $uploadId): array
     {
-        $metaPath = $this->uploadDirectory($uploadId).'/meta.json';
+        $cached = Cache::get($this->metaCacheKey($uploadId));
+
+        if (is_array($cached) && isset($cached['user_id'], $cached['username'], $cached['original_name'], $cached['total_chunks'])) {
+            return $cached;
+        }
+
+        $metaPath = $this->metaFilePath($uploadId);
 
         if (! File::exists($metaPath)) {
             throw new \InvalidArgumentException('La carga no fue iniciada correctamente.');
@@ -144,11 +363,23 @@ class ProductChunkUploadService
 
         $meta = json_decode(File::get($metaPath), true, flags: JSON_THROW_ON_ERROR);
 
-        if (! is_array($meta) || ! isset($meta['user_id'], $meta['original_name'], $meta['total_chunks'])) {
+        if (! is_array($meta) || ! isset($meta['user_id'], $meta['username'], $meta['original_name'], $meta['total_chunks'])) {
             throw new \InvalidArgumentException('Metadatos de carga inválidos.');
         }
 
+        Cache::put($this->metaCacheKey($uploadId), $meta, self::META_CACHE_TTL_SECONDS);
+
         return $meta;
+    }
+
+    protected function metaFilePath(string $uploadId): string
+    {
+        return $this->uploadDirectory($uploadId).'/meta.json';
+    }
+
+    protected function metaCacheKey(string $uploadId): string
+    {
+        return 'product_import_chunk_meta:'.$uploadId;
     }
 
     protected function storeChunkFile(UploadedFile $chunk, string $destination): void
@@ -159,15 +390,31 @@ class ProductChunkUploadService
             throw new \InvalidArgumentException('No se recibió el fragmento del archivo.');
         }
 
-        $bytes = file_get_contents($source);
+        $input = fopen($source, 'rb');
 
-        if ($bytes === false || File::put($destination, $bytes) === false) {
+        if ($input === false) {
+            throw new \RuntimeException('No se pudo leer el fragmento del archivo.');
+        }
+
+        $output = fopen($destination, 'wb');
+
+        if ($output === false) {
+            fclose($input);
             throw new \RuntimeException('No se pudo guardar el fragmento en el servidor.');
+        }
+
+        try {
+            stream_copy_to_stream($input, $output);
+        } finally {
+            fclose($input);
+            fclose($output);
         }
     }
 
     protected function cleanup(string $uploadId): void
     {
+        Cache::forget($this->metaCacheKey($uploadId));
+
         $dir = $this->uploadDirectory($uploadId);
 
         if (File::isDirectory($dir)) {
@@ -192,12 +439,10 @@ class ProductChunkUploadService
         }
     }
 
-    protected function assertCsvFileName(string $originalName): void
+    protected function assertImportFileName(string $originalName): void
     {
-        $extension = Str::lower(pathinfo($originalName, PATHINFO_EXTENSION));
-
-        if (! in_array($extension, ['csv', 'txt'], true)) {
-            throw new \InvalidArgumentException('Solo se permiten archivos CSV.');
+        if (! ProductImportFileTypes::isAllowed($originalName)) {
+            throw new \InvalidArgumentException('Solo se permiten archivos CSV o Excel (.xlsx, .xls).');
         }
     }
 }

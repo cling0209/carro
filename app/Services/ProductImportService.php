@@ -194,12 +194,11 @@ class ProductImportService
     }
 
     /**
+     * @param  list<array<string, string>>  $rows
      * @return array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}
      */
-    public function importFromUploadedFile(UploadedFile $file): array
+    public function importParsedRows(array $rows): array
     {
-        $rows = $this->parseCsv($file);
-
         if ($rows === []) {
             return [
                 'created' => 0,
@@ -225,7 +224,7 @@ class ProductImportService
         $reactivates = [];
 
         foreach ($rows as $lineNumber => $row) {
-            $outcome = $this->prepareRow($row, $lineNumber);
+            $outcome = $this->prepareRow($row, is_int($lineNumber) ? $lineNumber : 0);
 
             if ($outcome['error'] !== null) {
                 $result['errors'][] = $outcome['error'];
@@ -250,6 +249,16 @@ class ProductImportService
         $this->resetImportCaches();
 
         return $result;
+    }
+
+    /**
+     * @return array{created: int, updated: int, reactivated: int, skipped: int, errors: list<string>}
+     */
+    public function importFromUploadedFile(UploadedFile $file): array
+    {
+        $rows = $this->parseCsv($file);
+
+        return $this->importParsedRows($rows);
     }
 
     /**

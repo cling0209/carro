@@ -38,6 +38,7 @@ services:
       TRANSBANK_RETURN_URL: http://localhost:8081/checkout/webpay/return
       L5_SWAGGER_GENERATE_ALWAYS: "false"
       PRODUCT_IMAGE_BASE_URL: https://www.romulo.cl/allproducts/imagenes/productos
+      PRODUCT_IMPORT_BACKGROUND: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +75,34 @@ services:
     ports:
       - "8026:8025"
       - "1026:1025"
+    networks:
+      - carro
+
+  queue:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    command: php artisan queue:work redis --sleep=3 --tries=1 --timeout=3600
+    volumes:
+      - .:/var/www/html
+    env_file:
+      - .env
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: carro
+      DB_USERNAME: carro
+      DB_PASSWORD: secret
+      REDIS_HOST: redis
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      PRODUCT_IMPORT_BACKGROUND: "true"
+    depends_on:
+      - app
+      - redis
     networks:
       - carro
 
