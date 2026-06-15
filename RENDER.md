@@ -33,6 +33,21 @@ Prueba sin dominio verificado: Resend solo permite enviar desde `onboarding@rese
 3. **Dockerfile path:** `./Dockerfile`
 4. **Instance type:** Free (OK con Resend).
 5. **Health check path:** `/up`
+6. **Auto-Deploy:** `Yes` (rama `main`)
+
+## 2.1 Deploy automático (push a `main`)
+
+Render puede redeployar solo con **Auto-Deploy**, pero si el webhook de GitHub falla, el repo incluye un respaldo con **Deploy Hook**:
+
+1. Render → tu Web Service → **Settings** → **Deploy Hook** → copiar la URL.
+2. GitHub → repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+   - **Name:** `RENDER_DEPLOY_HOOK`
+   - **Value:** la URL del paso 1
+3. Cada push a `main` ejecuta `.github/workflows/render-deploy.yml` y llama al hook.
+
+Verificar: GitHub → **Actions** → workflow *Deploy to Render* (debe quedar en verde). Render → **Events** → debe aparecer un deploy nuevo.
+
+Si el secret no está configurado, el workflow avisa con warning y no falla el CI.
 
 ## 3. Variables en Render
 
