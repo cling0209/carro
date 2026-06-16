@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\CartService;
+use App\Support\CartSessionCookie;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,7 +41,7 @@ class CartWebController extends Controller
             return redirect()
                 ->back()
                 ->with('success', "{$product->name} agregado al carro.")
-                ->cookie('cart_session', $cart->session_id, 60 * 24 * 30);
+                ->withCookie(CartSessionCookie::make($cart->session_id));
         } catch (\InvalidArgumentException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
@@ -77,7 +78,7 @@ class CartWebController extends Controller
             $response = redirect()->route('checkout.index');
 
             if ($cart->session_id) {
-                $response->cookie('cart_session', $cart->session_id, 60 * 24 * 30);
+                $response = $response->withCookie(CartSessionCookie::make($cart->session_id));
             }
 
             return $response;

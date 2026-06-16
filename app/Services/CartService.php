@@ -13,7 +13,9 @@ class CartService
 {
     public function resolve(Request $request): Cart
     {
-        $sessionId = $request->header('X-Cart-Session') ?? $request->cookie('cart_session');
+        $sessionId = $this->normalizeSessionId(
+            $request->header('X-Cart-Session') ?? $request->cookie('cart_session'),
+        );
 
         if ($request->user()) {
             $cart = Cart::firstOrCreate(['user_id' => $request->user()->id]);
@@ -215,5 +217,18 @@ class CartService
         }
 
         return Product::query()->active()->whereKey($productId)->exists();
+    }
+
+    protected function normalizeSessionId(mixed $sessionId): ?string
+    {
+        if (! is_string($sessionId) || $sessionId === '') {
+            return null;
+        }
+
+        if (! Str::isUuid($sessionId)) {
+            return null;
+        }
+
+        return $sessionId;
     }
 }

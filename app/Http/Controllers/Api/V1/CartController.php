@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiResponse;
 use App\Models\Product;
 use App\Services\CartService;
+use App\Support\CartSessionCookie;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
@@ -25,7 +26,7 @@ class CartController extends Controller
         $response = $this->success($this->cartService->formatCart($cart));
 
         if ($sessionId = $cart->session_id ?? $cart->getAttribute('session_token')) {
-            $response->cookie('cart_session', $sessionId, 60 * 24 * 30, '/', null, false, false);
+            $response = $response->withCookie(CartSessionCookie::make($sessionId));
         }
 
         return $response;
@@ -47,7 +48,7 @@ class CartController extends Controller
             $response = $this->success($this->cartService->formatCart($cart->fresh()));
 
             if ($sessionId = $cart->session_id) {
-                $response->cookie('cart_session', $sessionId, 60 * 24 * 30);
+                $response = $response->withCookie(CartSessionCookie::make($sessionId));
             }
 
             return $response;
