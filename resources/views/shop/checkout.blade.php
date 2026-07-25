@@ -33,7 +33,7 @@
                             <input type="text" name="customer_name" id="customer_name"
                                    class="form-control @error('customer_name') is-invalid @enderror"
                                    value="{{ $defaults['customer_name'] }}" required autocomplete="name">
-                            <div class="checkout-step-hint" data-step-hint="customer_name">Ingresa tu nombre (más de 3 caracteres).</div>
+                            <div class="checkout-step-hint" data-step-hint="customer_name">Escribe tu nombre completo.</div>
                             @error('customer_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="email-wrap">
@@ -64,7 +64,7 @@
                             <input type="text" name="recipient_name" id="recipient_name"
                                    class="form-control @error('recipient_name') is-invalid @enderror"
                                    value="{{ $defaults['recipient_name'] }}" required autocomplete="shipping name">
-                            <div class="checkout-step-hint" data-step-hint="recipient_name">Quién recibe: escribe más de 3 caracteres.</div>
+                            <div class="checkout-step-hint" data-step-hint="recipient_name">Quién recibe: escribe el nombre completo.</div>
                             @error('recipient_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="phone-wrap">
@@ -500,21 +500,21 @@ function updateAddressGuide() {
         comunaSelect.disabled = false;
     }
 
-    if (!isLongEnoughName(customerNameInput?.value)) {
-        setGuide('Paso 1: nombre completo', 'Escribe tu nombre (más de 3 caracteres).', 'warning');
+    if (!isLongEnoughName(customerNameInput?.value) || document.activeElement === customerNameInput) {
+        setGuide('Paso 1: nombre completo', 'Escribe tu nombre completo. Cuando termines, pasa al siguiente campo.', 'warning');
         pulseStep('customer_name', customerNameInput);
         return;
     }
 
-    if (!isValidEmail(emailInput?.value)) {
+    if (!isValidEmail(emailInput?.value) || document.activeElement === emailInput) {
         setGuide('Paso 2: correo electrónico', 'Ingresa un correo válido para enviarte la confirmación.', 'warning');
         pulseStep('email', emailInput);
         markDoneSteps('email');
         return;
     }
 
-    if (!isLongEnoughName(recipientInput?.value)) {
-        setGuide('Paso 3: destinatario', 'Indica quién recibe el pedido (más de 3 caracteres).', 'warning');
+    if (!isLongEnoughName(recipientInput?.value) || document.activeElement === recipientInput) {
+        setGuide('Paso 3: destinatario', 'Escribe el nombre completo de quien recibe. Cuando termines, pasa al siguiente campo.', 'warning');
         pulseStep('recipient_name', recipientInput);
         markDoneSteps('recipient_name');
         return;
@@ -980,6 +980,14 @@ if (checkoutForm) {
     checkoutForm.addEventListener('input', updateCheckoutSubmitState);
     checkoutForm.addEventListener('change', updateCheckoutSubmitState);
 }
+
+[customerNameInput, emailInput, recipientInput, phoneInput].forEach((field) => {
+    if (!field) return;
+    field.addEventListener('blur', () => {
+        updateAddressGuide();
+        updateCheckoutSubmitState();
+    });
+});
 
 function onAddressTextChanged() {
     if (applyingAddressFromPin) {
