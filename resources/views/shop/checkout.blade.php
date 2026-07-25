@@ -28,16 +28,20 @@
                 <div class="checkout-card card p-4 mb-4">
                     <h2 class="h5 fw-bold mb-3">Datos de contacto</h2>
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Nombre completo *</label>
-                            <input type="text" name="customer_name" class="form-control @error('customer_name') is-invalid @enderror"
-                                   value="{{ $defaults['customer_name'] }}" required>
+                        <div class="col-md-6" id="customer-name-wrap">
+                            <label class="form-label" for="customer_name">1. Nombre completo *</label>
+                            <input type="text" name="customer_name" id="customer_name"
+                                   class="form-control @error('customer_name') is-invalid @enderror"
+                                   value="{{ $defaults['customer_name'] }}" required autocomplete="name">
+                            <div class="checkout-step-hint" data-step-hint="customer_name">Ingresa tu nombre (más de 3 caracteres).</div>
                             @error('customer_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Correo electrónico *</label>
-                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                                   value="{{ $defaults['email'] }}" required>
+                        <div class="col-md-6" id="email-wrap">
+                            <label class="form-label" for="email">2. Correo electrónico *</label>
+                            <input type="email" name="email" id="email"
+                                   class="form-control @error('email') is-invalid @enderror"
+                                   value="{{ $defaults['email'] }}" required autocomplete="email">
+                            <div class="checkout-step-hint" data-step-hint="email">Ingresa un correo válido, ej. nombre@correo.cl</div>
                             @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
@@ -49,53 +53,59 @@
                         <div class="d-flex align-items-start gap-2">
                             <i class="bi bi-lightbulb-fill checkout-guide__icon mt-1" aria-hidden="true"></i>
                             <div>
-                                <div class="fw-bold" id="checkout-guide-title">Paso 1: elige la región</div>
-                                <div class="small mb-0" id="checkout-guide-text">Empieza seleccionando tu región para continuar.</div>
+                                <div class="fw-bold" id="checkout-guide-title">Paso 1: nombre completo</div>
+                                <div class="small mb-0" id="checkout-guide-text">Completa los datos en orden. Te vamos guiando campo a campo.</div>
                             </div>
                         </div>
                     </div>
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Destinatario (quien recibe la compra) *</label>
-                            <input type="text" name="recipient_name" class="form-control @error('recipient_name') is-invalid @enderror"
-                                   value="{{ $defaults['recipient_name'] }}" required>
+                        <div class="col-md-6" id="recipient-wrap">
+                            <label class="form-label" for="recipient_name">3. Destinatario *</label>
+                            <input type="text" name="recipient_name" id="recipient_name"
+                                   class="form-control @error('recipient_name') is-invalid @enderror"
+                                   value="{{ $defaults['recipient_name'] }}" required autocomplete="shipping name">
+                            <div class="checkout-step-hint" data-step-hint="recipient_name">Quién recibe: escribe más de 3 caracteres.</div>
                             @error('recipient_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Teléfono *</label>
-                            <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror"
-                                   value="{{ $defaults['phone'] }}" placeholder="+56 9..." required>
+                        <div class="col-md-6" id="phone-wrap">
+                            <label class="form-label" for="phone">4. Teléfono celular *</label>
+                            <input type="text" name="phone" id="phone"
+                                   class="form-control @error('phone') is-invalid @enderror"
+                                   value="{{ $defaults['phone'] }}" placeholder="+56 9 1234 5678" required autocomplete="tel">
+                            <div class="checkout-step-hint" data-step-hint="phone">Formato Chile: +56 9 XXXX XXXX</div>
                             @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="region-field-wrap">
-                            <label class="form-label" for="region">1. Región *</label>
+                            <label class="form-label" for="region">5. Región *</label>
                             <select name="region" id="region" class="form-select @error('region') is-invalid @enderror" required>
                                 <option value="">Selecciona región</option>
                                 @foreach($regions as $region)
                                     <option value="{{ $region['region'] }}" @selected($defaults['region'] === $region['region'])>{{ $region['region'] }}</option>
                                 @endforeach
                             </select>
+                            <div class="checkout-step-hint" data-step-hint="region">Elige tu región para continuar.</div>
                             @error('region')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="comuna-field-wrap">
-                            <label class="form-label" for="comuna">2. Comuna *</label>
+                            <label class="form-label" for="comuna">6. Comuna *</label>
                             <select name="comuna" id="comuna" class="form-select @error('comuna') is-invalid @enderror" required disabled>
                                 <option value="">Primero selecciona región</option>
                             </select>
+                            <div class="checkout-step-hint" data-step-hint="comuna">Ahora elige la comuna.</div>
                             @error('comuna')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12" id="map-field-wrap">
-                            <label class="form-label">3. Ubicación en el mapa *</label>
-                            <p class="form-text mt-0 mb-2">Marca el punto exacto donde quieres recibir el pedido. Sin pin no se puede pagar.</p>
-                            <div class="checkout-map-shell">
+                            <label class="form-label">7. Ubicación en el mapa *</label>
+                            <div class="checkout-step-hint" data-step-hint="map">Toca el mapa y marca el pin exacto de entrega.</div>
+                            <div class="checkout-map-shell mt-1">
                                 <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío">
                                     <div class="checkout-map-placeholder">Cargando mapa…</div>
                                 </div>
                                 <div id="checkout-map-lock" class="checkout-map-lock">
                                     <div class="checkout-map-lock__card">
                                         <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-                                        <strong id="checkout-map-lock-title">Primero elige región y comuna</strong>
-                                        <span id="checkout-map-lock-text">Así el mapa se centra en tu zona.</span>
+                                        <strong id="checkout-map-lock-title">Completa los pasos anteriores</strong>
+                                        <span id="checkout-map-lock-text">Región y comuna habilitan el mapa.</span>
                                     </div>
                                 </div>
                             </div>
@@ -109,12 +119,13 @@
                             <input type="hidden" name="longitude" id="longitude" value="{{ $defaults['longitude'] }}" required>
                         </div>
                         <div class="col-md-8" id="street-field-wrap">
-                            <label class="form-label" for="street">4. Calle *</label>
+                            <label class="form-label" for="street">8. Calle *</label>
                             <input type="text" name="street" id="street" class="form-control @error('street') is-invalid @enderror"
                                    value="{{ $defaults['street'] }}" required>
+                            <div class="checkout-step-hint" data-step-hint="street">Confirma la calle. Si la editas, búscala en el mapa.</div>
                             @error('street')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2" id="street-number-wrap">
                             <label class="form-label" for="street_number">Número</label>
                             <input type="text" name="street_number" id="street_number" class="form-control" value="{{ $defaults['street_number'] }}">
                         </div>
@@ -208,7 +219,7 @@
                     </div>
                     <div id="checkout-submit-hint" class="alert alert-warning border-warning small mb-3">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        El botón de pago se activará cuando completes región/comuna, marques el <strong>pin</strong>, y la <strong>calle coincida</strong> con el mapa.
+                        Te guiamos paso a paso: nombre, correo, destinatario, celular, región, comuna, pin y calle.
                     </div>
                     <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
@@ -275,16 +286,50 @@ function isRmRegion(regionName) {
     return regionName.toLowerCase().includes('metropolitana');
 }
 
+const customerNameInput = document.getElementById('customer_name');
+const emailInput = document.getElementById('email');
+const recipientInput = document.getElementById('recipient_name');
+const phoneInput = document.getElementById('phone');
+
 const guideTitle = document.getElementById('checkout-guide-title');
 const guideText = document.getElementById('checkout-guide-text');
 const guideBox = document.getElementById('checkout-address-guide');
 const mapLock = document.getElementById('checkout-map-lock');
 const mapLockTitle = document.getElementById('checkout-map-lock-title');
 const mapLockText = document.getElementById('checkout-map-lock-text');
+
+const customerNameWrap = document.getElementById('customer-name-wrap');
+const emailWrap = document.getElementById('email-wrap');
+const recipientWrap = document.getElementById('recipient-wrap');
+const phoneWrap = document.getElementById('phone-wrap');
 const regionWrap = document.getElementById('region-field-wrap');
 const comunaWrap = document.getElementById('comuna-field-wrap');
 const mapWrap = document.getElementById('map-field-wrap');
 const streetWrap = document.getElementById('street-field-wrap');
+
+const stepWraps = {
+    customer_name: customerNameWrap,
+    email: emailWrap,
+    recipient_name: recipientWrap,
+    phone: phoneWrap,
+    region: regionWrap,
+    comuna: comunaWrap,
+    map: mapWrap,
+    street: streetWrap,
+};
+
+const stepFields = {
+    customer_name: customerNameInput,
+    email: emailInput,
+    recipient_name: recipientInput,
+    phone: phoneInput,
+    region: regionSelect,
+    comuna: comunaSelect,
+    map: null,
+    street: streetInput,
+};
+
+let lastGuidedStep = null;
 
 function pinIsSet() {
     return String(latInput.value || '').trim() !== '' && String(lngInput.value || '').trim() !== '';
@@ -292,6 +337,21 @@ function pinIsSet() {
 
 function locationReady() {
     return Boolean(regionSelect.value && comunaSelect.value);
+}
+
+function isLongEnoughName(value) {
+    return String(value || '').trim().length > 3;
+}
+
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(String(value || '').trim());
+}
+
+function isValidChilePhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (digits.length === 11 && digits.startsWith('569')) return true;
+    if (digits.length === 9 && digits.startsWith('9')) return true;
+    return false;
 }
 
 function addressKey() {
@@ -343,91 +403,169 @@ function setGuide(title, text, tone = 'warning') {
 }
 
 function clearGuidePulse() {
-    [regionWrap, comunaWrap, mapWrap, streetWrap].forEach((el) => {
-        if (el) el.classList.remove('checkout-step-pulse');
+    Object.values(stepWraps).forEach((el) => {
+        if (el) el.classList.remove('checkout-step-pulse', 'checkout-map-pulse', 'checkout-step-done');
     });
-    if (regionSelect) regionSelect.classList.remove('checkout-field-pulse');
-    if (comunaSelect) comunaSelect.classList.remove('checkout-field-pulse');
-    if (streetInput) streetInput.classList.remove('checkout-field-pulse');
-    if (mapWrap) mapWrap.classList.remove('checkout-map-pulse');
+    Object.values(stepFields).forEach((el) => {
+        if (el) el.classList.remove('checkout-field-pulse');
+    });
+    document.querySelectorAll('[data-step-hint]').forEach((el) => {
+        el.classList.remove('is-active');
+    });
 }
 
-function pulseStep(wrap, field = null) {
+function showStepHint(stepKey) {
+    document.querySelectorAll('[data-step-hint]').forEach((el) => {
+        el.classList.toggle('is-active', el.getAttribute('data-step-hint') === stepKey);
+    });
+}
+
+function pulseStep(stepKey, field = null) {
     clearGuidePulse();
+    const wrap = stepWraps[stepKey];
     if (wrap) wrap.classList.add('checkout-step-pulse');
+    if (stepKey === 'map' && wrap) wrap.classList.add('checkout-map-pulse');
     if (field) field.classList.add('checkout-field-pulse');
+    showStepHint(stepKey);
+
+    if (lastGuidedStep !== stepKey) {
+        lastGuidedStep = stepKey;
+        const focusEl = field || wrap;
+        if (focusEl && typeof focusEl.scrollIntoView === 'function') {
+            focusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        if (field && typeof field.focus === 'function' && !['region', 'comuna'].includes(stepKey)) {
+            try { field.focus({ preventScroll: true }); } catch (e) { field.focus(); }
+        }
+    }
+}
+
+function markDoneSteps(upToExclusive) {
+    const order = ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'map', 'street'];
+    for (const key of order) {
+        if (key === upToExclusive) break;
+        const wrap = stepWraps[key];
+        if (wrap) wrap.classList.add('checkout-step-done');
+    }
+}
+
+function contactReady() {
+    return isLongEnoughName(customerNameInput?.value)
+        && isValidEmail(emailInput?.value)
+        && isLongEnoughName(recipientInput?.value)
+        && isValidChilePhone(phoneInput?.value);
 }
 
 function updateMapLock() {
     if (!mapLock) return;
 
-    const unlocked = locationReady();
+    const unlocked = locationReady() && contactReady();
     mapLock.classList.toggle('d-none', unlocked);
     mapLock.classList.toggle('is-locked', !unlocked);
 
-    if (!regionSelect.value) {
-        if (mapLockTitle) mapLockTitle.textContent = 'Paso 1: elige la región';
+    if (!contactReady()) {
+        if (mapLockTitle) mapLockTitle.textContent = 'Completa nombre, correo, destinatario y celular';
+        if (mapLockText) mapLockText.textContent = 'Después eliges región, comuna y marcas el pin.';
+    } else if (!regionSelect.value) {
+        if (mapLockTitle) mapLockTitle.textContent = 'Paso 5: elige la región';
         if (mapLockText) mapLockText.textContent = 'Después podrás elegir la comuna y marcar el mapa.';
     } else if (!comunaSelect.value) {
-        if (mapLockTitle) mapLockTitle.textContent = 'Paso 2: elige la comuna';
+        if (mapLockTitle) mapLockTitle.textContent = 'Paso 6: elige la comuna';
         if (mapLockText) mapLockText.textContent = 'Con la comuna lista se habilita el mapa.';
     }
 }
 
 function updateAddressGuide() {
     updateMapLock();
+    updateSearchButtonState();
 
+    // Keep comuna disabled until region exists.
     if (!regionSelect.value) {
         comunaSelect.disabled = true;
-        if (!comunaSelect.value) {
-            comunaSelect.innerHTML = '<option value="">Primero selecciona región</option>';
+        if (!comunaSelect.options.length || comunaSelect.options[0].value === '' && comunaSelect.options.length === 1) {
+            // leave as is
         }
-        setGuide('Paso 1: elige la región', 'Empieza por la región. Luego te pediremos la comuna.', 'warning');
-        pulseStep(regionWrap, regionSelect);
-        setMapStatus('Primero selecciona la región.');
+    } else {
+        comunaSelect.disabled = false;
+    }
+
+    if (!isLongEnoughName(customerNameInput?.value)) {
+        setGuide('Paso 1: nombre completo', 'Escribe tu nombre (más de 3 caracteres).', 'warning');
+        pulseStep('customer_name', customerNameInput);
         return;
     }
 
-    comunaSelect.disabled = false;
+    if (!isValidEmail(emailInput?.value)) {
+        setGuide('Paso 2: correo electrónico', 'Ingresa un correo válido para enviarte la confirmación.', 'warning');
+        pulseStep('email', emailInput);
+        markDoneSteps('email');
+        return;
+    }
+
+    if (!isLongEnoughName(recipientInput?.value)) {
+        setGuide('Paso 3: destinatario', 'Indica quién recibe el pedido (más de 3 caracteres).', 'warning');
+        pulseStep('recipient_name', recipientInput);
+        markDoneSteps('recipient_name');
+        return;
+    }
+
+    if (!isValidChilePhone(phoneInput?.value)) {
+        setGuide('Paso 4: teléfono celular', 'Usa formato Chile: +56 9 XXXX XXXX', 'warning');
+        pulseStep('phone', phoneInput);
+        markDoneSteps('phone');
+        return;
+    }
+
+    if (!regionSelect.value) {
+        setGuide('Paso 5: región', 'Elige la región de envío.', 'warning');
+        pulseStep('region', regionSelect);
+        markDoneSteps('region');
+        setMapStatus('Ahora selecciona la región.');
+        return;
+    }
 
     if (!comunaSelect.value) {
-        setGuide('Paso 2: elige la comuna', 'Ya tienes región. Ahora selecciona la comuna para continuar.', 'warning');
-        pulseStep(comunaWrap, comunaSelect);
+        setGuide('Paso 6: comuna', 'Ya tienes región. Ahora elige la comuna.', 'warning');
+        pulseStep('comuna', comunaSelect);
+        markDoneSteps('comuna');
         setMapStatus('Ahora selecciona la comuna.');
         return;
     }
 
     if (!pinIsSet()) {
-        setGuide('Paso 3: marca el pin en el mapa', 'Toca el mapa en el punto exacto de entrega. Sin pin no se puede pagar.', 'info');
-        clearGuidePulse();
-        if (mapWrap) mapWrap.classList.add('checkout-step-pulse', 'checkout-map-pulse');
+        setGuide('Paso 7: marca el pin', 'Toca el mapa en el punto exacto de entrega.', 'info');
+        pulseStep('map');
+        markDoneSteps('map');
         setMapStatus('Toca el mapa para marcar tu ubicación en ' + comunaSelect.value + '.');
-        updateSearchButtonState();
         return;
     }
 
     if (!String(streetInput.value || '').trim()) {
-        setGuide('Paso 4: confirma la calle', 'Revisa o completa la calle y el número de la dirección.', 'info');
-        pulseStep(streetWrap, streetInput);
+        setGuide('Paso 8: calle', 'Confirma o completa la calle de entrega.', 'info');
+        pulseStep('street', streetInput);
+        markDoneSteps('street');
         setMapStatus('Ubicación marcada. Completa la calle si falta.');
-        updateSearchButtonState();
         return;
     }
 
     if (!isAddressSynced()) {
-        setGuide('La calle no coincide con el pin', 'Pulsa “Buscar en el mapa” para mover el pin, o vuelve a marcar el pin.', 'warning');
-        pulseStep(streetWrap, streetInput);
+        setGuide('Calle y pin no coinciden', 'Pulsa “Buscar en el mapa” o vuelve a marcar el pin.', 'warning');
+        pulseStep('street', streetInput);
         if (addressSyncAlert) addressSyncAlert.classList.remove('d-none');
         setMapStatus('Calle editada: búscala en el mapa para sincronizar el pin.');
-        updateSearchButtonState();
         return;
     }
 
-    setGuide('Listo: dirección y pin coinciden', 'Puedes ajustar el pin o buscar de nuevo si cambias la calle.', 'success');
+    setGuide('Listo: datos completos', 'Nombre, celular, zona y pin están listos. Puedes pagar cuando el envío esté calculado.', 'success');
     clearGuidePulse();
+    markDoneSteps(null);
+    ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'map', 'street'].forEach((key) => {
+        const wrap = stepWraps[key];
+        if (wrap) wrap.classList.add('checkout-step-done');
+    });
     if (addressSyncAlert) addressSyncAlert.classList.add('d-none');
     setMapStatus('Dirección alineada con el pin. Puedes arrastrar el pin para ajustar.');
-    updateSearchButtonState();
+    lastGuidedStep = 'done';
 }
 
 function toggleCreateAccountFields() {
@@ -464,7 +602,12 @@ function requiredFieldsComplete() {
 }
 
 function updateCheckoutSubmitState() {
-    const ready = shippingReady && locationReady() && pinIsSet() && isAddressSynced() && requiredFieldsComplete();
+    const ready = shippingReady
+        && contactReady()
+        && locationReady()
+        && pinIsSet()
+        && isAddressSynced()
+        && requiredFieldsComplete();
     checkoutSubmit.disabled = !ready;
 
     if (checkoutSubmitHint) {

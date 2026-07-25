@@ -457,8 +457,32 @@ body {
     color: #d97706;
 }
 
-.checkout-guide {
-    animation: checkout-guide-blink 1.4s ease-in-out infinite;
+.checkout-step-hint {
+    display: none;
+    margin-top: 0.35rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+}
+
+.checkout-step-hint.is-active {
+    display: block;
+    animation: checkout-guide-blink 1.1s ease-in-out infinite;
+}
+
+.checkout-step-done > .form-label::after {
+    content: ' ✓';
+    color: #16a34a;
+    font-weight: 700;
+}
+
+.checkout-step-done .form-control,
+.checkout-step-done .form-select {
+    border-color: #86efac;
 }
 
 .checkout-guide.alert-success {

@@ -173,10 +173,10 @@ class CheckoutController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $rules = [
-            'customer_name' => ['required', 'string', 'max:120'],
+            'customer_name' => ['required', 'string', 'min:4', 'max:120'],
             'email' => ['required', 'email', 'max:180'],
-            'recipient_name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'string', 'max:30'],
+            'recipient_name' => ['required', 'string', 'min:4', 'max:120'],
+            'phone' => ['required', 'string', 'max:30', 'regex:/^(\+?56)?\s?9[\s-]?\d{4}[\s-]?\d{4}$/'],
             'region' => ['required', 'string', 'max:80'],
             'comuna' => ['required', 'string', 'max:80'],
             'street' => ['required', 'string', 'max:180'],
@@ -194,6 +194,9 @@ class CheckoutController extends Controller
         }
 
         $data = $request->validate($rules, [
+            'customer_name.min' => 'El nombre debe tener más de 3 caracteres.',
+            'recipient_name.min' => 'El destinatario debe tener más de 3 caracteres.',
+            'phone.regex' => 'El celular debe ser formato Chile: +56 9 XXXX XXXX.',
             'latitude.required' => 'Marca tu ubicación en el mapa para continuar.',
             'longitude.required' => 'Marca tu ubicación en el mapa para continuar.',
             'address_synced.accepted' => 'La calle debe coincidir con el pin. Usa “Buscar en el mapa” o vuelve a marcar el pin.',
