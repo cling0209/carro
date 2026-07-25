@@ -38,10 +38,15 @@ class CartWebController extends Controller
             $product = Product::active()->findOrFail($data['product_id']);
             $this->cartService->addItem($cart, $product, (int) $data['quantity']);
 
-            return redirect()
+            $response = redirect()
                 ->back()
-                ->with('success', "{$product->name} agregado al carro.")
-                ->withCookie(CartSessionCookie::make($cart->session_id));
+                ->with('success', "{$product->name} agregado al carro.");
+
+            if ($sessionId = $this->cartService->sessionTokenFor($cart)) {
+                $response = $response->withCookie(CartSessionCookie::make($sessionId));
+            }
+
+            return $response;
         } catch (\InvalidArgumentException $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
@@ -77,8 +82,8 @@ class CartWebController extends Controller
 
             $response = redirect()->route('checkout.index');
 
-            if ($cart->session_id) {
-                $response = $response->withCookie(CartSessionCookie::make($cart->session_id));
+            if ($sessionId = $this->cartService->sessionTokenFor($cart)) {
+                $response = $response->withCookie(CartSessionCookie::make($sessionId));
             }
 
             return $response;

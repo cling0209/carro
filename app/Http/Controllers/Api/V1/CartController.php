@@ -25,7 +25,7 @@ class CartController extends Controller
         $cart = $this->cartService->resolve($request);
         $response = $this->success($this->cartService->formatCart($cart));
 
-        if ($sessionId = $cart->session_id ?? $cart->getAttribute('session_token')) {
+        if ($sessionId = $this->cartService->sessionTokenFor($cart)) {
             $response = $response->withCookie(CartSessionCookie::make($sessionId));
         }
 
@@ -47,7 +47,7 @@ class CartController extends Controller
             $this->cartService->addItem($cart, $product, $data['quantity']);
             $response = $this->success($this->cartService->formatCart($cart->fresh()));
 
-            if ($sessionId = $cart->session_id) {
+            if ($sessionId = $this->cartService->sessionTokenFor($cart)) {
                 $response = $response->withCookie(CartSessionCookie::make($sessionId));
             }
 

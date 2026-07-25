@@ -48,6 +48,14 @@ class CartService
         return $cart;
     }
 
+    /**
+     * Los carros de usuarios autenticados no tienen session_id: se identifican por user_id.
+     */
+    public function sessionTokenFor(Cart $cart): ?string
+    {
+        return $cart->session_id ?? $cart->getAttribute('session_token');
+    }
+
     protected function mergeCarts(Cart $from, Cart $to): void
     {
         foreach ($from->items as $item) {
@@ -162,7 +170,7 @@ class CartService
 
         return [
             'id' => $cart->id,
-            'session_id' => $cart->session_id ?? $cart->getAttribute('session_token'),
+            'session_id' => $this->sessionTokenFor($cart),
             'items' => $cart->items
                 ->filter(fn (CartItem $item) => $item->product !== null)
                 ->values()
