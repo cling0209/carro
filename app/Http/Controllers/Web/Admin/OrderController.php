@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\Admin\OrderAdminService;
+use App\Services\Admin\SoftlandOrderExportService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderController extends Controller
 {
-    public function __construct(protected OrderAdminService $orderAdmin) {}
+    public function __construct(
+        protected OrderAdminService $orderAdmin,
+        protected SoftlandOrderExportService $softlandExport,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -53,5 +57,10 @@ class OrderController extends Controller
         ]);
 
         return view('admin.orders.show', compact('order'));
+    }
+
+    public function exportSoftland(Order $order): StreamedResponse
+    {
+        return $this->softlandExport->download($order);
     }
 }

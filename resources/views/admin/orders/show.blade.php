@@ -8,8 +8,15 @@
         <a href="{{ route('admin.orders.index') }}" class="text-decoration-none small">
             <i class="bi bi-arrow-left"></i> Volver a ventas
         </a>
-        <h1 class="h3 fw-bold mt-2">Pedido #{{ substr($order->uuid, 0, 8) }}</h1>
-        <p class="text-muted mb-0">{{ $order->created_at?->format('d/m/Y H:i') }} · {{ order_status_label($order->status) }}</p>
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mt-2">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Pedido #{{ substr($order->uuid, 0, 8) }}</h1>
+                <p class="text-muted mb-0">{{ $order->created_at?->format('d/m/Y H:i') }} · {{ order_status_label($order->status) }}</p>
+            </div>
+            <a href="{{ route('admin.orders.export.softland', $order) }}" class="btn btn-outline-secondary btn-sm" data-no-loader>
+                <i class="bi bi-download"></i> Descargar Softland
+            </a>
+        </div>
     </div>
 
     <div class="row g-4">
