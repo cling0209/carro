@@ -508,6 +508,19 @@ body {
     font-weight: 600;
 }
 
+.checkout-map-status--searching,
+.checkout-searching-msg.is-searching,
+.checkout-guide.is-searching {
+    color: #1d4ed8 !important;
+    font-weight: 700;
+    animation: checkout-guide-blink 0.8s ease-in-out infinite;
+}
+
+.checkout-searching-msg {
+    color: #1d4ed8;
+    font-weight: 700;
+}
+
 @keyframes checkout-guide-blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.72; }
