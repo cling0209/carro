@@ -44,6 +44,12 @@ Route::post('/cuenta/salir', [CustomerAuthController::class, 'logout'])->name('a
 
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
 Route::get('/checkout/envio', [CheckoutController::class, 'quote'])->name('checkout.shipping.quote');
+Route::get('/checkout/geocode', [CheckoutController::class, 'geocode'])
+    ->middleware('throttle:30,1')
+    ->name('checkout.geocode');
+Route::get('/checkout/reverse-geocode', [CheckoutController::class, 'reverseGeocode'])
+    ->middleware('throttle:30,1')
+    ->name('checkout.reverse-geocode');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 
 Route::match(['get', 'post'], '/checkout/webpay/return', [PaymentWebController::class, 'return'])

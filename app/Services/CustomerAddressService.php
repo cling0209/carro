@@ -44,6 +44,8 @@ class CustomerAddressService
                     'street' => $order->shipping_street,
                     'street_number' => $order->shipping_street_number,
                     'apartment' => $order->shipping_apartment,
+                    'latitude' => $order->shipping_latitude,
+                    'longitude' => $order->shipping_longitude,
                 ];
             }
 
@@ -63,6 +65,8 @@ class CustomerAddressService
             'street' => $address->street,
             'street_number' => $address->street_number,
             'apartment' => $address->apartment,
+            'latitude' => $address->latitude,
+            'longitude' => $address->longitude,
         ];
     }
 
@@ -77,6 +81,8 @@ class CustomerAddressService
             'street' => $shipping['street'],
             'street_number' => $shipping['street_number'] ?? null,
             'apartment' => $shipping['apartment'] ?? null,
+            'latitude' => $shipping['latitude'] ?? null,
+            'longitude' => $shipping['longitude'] ?? null,
             'is_default' => true,
         ];
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\CartService;
 use App\Services\CustomerAddressService;
+use App\Services\NominatimGeocoder;
 use App\Services\OrderService;
 use App\Services\Payments\WebpayGateway;
 use App\Services\ShippingService;
@@ -25,6 +26,7 @@ class CheckoutController extends Controller
         protected WebpayGateway $webpay,
         protected ShippingService $shippingService,
         protected CustomerAddressService $addressService,
+        protected NominatimGeocoder $geocoder,
     ) {}
 
     public function index(Request $request): View|RedirectResponse
@@ -50,6 +52,9 @@ class CheckoutController extends Controller
         ] as $field) {
             $defaults[$field] = old($field, $saved[$field] ?? '');
         }
+
+        $defaults['latitude'] = old('latitude', $saved['latitude'] ?? null);
+        $defaults['longitude'] = old('longitude', $saved['longitude'] ?? null);
 
         return view('shop.checkout', [
             'formatted' => $formatted,
@@ -92,6 +97,48 @@ class CheckoutController extends Controller
         }
     }
 
+    public function geocode(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'region' => ['required', 'string', 'max:80'],
+            'comuna' => ['required', 'string', 'max:80'],
+        ]);
+
+        $place = $this->geocoder->searchPlace($data['comuna'].', '.$data['region'].', Chile');
+
+        if (! $place) {
+            return response()->json([
+                'lat' => -33.4489,
+                'lng' => -70.6693,
+                'display_name' => $data['comuna'].', '.$data['region'],
+                'fallback' => true,
+            ]);
+        }
+
+        return response()->json([
+            'lat' => $place['lat'],
+            'lng' => $place['lng'],
+            'display_name' => $place['display_name'],
+            'fallback' => false,
+        ]);
+    }
+
+    public function reverseGeocode(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-56,-17'],
+            'lng' => ['required', 'numeric', 'between:-76,-66'],
+        ]);
+
+        $place = $this->geocoder->reverse((float) $data['lat'], (float) $data['lng']);
+
+        if (! $place) {
+            return response()->json(['message' => 'No se pudo ubicar ese punto. Prueba más cerca de una calle.'], 422);
+        }
+
+        return response()->json($place);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $rules = [
@@ -104,6 +151,8 @@ class CheckoutController extends Controller
             'street' => ['required', 'string', 'max:180'],
             'street_number' => ['nullable', 'string', 'max:20'],
             'apartment' => ['nullable', 'string', 'max:40'],
+            'latitude' => ['required', 'numeric', 'between:-56,-17'],
+            'longitude' => ['required', 'numeric', 'between:-76,-66'],
             'create_account' => ['nullable', 'boolean'],
             'password' => ['nullable', 'required_if:create_account,1', 'confirmed', Password::min(8)],
         ];
@@ -112,7 +161,14 @@ class CheckoutController extends Controller
             $rules['email'][] = 'unique:users,email';
         }
 
-        $data = $request->validate($rules);
+        $data = $request->validate($rules, [
+            'latitude.required' => 'Marca tu ubicación en el mapa para continuar.',
+            'longitude.required' => 'Marca tu ubicación en el mapa para continuar.',
+        ]);
+
+        if (! $this->geocoder->isInChile((float) $data['latitude'], (float) $data['longitude'])) {
+            return redirect()->back()->withInput()->with('error', 'La ubicación debe estar dentro de Chile.');
+        }
 
         try {
             if (! $request->user() && $request->boolean('create_account')) {

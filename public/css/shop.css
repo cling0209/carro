@@ -408,6 +408,20 @@ body {
     border-radius: 0.5rem;
 }
 
+.checkout-map {
+    width: 100%;
+    height: 280px;
+    border-radius: 0.75rem;
+    border: 1px solid #dbe3ef;
+    z-index: 1;
+}
+
+@media (min-width: 768px) {
+    .checkout-map {
+        height: 340px;
+    }
+}
+
 .checkout-card {
     border-radius: 1rem;
     border: 1px solid rgba(253, 230, 138, 0.5);

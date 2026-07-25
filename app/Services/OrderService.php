@@ -70,6 +70,8 @@ class OrderService
                 'shipping_street' => $shipping['street'],
                 'shipping_street_number' => $shipping['street_number'] ?? null,
                 'shipping_apartment' => $shipping['apartment'] ?? null,
+                'shipping_latitude' => $shipping['latitude'] ?? null,
+                'shipping_longitude' => $shipping['longitude'] ?? null,
                 'customer_email' => $shipping['email'],
                 'customer_name' => $shipping['customer_name'] ?? $shipping['recipient_name'],
             ]);

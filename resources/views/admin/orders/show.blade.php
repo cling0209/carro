@@ -95,6 +95,19 @@
                         @if($order->shipping_apartment) Depto {{ $order->shipping_apartment }}<br>@endif
                         {{ $order->shipping_comuna }}, {{ $order->shipping_region }}
                     </p>
+                    @if($order->shipping_latitude && $order->shipping_longitude)
+                        <p class="mb-2">
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="https://www.openstreetmap.org/?mlat={{ $order->shipping_latitude }}&mlon={{ $order->shipping_longitude }}#map=17/{{ $order->shipping_latitude }}/{{ $order->shipping_longitude }}"
+                               target="_blank" rel="noopener">
+                                <i class="bi bi-geo-alt"></i> Ver en mapa
+                            </a>
+                        </p>
+                        <p class="mb-0 text-muted">
+                            Pin: {{ number_format((float) $order->shipping_latitude, 5) }},
+                            {{ number_format((float) $order->shipping_longitude, 5) }}
+                        </p>
+                    @endif
                     @if($order->shipping_rate_label)
                         <hr class="my-2">
                         <p class="mb-1"><strong>Tarifa:</strong> {{ $order->shipping_rate_label }}</p>

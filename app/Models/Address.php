@@ -9,12 +9,17 @@ class Address extends Model
 {
     protected $fillable = [
         'user_id', 'label', 'recipient_name', 'phone', 'region', 'comuna',
-        'street', 'street_number', 'apartment', 'postal_code', 'is_default',
+        'street', 'street_number', 'apartment', 'postal_code',
+        'latitude', 'longitude', 'is_default',
     ];
 
     protected function casts(): array
     {
-        return ['is_default' => 'boolean'];
+        return [
+            'is_default' => 'boolean',
+            'latitude' => 'float',
+            'longitude' => 'float',
+        ];
     }
 
     public function user(): BelongsTo

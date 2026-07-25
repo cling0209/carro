@@ -20,7 +20,8 @@ class Order extends Model
         'shipping_metadata', 'total', 'currency',
         'shipping_recipient_name', 'shipping_phone', 'shipping_region',
         'shipping_comuna', 'shipping_street', 'shipping_street_number',
-        'shipping_apartment', 'customer_email', 'customer_name',
+        'shipping_apartment', 'shipping_latitude', 'shipping_longitude',
+        'customer_email', 'customer_name',
     ];
 
     protected function casts(): array
@@ -31,6 +32,8 @@ class Order extends Model
             'shipping_total_weight_kg' => 'decimal:3',
             'shipping_metadata' => 'array',
             'total' => 'decimal:2',
+            'shipping_latitude' => 'float',
+            'shipping_longitude' => 'float',
         ];
     }
 

@@ -75,15 +75,28 @@
                             </select>
                             @error('comuna')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
+                        <div class="col-12">
+                            <label class="form-label">Ubicación en el mapa *</label>
+                            <p class="form-text mt-0 mb-2">Marca el punto exacto donde quieres recibir el pedido. Sin pin no se puede pagar.</p>
+                            <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío"></div>
+                            <div id="checkout-map-status" class="small mt-2 text-muted">
+                                Selecciona región y comuna, luego toca el mapa para marcar tu ubicación.
+                            </div>
+                            @error('latitude')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                            <input type="hidden" name="latitude" id="latitude" value="{{ $defaults['latitude'] }}" required>
+                            <input type="hidden" name="longitude" id="longitude" value="{{ $defaults['longitude'] }}" required>
+                        </div>
                         <div class="col-md-8">
                             <label class="form-label">Calle *</label>
-                            <input type="text" name="street" class="form-control @error('street') is-invalid @enderror"
+                            <input type="text" name="street" id="street" class="form-control @error('street') is-invalid @enderror"
                                    value="{{ $defaults['street'] }}" required>
                             @error('street')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Número</label>
-                            <input type="text" name="street_number" class="form-control" value="{{ $defaults['street_number'] }}">
+                            <input type="text" name="street_number" id="street_number" class="form-control" value="{{ $defaults['street_number'] }}">
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Depto</label>
@@ -160,7 +173,7 @@
                     </div>
                     <div id="checkout-submit-hint" class="alert alert-warning border-warning small mb-3">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        El botón de pago se activará cuando ingreses todos los <strong>datos obligatorios</strong> y se calcule el envío.
+                        El botón de pago se activará cuando ingreses todos los <strong>datos obligatorios</strong>, marques el <strong>pin en el mapa</strong> y se calcule el envío.
                     </div>
                     <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
@@ -172,14 +185,24 @@
 </section>
 @endsection
 
+@push('head')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+@endpush
+
 @push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 const regions = @json($regions);
 const regionSelect = document.getElementById('region');
 const comunaSelect = document.getElementById('comuna');
 const savedComuna = @json($defaults['comuna']);
 const quoteUrl = @json(route('checkout.shipping.quote'));
-const subtotalAmount = {{ (float) $formatted['subtotal'] }};
+const geocodeUrl = @json(route('checkout.geocode'));
+const reverseGeocodeUrl = @json(route('checkout.reverse-geocode'));
+const initialLat = @json(filled($defaults['latitude'] ?? null) ? (float) $defaults['latitude'] : null);
+const initialLng = @json(filled($defaults['longitude'] ?? null) ? (float) $defaults['longitude'] : null);
 
 const summaryShipping = document.getElementById('summary-shipping');
 const summaryTotal = document.getElementById('summary-total');
@@ -187,8 +210,17 @@ const shippingError = document.getElementById('shipping-error');
 const checkoutSubmit = document.getElementById('checkout-submit');
 const checkoutSubmitHint = document.getElementById('checkout-submit-hint');
 const checkoutForm = checkoutSubmit.closest('form');
+const latInput = document.getElementById('latitude');
+const lngInput = document.getElementById('longitude');
+const streetInput = document.getElementById('street');
+const streetNumberInput = document.getElementById('street_number');
+const mapStatus = document.getElementById('checkout-map-status');
 
 let shippingReady = false;
+let mapReady = false;
+let map = null;
+let marker = null;
+let centeringMap = false;
 
 const createAccountCheckbox = document.getElementById('create_account');
 const createAccountFields = document.getElementById('create-account-fields');
@@ -201,6 +233,10 @@ function formatClp(amount) {
 
 function isRmRegion(regionName) {
     return regionName.toLowerCase().includes('metropolitana');
+}
+
+function pinIsSet() {
+    return String(latInput.value || '').trim() !== '' && String(lngInput.value || '').trim() !== '';
 }
 
 function toggleCreateAccountFields() {
@@ -216,7 +252,15 @@ function requiredFieldsComplete() {
     if (!checkoutForm) return false;
 
     return Array.from(checkoutForm.querySelectorAll('[required]')).every((field) => {
-        if (field.offsetParent === null || field.closest('.d-none')) {
+        if (field.closest('.d-none')) {
+            return true;
+        }
+
+        if (field.type === 'hidden') {
+            return String(field.value ?? '').trim() !== '';
+        }
+
+        if (field.offsetParent === null) {
             return true;
         }
 
@@ -225,7 +269,7 @@ function requiredFieldsComplete() {
 }
 
 function updateCheckoutSubmitState() {
-    const ready = shippingReady && requiredFieldsComplete();
+    const ready = shippingReady && pinIsSet() && requiredFieldsComplete();
     checkoutSubmit.disabled = !ready;
 
     if (checkoutSubmitHint) {
@@ -233,11 +277,136 @@ function updateCheckoutSubmitState() {
     }
 }
 
+function setMapStatus(text, isError = false) {
+    if (!mapStatus) return;
+    mapStatus.textContent = text;
+    mapStatus.classList.toggle('text-danger', isError);
+    mapStatus.classList.toggle('text-success', !isError && pinIsSet());
+    mapStatus.classList.toggle('text-muted', !isError && !pinIsSet());
+}
+
+function initMap() {
+    map = L.map('checkout-map', { scrollWheelZoom: false }).setView([-33.4489, -70.6693], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    map.on('click', (event) => {
+        setPin(event.latlng.lat, event.latlng.lng, true);
+    });
+
+    if (initialLat !== null && initialLng !== null) {
+        setPin(initialLat, initialLng, false);
+        map.setView([initialLat, initialLng], 16);
+    }
+
+    setTimeout(() => map.invalidateSize(), 150);
+    mapReady = true;
+}
+
+function setPin(lat, lng, reverseFill) {
+    const position = [lat, lng];
+
+    if (!marker) {
+        marker = L.marker(position, { draggable: true }).addTo(map);
+        marker.on('dragend', () => {
+            const p = marker.getLatLng();
+            setPin(p.lat, p.lng, true);
+        });
+    } else {
+        marker.setLatLng(position);
+    }
+
+    latInput.value = Number(lat).toFixed(7);
+    lngInput.value = Number(lng).toFixed(7);
+    setMapStatus('Ubicación marcada. Puedes arrastrar el pin para ajustar.');
+    updateCheckoutSubmitState();
+
+    if (reverseFill) {
+        reverseGeocode(lat, lng);
+    }
+}
+
+function clearPin({ keepMapCenter = false } = {}) {
+    if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+    }
+    latInput.value = '';
+    lngInput.value = '';
+    if (!keepMapCenter) {
+        setMapStatus('Selecciona región y comuna, luego toca el mapa para marcar tu ubicación.');
+    }
+    updateCheckoutSubmitState();
+}
+
+async function centerMapOnComuna() {
+    const region = regionSelect.value;
+    const comuna = comunaSelect.value;
+
+    if (!region || !comuna || !mapReady) {
+        return;
+    }
+
+    centeringMap = true;
+    setMapStatus('Centrando mapa en ' + comuna + '...');
+
+    try {
+        const params = new URLSearchParams({ region, comuna });
+        const response = await fetch(`${geocodeUrl}?${params.toString()}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'No se pudo centrar el mapa.');
+        }
+
+        map.setView([data.lat, data.lng], 14);
+        if (!pinIsSet()) {
+            setMapStatus('Toca el mapa para marcar el punto de entrega en ' + comuna + '.');
+        }
+    } catch (error) {
+        setMapStatus(error.message || 'No se pudo centrar el mapa.', true);
+    } finally {
+        centeringMap = false;
+    }
+}
+
+async function reverseGeocode(lat, lng) {
+    try {
+        const params = new URLSearchParams({ lat, lng });
+        const response = await fetch(`${reverseGeocodeUrl}?${params.toString()}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'No se pudo leer la dirección del mapa.');
+        }
+
+        if (data.street && streetInput) {
+            streetInput.value = data.street;
+        }
+        if (streetNumberInput && data.street_number) {
+            streetNumberInput.value = data.street_number;
+        }
+
+        setMapStatus('Ubicación marcada. Revisa calle y número, y ajusta el pin si hace falta.');
+        updateCheckoutSubmitState();
+    } catch (error) {
+        setMapStatus('Pin marcado. Completa calle y número manualmente si no se detectaron.', true);
+    }
+}
+
 function loadComunas() {
     const regionName = regionSelect.value;
+    const previousComuna = comunaSelect.value || savedComuna;
     comunaSelect.innerHTML = '<option value="">Selecciona comuna</option>';
     const region = regions.find(r => r.region === regionName);
     if (!region) {
+        clearPin();
         quoteShipping();
         return;
     }
@@ -247,10 +416,18 @@ function loadComunas() {
         const opt = document.createElement('option');
         opt.value = name;
         opt.textContent = name;
-        if (name === savedComuna) opt.selected = true;
+        if (name === previousComuna) opt.selected = true;
         comunaSelect.appendChild(opt);
     });
     quoteShipping();
+    if (comunaSelect.value) {
+        if (!pinIsSet() || !initialLat) {
+            clearPin({ keepMapCenter: true });
+        }
+        centerMapOnComuna();
+    } else {
+        clearPin();
+    }
 }
 
 async function quoteShipping() {
@@ -310,14 +487,22 @@ if (createAccountCheckbox) {
     toggleCreateAccountFields();
 }
 
-regionSelect.addEventListener('change', loadComunas);
-comunaSelect.addEventListener('change', quoteShipping);
+regionSelect.addEventListener('change', () => {
+    clearPin();
+    loadComunas();
+});
+comunaSelect.addEventListener('change', () => {
+    clearPin({ keepMapCenter: true });
+    quoteShipping();
+    centerMapOnComuna();
+});
 
 if (checkoutForm) {
     checkoutForm.addEventListener('input', updateCheckoutSubmitState);
     checkoutForm.addEventListener('change', updateCheckoutSubmitState);
 }
 
+initMap();
 if (regionSelect.value) loadComunas();
 updateCheckoutSubmitState();
 </script>
