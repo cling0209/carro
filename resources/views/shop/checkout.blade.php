@@ -96,7 +96,7 @@
                         </div>
                         <div class="col-12" id="map-field-wrap">
                             <label class="form-label">7. Ubicación en el mapa *</label>
-                            <div class="checkout-step-hint" data-step-hint="map">Toca el mapa y marca el pin exacto de entrega.</div>
+                            <div class="checkout-step-hint" data-step-hint="map">Toca el mapa para marcar el pin, o escribe la dirección abajo y pulsa <strong>Buscar en el mapa</strong>.</div>
                             <div class="checkout-map-shell mt-1">
                                 <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío">
                                     <div class="checkout-map-placeholder">Cargando mapa…</div>
@@ -540,10 +540,16 @@ function updateAddressGuide() {
     }
 
     if (!pinIsSet()) {
-        setGuide('Paso 7: marca el pin', 'Toca el mapa en el punto exacto de entrega.', 'info');
+        setGuide(
+            'Paso 7: ubica la entrega',
+            'Toca el mapa en el punto exacto, o escribe la calle abajo y pulsa “Buscar en el mapa”.',
+            'info'
+        );
         pulseStep('map');
         markDoneSteps('map');
-        setMapStatus('Toca el mapa para marcar tu ubicación en ' + comunaSelect.value + '.');
+        setMapStatus(
+            'En ' + comunaSelect.value + ': toca el mapa o escribe la dirección y usa “Buscar en el mapa”.'
+        );
         return;
     }
 
