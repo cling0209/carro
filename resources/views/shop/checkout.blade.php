@@ -220,6 +220,7 @@ let shippingReady = false;
 let mapReady = false;
 let map = null;
 let marker = null;
+let pinIcon = null;
 let centeringMap = false;
 
 const createAccountCheckbox = document.getElementById('create_account');
@@ -291,11 +292,12 @@ function initMap() {
         return;
     }
 
-    const iconBase = @json(asset('vendor/leaflet/images'));
-    L.Icon.Default.mergeOptions({
-        iconUrl: iconBase + '/marker-icon.png',
-        iconRetinaUrl: iconBase + '/marker-icon-2x.png',
-        shadowUrl: iconBase + '/marker-shadow.png',
+    pinIcon = L.divIcon({
+        className: 'checkout-map-pin',
+        html: '<span class="checkout-map-pin__marker" aria-hidden="true"></span>',
+        iconSize: [28, 40],
+        iconAnchor: [14, 38],
+        popupAnchor: [0, -36],
     });
 
     map = L.map('checkout-map', { scrollWheelZoom: false }).setView([-33.4489, -70.6693], 11);
@@ -325,7 +327,12 @@ function setPin(lat, lng, reverseFill) {
     const position = [lat, lng];
 
     if (!marker) {
-        marker = L.marker(position, { draggable: true }).addTo(map);
+        marker = L.marker(position, {
+            draggable: true,
+            icon: pinIcon,
+            title: 'Ubicación de entrega',
+            alt: 'Pin de entrega',
+        }).addTo(map);
         marker.on('dragend', () => {
             const p = marker.getLatLng();
             setPin(p.lat, p.lng, true);

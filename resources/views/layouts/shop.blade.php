@@ -12,7 +12,7 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"
           integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
-    <link href="{{ asset('css/shop.css') }}?v=checkout-map-2" rel="stylesheet">
+    <link href="{{ asset('css/shop.css') }}?v=checkout-map-3" rel="stylesheet">
     <link href="{{ asset('css/page-loader.css') }}" rel="stylesheet">
     @stack('head')
 </head>
