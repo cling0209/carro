@@ -13,8 +13,8 @@
                 <h1 class="h3 fw-bold mb-1">Pedido #{{ substr($order->uuid, 0, 8) }}</h1>
                 <p class="text-muted mb-0">{{ $order->created_at?->format('d/m/Y H:i') }} · {{ order_status_label($order->status) }}</p>
             </div>
-            <a href="{{ route('admin.orders.export.softland', $order) }}" class="btn btn-outline-secondary btn-sm" data-no-loader>
-                <i class="bi bi-download"></i> Descargar Softland
+            <a href="{{ route('admin.orders.export.softland', $order) }}" class="btn btn-success btn-sm" data-no-loader>
+                <i class="bi bi-download"></i> Descargar Nota Softland
             </a>
         </div>
     </div>
