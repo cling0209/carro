@@ -25,6 +25,16 @@
         @csrf
         <div class="row g-4">
             <div class="col-lg-7">
+                <div id="checkout-address-guide" class="checkout-guide alert alert-warning border-warning mb-4" role="status" aria-live="polite">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-lightbulb-fill checkout-guide__icon mt-1" aria-hidden="true"></i>
+                        <div>
+                            <div class="fw-bold" id="checkout-guide-title">Paso 1: nombre completo</div>
+                            <div class="small mb-0" id="checkout-guide-text">Completa los datos en orden. Te vamos guiando campo a campo.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="checkout-card card p-4 mb-4">
                     <h2 class="h5 fw-bold mb-3">Datos de contacto</h2>
                     <div class="row g-3">
@@ -48,8 +58,8 @@
                 </div>
 
                 <div class="checkout-card card p-4 mb-4" id="billing-document-card">
-                    <h2 class="h5 fw-bold mb-3">Documento tributario</h2>
-                    <p class="small text-muted mb-3">Elige si necesitas boleta o factura. Ambos requieren RUT chileno válido.</p>
+                    <h2 class="h5 fw-bold mb-3">3. Documento tributario</h2>
+                    <p class="small text-muted mb-3">Primero elige boleta o factura e ingresa el RUT. Después continúas con el envío.</p>
                     <div class="row g-3">
                         <div class="col-12" id="document-type-wrap">
                             <div class="d-flex flex-wrap gap-3">
@@ -64,6 +74,7 @@
                                     <label class="form-check-label fw-semibold" for="document_type_factura">Factura</label>
                                 </div>
                             </div>
+                            <div class="checkout-step-hint" data-step-hint="billing">Elige boleta o factura e ingresa el RUT.</div>
                             @error('document_type')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="billing-rut-wrap">
@@ -96,18 +107,9 @@
 
                 <div class="checkout-card card p-4 mb-4">
                     <h2 class="h5 fw-bold mb-3">Dirección de envío</h2>
-                    <div id="checkout-address-guide" class="checkout-guide alert alert-warning border-warning mb-3" role="status" aria-live="polite">
-                        <div class="d-flex align-items-start gap-2">
-                            <i class="bi bi-lightbulb-fill checkout-guide__icon mt-1" aria-hidden="true"></i>
-                            <div>
-                                <div class="fw-bold" id="checkout-guide-title">Paso 1: nombre completo</div>
-                                <div class="small mb-0" id="checkout-guide-text">Completa los datos en orden. Te vamos guiando campo a campo.</div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="row g-3">
                         <div class="col-md-6" id="recipient-wrap">
-                            <label class="form-label" for="recipient_name">3. Destinatario *</label>
+                            <label class="form-label" for="recipient_name">4. Destinatario *</label>
                             <input type="text" name="recipient_name" id="recipient_name"
                                    class="form-control @error('recipient_name') is-invalid @enderror"
                                    value="{{ $defaults['recipient_name'] }}" required autocomplete="shipping name">
@@ -115,7 +117,7 @@
                             @error('recipient_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="phone-wrap">
-                            <label class="form-label" for="phone">4. Teléfono celular *</label>
+                            <label class="form-label" for="phone">5. Teléfono celular *</label>
                             <input type="text" name="phone" id="phone"
                                    class="form-control @error('phone') is-invalid @enderror"
                                    value="{{ $defaults['phone'] }}" placeholder="+56 9 1234 5678" required autocomplete="tel">
@@ -123,7 +125,7 @@
                             @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="region-field-wrap">
-                            <label class="form-label" for="region">5. Región *</label>
+                            <label class="form-label" for="region">6. Región *</label>
                             <select name="region" id="region" class="form-select @error('region') is-invalid @enderror" required>
                                 <option value="">Selecciona región</option>
                                 @foreach($regions as $region)
@@ -134,7 +136,7 @@
                             @error('region')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6" id="comuna-field-wrap">
-                            <label class="form-label" for="comuna">6. Comuna *</label>
+                            <label class="form-label" for="comuna">7. Comuna *</label>
                             <select name="comuna" id="comuna" class="form-select @error('comuna') is-invalid @enderror" required disabled>
                                 <option value="">Primero selecciona región</option>
                             </select>
@@ -142,7 +144,7 @@
                             @error('comuna')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-8" id="street-field-wrap">
-                            <label class="form-label" for="street">7. Calle *</label>
+                            <label class="form-label" for="street">8. Calle *</label>
                             <input type="text" name="street" id="street" class="form-control @error('street') is-invalid @enderror"
                                    value="{{ $defaults['street'] }}" required>
                             <div class="checkout-step-hint" data-step-hint="street">Escribe la calle y luego pulsa <strong>Buscar en el mapa</strong> (o marca el pin tocando el mapa).</div>
@@ -177,7 +179,7 @@
                             @enderror
                         </div>
                         <div class="col-12" id="map-field-wrap">
-                            <label class="form-label">8. Ubicación en el mapa *</label>
+                            <label class="form-label">9. Ubicación en el mapa *</label>
                             <p class="small text-muted mb-1" id="map-alt-help">
                                 Opción A: escribe la calle y pulsa <strong>Buscar en el mapa</strong>.
                                 Opción B: toca el mapa y marca el pin exacto.
@@ -275,7 +277,7 @@
                     </div>
                     <div id="checkout-submit-hint" class="alert alert-warning border-warning small mb-3">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        Completa contacto, documento (boleta/factura), dirección y pin en el mapa para pagar.
+                        Completa en orden: nombre, correo, documento (boleta/factura), envío y pin en el mapa.
                     </div>
                     <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
@@ -355,6 +357,7 @@ const documentTypeBoleta = document.getElementById('document_type_boleta');
 const documentTypeFactura = document.getElementById('document_type_factura');
 const billingBusinessNameWrap = document.getElementById('billing-business-name-wrap');
 const billingActivityWrap = document.getElementById('billing-activity-wrap');
+const billingDocumentCard = document.getElementById('billing-document-card');
 
 function selectedDocumentType() {
     if (documentTypeFactura?.checked) return 'factura';
@@ -412,6 +415,30 @@ function billingDocumentReady() {
     return true;
 }
 
+function isBillingFieldActive() {
+    const active = document.activeElement;
+    return active === billingRutInput
+        || active === billingBusinessNameInput
+        || active === billingActivityInput
+        || active === documentTypeBoleta
+        || active === documentTypeFactura;
+}
+
+function billingFocusField() {
+    if (!chileanRutIsValid(billingRutInput?.value)) {
+        return billingRutInput;
+    }
+    if (selectedDocumentType() === 'factura') {
+        if (String(billingBusinessNameInput?.value || '').trim().length < 2) {
+            return billingBusinessNameInput;
+        }
+        if (String(billingActivityInput?.value || '').trim().length < 2) {
+            return billingActivityInput;
+        }
+    }
+    return billingRutInput;
+}
+
 const guideTitle = document.getElementById('checkout-guide-title');
 const guideText = document.getElementById('checkout-guide-text');
 const guideBox = document.getElementById('checkout-address-guide');
@@ -431,6 +458,7 @@ const streetWrap = document.getElementById('street-field-wrap');
 const stepWraps = {
     customer_name: customerNameWrap,
     email: emailWrap,
+    billing: billingDocumentCard,
     recipient_name: recipientWrap,
     phone: phoneWrap,
     region: regionWrap,
@@ -442,6 +470,7 @@ const stepWraps = {
 const stepFields = {
     customer_name: customerNameInput,
     email: emailInput,
+    billing: billingRutInput,
     recipient_name: recipientInput,
     phone: phoneInput,
     region: regionSelect,
@@ -449,6 +478,10 @@ const stepFields = {
     map: null,
     street: streetInput,
 };
+
+const GUIDE_STEP_ORDER = [
+    'customer_name', 'email', 'billing', 'recipient_name', 'phone', 'region', 'comuna', 'street', 'map',
+];
 
 let lastGuidedStep = null;
 
@@ -564,19 +597,73 @@ function pulseStep(stepKey, field = null) {
 }
 
 function markDoneSteps(upToExclusive) {
-    const order = ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'street', 'map'];
-    for (const key of order) {
+    for (const key of GUIDE_STEP_ORDER) {
         if (key === upToExclusive) break;
         const wrap = stepWraps[key];
         if (wrap) wrap.classList.add('checkout-step-done');
     }
 }
 
-function contactReady() {
+function identityReady() {
     return isLongEnoughName(customerNameInput?.value)
-        && isValidEmail(emailInput?.value)
-        && isLongEnoughName(recipientInput?.value)
+        && isValidEmail(emailInput?.value);
+}
+
+function shippingContactReady() {
+    return isLongEnoughName(recipientInput?.value)
         && isValidChilePhone(phoneInput?.value);
+}
+
+function contactReady() {
+    return identityReady() && billingDocumentReady() && shippingContactReady();
+}
+
+function guideBillingStep() {
+    const focusField = billingFocusField();
+    const isFactura = selectedDocumentType() === 'factura';
+
+    if (!chileanRutIsValid(billingRutInput?.value) || document.activeElement === billingRutInput) {
+        setGuide(
+            'Paso 3: documento tributario',
+            'Elige boleta o factura e ingresa un RUT chileno válido. Este paso va antes del envío.',
+            'warning'
+        );
+        pulseStep('billing', billingRutInput);
+        markDoneSteps('billing');
+        return;
+    }
+
+    if (isFactura && String(billingBusinessNameInput?.value || '').trim().length < 2) {
+        setGuide(
+            'Paso 3: factura — razón social',
+            'Completa la razón social de la empresa para la factura.',
+            'warning'
+        );
+        pulseStep('billing', billingBusinessNameInput);
+        markDoneSteps('billing');
+        return;
+    }
+
+    if (isFactura && String(billingActivityInput?.value || '').trim().length < 2) {
+        setGuide(
+            'Paso 3: factura — giro',
+            'Indica el giro comercial para emitir la factura.',
+            'warning'
+        );
+        pulseStep('billing', billingActivityInput);
+        markDoneSteps('billing');
+        return;
+    }
+
+    if (isBillingFieldActive()) {
+        setGuide(
+            'Paso 3: documento tributario',
+            'Documento listo. Cuando termines, sigue con el destinatario del envío.',
+            'info'
+        );
+        pulseStep('billing', focusField);
+        markDoneSteps('billing');
+    }
 }
 
 function updateMapLock() {
@@ -586,14 +673,20 @@ function updateMapLock() {
     mapLock.classList.toggle('d-none', unlocked);
     mapLock.classList.toggle('is-locked', !unlocked);
 
-    if (!contactReady()) {
-        if (mapLockTitle) mapLockTitle.textContent = 'Completa nombre, correo, destinatario y celular';
+    if (!identityReady()) {
+        if (mapLockTitle) mapLockTitle.textContent = 'Completa nombre y correo';
+        if (mapLockText) mapLockText.textContent = 'Después el documento tributario y la dirección de envío.';
+    } else if (!billingDocumentReady()) {
+        if (mapLockTitle) mapLockTitle.textContent = 'Paso 3: documento tributario';
+        if (mapLockText) mapLockText.textContent = 'Elige boleta o factura e ingresa el RUT antes del envío.';
+    } else if (!shippingContactReady()) {
+        if (mapLockTitle) mapLockTitle.textContent = 'Completa destinatario y celular';
         if (mapLockText) mapLockText.textContent = 'Después eliges región, comuna, escribes la dirección y ubicas el pin.';
     } else if (!regionSelect.value) {
-        if (mapLockTitle) mapLockTitle.textContent = 'Paso 5: elige la región';
+        if (mapLockTitle) mapLockTitle.textContent = 'Paso 6: elige la región';
         if (mapLockText) mapLockText.textContent = 'Después podrás elegir la comuna y ubicar el pin.';
     } else if (!comunaSelect.value) {
-        if (mapLockTitle) mapLockTitle.textContent = 'Paso 6: elige la comuna';
+        if (mapLockTitle) mapLockTitle.textContent = 'Paso 7: elige la comuna';
         if (mapLockText) mapLockText.textContent = 'Con la comuna lista podrás escribir la dirección y buscarla en el mapa.';
     }
 }
@@ -625,22 +718,27 @@ function updateAddressGuide() {
         return;
     }
 
+    if (!billingDocumentReady() || isBillingFieldActive()) {
+        guideBillingStep();
+        return;
+    }
+
     if (!isLongEnoughName(recipientInput?.value) || document.activeElement === recipientInput) {
-        setGuide('Paso 3: destinatario', 'Escribe el nombre completo de quien recibe. Cuando termines, pasa al siguiente campo.', 'warning');
+        setGuide('Paso 4: destinatario', 'Escribe el nombre completo de quien recibe. Cuando termines, pasa al siguiente campo.', 'warning');
         pulseStep('recipient_name', recipientInput);
         markDoneSteps('recipient_name');
         return;
     }
 
     if (!isValidChilePhone(phoneInput?.value)) {
-        setGuide('Paso 4: teléfono celular', 'Usa formato Chile: +56 9 XXXX XXXX', 'warning');
+        setGuide('Paso 5: teléfono celular', 'Usa formato Chile: +56 9 XXXX XXXX', 'warning');
         pulseStep('phone', phoneInput);
         markDoneSteps('phone');
         return;
     }
 
     if (!regionSelect.value) {
-        setGuide('Paso 5: región', 'Elige la región de envío.', 'warning');
+        setGuide('Paso 6: región', 'Elige la región de envío.', 'warning');
         pulseStep('region', regionSelect);
         markDoneSteps('region');
         setMapStatus('Ahora selecciona la región.');
@@ -648,7 +746,7 @@ function updateAddressGuide() {
     }
 
     if (!comunaSelect.value) {
-        setGuide('Paso 6: comuna', 'Ya tienes región. Ahora elige la comuna.', 'warning');
+        setGuide('Paso 7: comuna', 'Ya tienes región. Ahora elige la comuna.', 'warning');
         pulseStep('comuna', comunaSelect);
         markDoneSteps('comuna');
         setMapStatus('Ahora selecciona la comuna.');
@@ -663,7 +761,7 @@ function updateAddressGuide() {
             || active === btnSearchAddress;
 
         setGuide(
-            'Paso 7: escribe la dirección',
+            'Paso 8: escribe la dirección',
             'Completa calle y número. Luego pulsa “Buscar en el mapa”, o toca el mapa para marcar el pin.',
             'info'
         );
@@ -695,7 +793,7 @@ function updateAddressGuide() {
 
     if (!String(streetInput.value || '').trim()) {
         setGuide(
-            'Paso 7: escribe la dirección',
+            'Paso 8: escribe la dirección',
             'Completa calle y número para alinearlas con el pin.',
             'info'
         );
@@ -720,10 +818,10 @@ function updateAddressGuide() {
         return;
     }
 
-    setGuide('Listo: datos completos', 'Nombre, celular, zona y pin están listos. Si cambias la calle, vuelve a usar “Buscar en el mapa”.', 'success');
+    setGuide('Listo: datos completos', 'Documento, envío y pin están listos. Si cambias la calle, vuelve a usar “Buscar en el mapa”.', 'success');
     clearGuidePulse();
     markDoneSteps(null);
-    ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'street', 'map'].forEach((key) => {
+    GUIDE_STEP_ORDER.forEach((key) => {
         const wrap = stepWraps[key];
         if (wrap) wrap.classList.add('checkout-step-done');
     });
@@ -1140,7 +1238,7 @@ if (checkoutForm) {
     checkoutForm.addEventListener('change', updateCheckoutSubmitState);
 }
 
-[customerNameInput, emailInput, recipientInput, phoneInput, streetInput, streetNumberInput].forEach((field) => {
+[customerNameInput, emailInput, billingRutInput, billingBusinessNameInput, billingActivityInput, recipientInput, phoneInput, streetInput, streetNumberInput].forEach((field) => {
     if (!field) return;
     field.addEventListener('blur', (event) => {
         const next = event.relatedTarget;
@@ -1148,6 +1246,14 @@ if (checkoutForm) {
         if (
             (field === streetInput && next === streetNumberInput)
             || (field === streetNumberInput && next === streetInput)
+        ) {
+            return;
+        }
+        // Tab dentro del bloque documento tributario.
+        if (
+            (field === billingRutInput || field === billingBusinessNameInput || field === billingActivityInput)
+            && (next === billingRutInput || next === billingBusinessNameInput || next === billingActivityInput
+                || next === documentTypeBoleta || next === documentTypeFactura)
         ) {
             return;
         }
