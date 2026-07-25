@@ -17,17 +17,51 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
+    public const ROLE_ADMIN = 'admin';
+
+    public const ROLE_BODEGA = 'bodega';
+
+    public const ROLE_CUSTOMER = 'customer';
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isWarehouse(): bool
+    {
+        return $this->role === self::ROLE_BODEGA;
+    }
+
+    /** Acceso al panel (admin completo o solo bodega). */
+    public function canAccessAdminPanel(): bool
+    {
+        return $this->isAdmin() || $this->isWarehouse();
+    }
+
+    /** Ruta de inicio tras login al panel. */
+    public function adminHomeRoute(): string
+    {
+        return $this->isWarehouse()
+            ? 'admin.warehouse.index'
+            : 'admin.products.index';
+    }
+
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            self::ROLE_ADMIN => 'Administrador',
+            self::ROLE_BODEGA => 'Bodega',
+            default => 'Cliente',
+        };
     }
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
-        if ($this->isAdmin()) {
+        if ($this->canAccessAdminPanel()) {
             if (! config('admin.otp_enabled')) {
                 $this->notify(new AdminResetPasswordNotification($token));
             }

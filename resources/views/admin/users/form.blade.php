@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Nuevo administrador')
+@section('title', 'Nuevo usuario del panel')
 
 @section('content')
 <div class="container-fluid py-4">
@@ -8,10 +8,12 @@
         <a href="{{ route('admin.users.index') }}" class="text-decoration-none small">
             <i class="bi bi-arrow-left"></i> Volver al listado
         </a>
-        <h1 class="h3 fw-bold mt-2">Nuevo administrador</h1>
+        <h1 class="h3 fw-bold mt-2">Nuevo usuario del panel</h1>
         <p class="text-muted mb-0">
-            Si el correo ya existe como cliente, la cuenta se promoverá a administrador.
-            Al guardar, se enviará un correo de bienvenida. Al ingresar al panel se pedirá un código enviado por correo.
+            Si el correo ya existe como cliente, la cuenta se promoverá al perfil elegido.
+            <strong>Administrador</strong> ve todo el panel;
+            <strong>Bodega</strong> solo el tablero de pedidos.
+            Al guardar, se enviará un correo de bienvenida.
         </p>
     </div>
 
@@ -34,6 +36,14 @@
                                 <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
                                        value="{{ old('email') }}" required autocomplete="email">
                                 @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="role">Perfil *</label>
+                                <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
+                                    <option value="admin" @selected(old('role', 'admin') === 'admin')>Administrador (acceso completo)</option>
+                                    <option value="bodega" @selected(old('role') === 'bodega')>Bodega (solo tablero)</option>
+                                </select>
+                                @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="password">Contraseña *</label>
@@ -65,7 +75,7 @@
                         </div>
 
                         <div class="mt-4 d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">Crear administrador</button>
+                            <button type="submit" class="btn btn-primary">Crear usuario</button>
                             <a href="{{ route('admin.users.index') }}" class="btn btn-outline-secondary">Cancelar</a>
                         </div>
                     </form>

@@ -29,6 +29,7 @@ docker compose exec app php artisan db:seed --force
 | Rol | Email | Contraseña |
 |-----|-------|------------|
 | Admin | admin@carro.local | Admin123!Secure |
+| Bodega | bodega@carro.local | Bodega123! |
 | Cliente | cliente@carro.local | Cliente123! |
 
 Admin adicional tras `db:seed` (solo local): en `.env` define `SEED_EXTRA_ADMIN_EMAIL` y `SEED_EXTRA_ADMIN_PASSWORD` (ver `.env.example`).

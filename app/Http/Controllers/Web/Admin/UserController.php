@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Notifications\AdminWelcomeNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -17,7 +18,7 @@ class UserController extends Controller
     public function index(Request $request): View
     {
         $admins = User::query()
-            ->where('role', 'admin')
+            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_BODEGA])
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = '%'.$request->string('q')->trim().'%';
 
@@ -26,6 +27,7 @@ class UserController extends Controller
                         ->orWhere('email', 'ilike', $term);
                 });
             })
+            ->orderByRaw("CASE WHEN role = 'admin' THEN 0 ELSE 1 END")
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -45,27 +47,30 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255'],
+            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_BODEGA])],
             'password' => $this->passwordRules(),
         ], $this->passwordMessages());
 
         $existing = User::query()->where('email', $data['email'])->first();
 
-        if ($existing?->isAdmin()) {
+        if ($existing?->canAccessAdminPanel()) {
             return back()
                 ->withInput($request->except('password', 'password_confirmation'))
-                ->with('error', 'Ya existe un administrador con ese correo.');
+                ->with('error', 'Ya existe un usuario de panel con ese correo.');
         }
+
+        $roleLabel = $data['role'] === User::ROLE_BODEGA ? 'bodega' : 'administrador';
 
         if ($existing) {
             $existing->update([
                 'name' => $data['name'],
                 'password' => $data['password'],
-                'role' => 'admin',
+                'role' => $data['role'],
             ]);
 
             return $this->redirectAfterAdminSaved(
                 $existing,
-                'La cuenta existente fue promovida a administrador.'
+                "La cuenta existente fue promovida a {$roleLabel}."
             );
         }
 
@@ -73,42 +78,50 @@ class UserController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
-            'role' => 'admin',
+            'role' => $data['role'],
         ]);
 
-        return $this->redirectAfterAdminSaved($user, 'Administrador creado correctamente.');
+        return $this->redirectAfterAdminSaved(
+            $user,
+            $data['role'] === User::ROLE_BODEGA
+                ? 'Usuario de bodega creado correctamente.'
+                : 'Administrador creado correctamente.'
+        );
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
-        if (! $user->isAdmin()) {
+        if (! $user->canAccessAdminPanel()) {
             abort(404);
         }
 
         if ($request->user()->id === $user->id) {
             return redirect()
                 ->route('admin.users.index')
-                ->with('error', 'No puedes eliminar tu propia cuenta de administrador.');
+                ->with('error', 'No puedes eliminar tu propia cuenta.');
         }
 
-        if (User::query()->where('role', 'admin')->count() <= 1) {
+        if ($user->isAdmin() && User::query()->where('role', User::ROLE_ADMIN)->count() <= 1) {
             return redirect()
                 ->route('admin.users.index')
                 ->with('error', 'Debe quedar al menos un administrador en el sistema.');
         }
 
-        $user->update(['role' => 'customer']);
+        $wasWarehouse = $user->isWarehouse();
+        $user->update(['role' => User::ROLE_CUSTOMER]);
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', 'El usuario ya no tiene permisos de administrador.');
+            ->with('success', $wasWarehouse
+                ? 'El usuario ya no tiene acceso de bodega.'
+                : 'El usuario ya no tiene permisos de administrador.');
     }
 
     protected function redirectAfterAdminSaved(User $user, string $message): RedirectResponse
     {
         try {
             $user->notify(new AdminWelcomeNotification());
-            $message .= ' Se envió un correo de bienvenida al administrador.';
+            $message .= ' Se envió un correo de bienvenida.';
         } catch (\Throwable $e) {
             report($e);
             $message .= ' No se pudo enviar el correo de bienvenida; revisa la configuración SMTP.';
@@ -141,6 +154,8 @@ class UserController extends Controller
             'password.required' => 'Ingresa la contraseña.',
             'password.confirmed' => 'La confirmación de contraseña no coincide.',
             'password.max' => 'La contraseña no puede superar '.self::PASSWORD_MAX_LENGTH.' caracteres.',
+            'role.required' => 'Selecciona un perfil.',
+            'role.in' => 'El perfil seleccionado no es válido.',
         ];
     }
 }

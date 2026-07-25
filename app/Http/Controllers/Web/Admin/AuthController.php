@@ -17,8 +17,8 @@ class AuthController extends Controller
 
     public function showLogin(): View|RedirectResponse
     {
-        if (Auth::check() && Auth::user()->isAdmin()) {
-            return redirect()->route('admin.products.index');
+        if (Auth::check() && Auth::user()->canAccessAdminPanel()) {
+            return redirect()->route(Auth::user()->adminHomeRoute());
         }
 
         return view('admin.auth.login');
@@ -39,7 +39,7 @@ class AuthController extends Controller
                 ->with('error', 'Credenciales inválidas.');
         }
 
-        if (! $user->isAdmin()) {
+        if (! $user->canAccessAdminPanel()) {
             return back()
                 ->withInput($request->only('email'))
                 ->with('error', 'Esta cuenta no tiene permisos de administrador.');
@@ -49,7 +49,7 @@ class AuthController extends Controller
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
 
-            return redirect()->intended(route('admin.products.index'));
+            return redirect()->intended(route($user->adminHomeRoute()));
         }
 
         try {
@@ -108,7 +108,7 @@ class AuthController extends Controller
 
         $user = User::query()->find($userId);
 
-        if (! $user?->isAdmin()) {
+        if (! $user?->canAccessAdminPanel()) {
             $request->session()->forget(['admin_pending_user_id', 'admin_remember']);
 
             return redirect()->route('admin.login')->with('error', 'La verificación no es válida.');
@@ -122,7 +122,7 @@ class AuthController extends Controller
         $request->session()->forget('admin_pending_user_id');
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.products.index'));
+        return redirect()->intended(route($user->adminHomeRoute()));
     }
 
     public function logout(Request $request): RedirectResponse

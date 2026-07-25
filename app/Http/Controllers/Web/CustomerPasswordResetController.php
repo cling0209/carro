@@ -33,10 +33,10 @@ class CustomerPasswordResetController extends Controller
         MailDevelopmentLogger::info('Recuperación cliente solicitada', [
             'email' => $data['email'],
             'usuario_encontrado' => $user !== null,
-            'es_cliente' => $user !== null && ! $user->isAdmin(),
+            'es_cliente' => $user !== null && ! $user->canAccessAdminPanel(),
         ]);
 
-        if ($user && ! $user->isAdmin()) {
+        if ($user && ! $user->canAccessAdminPanel()) {
             try {
                 Password::sendResetLink(['email' => $data['email']]);
                 MailDevelopmentLogger::info('Enlace de recuperación cliente procesado', [
@@ -49,8 +49,8 @@ class CustomerPasswordResetController extends Controller
                     'error' => $e->getMessage(),
                 ]);
             }
-        } elseif ($user?->isAdmin()) {
-            MailDevelopmentLogger::info('Recuperación cliente sin envío (correo es admin)', [
+        } elseif ($user?->canAccessAdminPanel()) {
+            MailDevelopmentLogger::info('Recuperación cliente sin envío (correo es panel admin)', [
                 'email' => $data['email'],
             ]);
         } else {
@@ -70,7 +70,7 @@ class CustomerPasswordResetController extends Controller
         $email = $request->query('email', '');
         $user = User::query()->where('email', $email)->first();
 
-        if (! $user || $user->isAdmin()) {
+        if (! $user || $user->canAccessAdminPanel()) {
             return redirect()
                 ->route('account.password.request')
                 ->with('error', 'El enlace de recuperación no es válido para esta cuenta.');
@@ -98,7 +98,7 @@ class CustomerPasswordResetController extends Controller
 
         $user = User::query()->where('email', $request->input('email'))->first();
 
-        if (! $user || $user->isAdmin()) {
+        if (! $user || $user->canAccessAdminPanel()) {
             return back()->withErrors([
                 'email' => 'No se pudo restablecer la contraseña para esta cuenta.',
             ]);
@@ -107,7 +107,7 @@ class CustomerPasswordResetController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $resetUser, string $password) {
-                if ($resetUser->isAdmin()) {
+                if ($resetUser->canAccessAdminPanel()) {
                     return;
                 }
 

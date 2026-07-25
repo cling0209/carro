@@ -38,11 +38,11 @@ class PasswordResetController extends Controller
         MailDevelopmentLogger::info('Recuperación admin solicitada', [
             'email' => $data['email'],
             'usuario_encontrado' => $user !== null,
-            'es_admin' => $user?->isAdmin() ?? false,
+            'es_admin' => $user?->canAccessAdminPanel() ?? false,
             'otp_habilitado' => config('admin.otp_enabled'),
         ]);
 
-        if ($user?->isAdmin()) {
+        if ($user?->canAccessAdminPanel()) {
             if (config('admin.otp_enabled')) {
                 return $this->storeWithOtp($request, $user);
             }
@@ -137,7 +137,7 @@ class PasswordResetController extends Controller
 
         $user = User::query()->find($request->session()->get('admin_reset_user_id'));
 
-        if (! $user?->isAdmin()) {
+        if (! $user?->canAccessAdminPanel()) {
             $request->session()->forget('admin_reset_user_id');
 
             return redirect()->route('admin.password.request');
@@ -156,7 +156,7 @@ class PasswordResetController extends Controller
         $email = $request->query('email', '');
         $user = User::query()->where('email', $email)->first();
 
-        if (! $token || ! $user?->isAdmin()) {
+        if (! $token || ! $user?->canAccessAdminPanel()) {
             return redirect()
                 ->route('admin.password.request')
                 ->with('error', 'El enlace de recuperación no es válido para esta cuenta.');
@@ -190,7 +190,7 @@ class PasswordResetController extends Controller
 
         $user = User::query()->find($userId);
 
-        if (! $user?->isAdmin()) {
+        if (! $user?->canAccessAdminPanel()) {
             $request->session()->forget('admin_reset_user_id');
 
             return redirect()->route('admin.password.request')->with('error', 'No se pudo restablecer la contraseña.');
@@ -227,7 +227,7 @@ class PasswordResetController extends Controller
 
         $user = User::query()->where('email', $request->input('email'))->first();
 
-        if (! $user?->isAdmin()) {
+        if (! $user?->canAccessAdminPanel()) {
             return back()->withErrors([
                 'email' => 'No se pudo restablecer la contraseña para esta cuenta.',
             ]);
@@ -236,7 +236,7 @@ class PasswordResetController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $resetUser, string $password) {
-                if (! $resetUser->isAdmin()) {
+                if (! $resetUser->canAccessAdminPanel()) {
                     return;
                 }
 

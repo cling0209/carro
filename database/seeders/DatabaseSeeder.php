@@ -18,6 +18,11 @@ class DatabaseSeeder extends Seeder
         );
 
         User::query()->firstOrCreate(
+            ['email' => 'bodega@carro.local'],
+            ['name' => 'Bodega Demo', 'password' => 'Bodega123!', 'role' => 'bodega']
+        );
+
+        User::query()->firstOrCreate(
             ['email' => 'cliente@carro.local'],
             ['name' => 'Cliente Demo', 'password' => 'Cliente123!', 'role' => 'customer']
         );

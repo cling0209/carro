@@ -1,16 +1,16 @@
 @extends('layouts.admin')
 
-@section('title', 'Administradores')
+@section('title', 'Usuarios del panel')
 
 @section('content')
 <div class="container-fluid py-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-            <h1 class="h3 fw-bold mb-1">Administradores</h1>
-            <p class="text-muted mb-0">Cuentas con acceso al panel de administración.</p>
+            <h1 class="h3 fw-bold mb-1">Usuarios del panel</h1>
+            <p class="text-muted mb-0">Administradores y personal de bodega con acceso al panel.</p>
         </div>
         <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-            <i class="bi bi-person-plus"></i> Nuevo administrador
+            <i class="bi bi-person-plus"></i> Nuevo usuario
         </a>
     </div>
 
@@ -37,6 +37,7 @@
                     <tr>
                         <th>Nombre</th>
                         <th>Correo</th>
+                        <th>Perfil</th>
                         <th>Registro</th>
                         <th></th>
                     </tr>
@@ -51,16 +52,23 @@
                                 @endif
                             </td>
                             <td>{{ $admin->email }}</td>
+                            <td>
+                                @if($admin->isWarehouse())
+                                    <span class="badge text-bg-secondary">Bodega</span>
+                                @else
+                                    <span class="badge text-bg-dark">Administrador</span>
+                                @endif
+                            </td>
                             <td class="text-muted small">{{ $admin->created_at?->format('d/m/Y H:i') }}</td>
                             <td class="text-end">
                                 @if($admin->id !== auth()->id())
                                     <form method="post" action="{{ route('admin.users.destroy', $admin) }}"
                                           class="d-inline"
-                                          onsubmit="return confirm('¿Quitar permisos de administrador a {{ $admin->name }}?')">
+                                          onsubmit="return confirm('¿Quitar acceso de panel a {{ $admin->name }}?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            Quitar admin
+                                            Quitar acceso
                                         </button>
                                     </form>
                                 @endif
@@ -68,7 +76,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center text-muted py-4">No hay administradores.</td>
+                            <td colspan="5" class="text-center text-muted py-4">No hay usuarios de panel.</td>
                         </tr>
                     @endforelse
                 </tbody>

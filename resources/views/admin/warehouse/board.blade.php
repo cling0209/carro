@@ -387,9 +387,21 @@
             <button type="button" class="btn-board" id="btn-sound" aria-pressed="false">
                 <i class="bi bi-bell-slash"></i> Sonido off
             </button>
+            @if(auth()->user()?->isAdmin())
             <a href="{{ route('admin.orders.index') }}" class="btn-board">
                 <i class="bi bi-arrow-left"></i> Ventas
             </a>
+            @else
+            <a href="{{ route('admin.account.password') }}" class="btn-board">
+                <i class="bi bi-key"></i> Clave
+            </a>
+            <form action="{{ route('admin.logout') }}" method="post" style="display:inline;margin:0;">
+                @csrf
+                <button type="submit" class="btn-board">
+                    <i class="bi bi-box-arrow-right"></i> Salir
+                </button>
+            </form>
+            @endif
         </div>
     </header>
 
