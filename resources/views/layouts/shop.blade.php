@@ -12,7 +12,7 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"
           integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
-    <link href="{{ asset('css/shop.css') }}?v=search-suggest-1" rel="stylesheet">
+    <link href="{{ asset('css/shop.css') }}?v=search-suggest-2" rel="stylesheet">
     <link href="{{ asset('css/page-loader.css') }}" rel="stylesheet">
     @stack('head')
 </head>
@@ -35,14 +35,19 @@
                   action="{{ route('catalog') }}"
                   method="get"
                   role="search"
+                  autocomplete="off"
                   data-suggest-url="{{ route('catalog.suggest') }}">
                 <input id="shop-search-input"
                        class="form-control form-control-sm rounded-pill shop-search__input"
-                       type="search"
+                       type="text"
                        name="q"
                        placeholder="Buscar productos..."
                        value="{{ request('q') }}"
                        autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       role="combobox"
                        aria-autocomplete="list"
                        aria-controls="shop-search-panel"
                        aria-expanded="false">
@@ -128,7 +133,7 @@
 <script src="{{ asset('js/page-loader.js') }}?v=export" defer></script>
 <script src="{{ asset('js/product-image.js') }}" defer></script>
 <script src="{{ asset('js/password-toggle.js') }}" defer></script>
-<script src="{{ asset('js/shop-search.js') }}?v=1" defer></script>
+<script src="{{ asset('js/shop-search.js') }}?v=2" defer></script>
 @stack('scripts')
 </body>
 </html>

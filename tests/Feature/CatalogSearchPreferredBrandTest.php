@@ -81,4 +81,35 @@ class CatalogSearchPreferredBrandTest extends TestCase
         $response->assertOk();
         $response->assertExactJson(['data' => []]);
     }
+
+    public function test_search_matches_without_accents_and_prefers_reysol(): void
+    {
+        config(['products.preferred_brands' => ['Reysol']]);
+
+        Product::create([
+            'sku' => 'OTRO-003',
+            'name' => 'Plumón permanente Artel',
+            'slug' => 'plumon-permanente-artel',
+            'price' => 990,
+            'stock' => 10,
+            'is_active' => true,
+            'is_featured' => false,
+        ]);
+
+        Product::create([
+            'sku' => 'REY-003',
+            'name' => 'Reysol Plumón permanente negro',
+            'slug' => 'reysol-plumon-permanente-negro',
+            'price' => 1290,
+            'stock' => 10,
+            'is_active' => true,
+            'is_featured' => false,
+        ]);
+
+        $response = $this->getJson(route('catalog.suggest', ['q' => 'plumon']));
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.name', 'Reysol Plumón permanente negro');
+        $response->assertJsonPath('data.1.name', 'Plumón permanente Artel');
+    }
 }

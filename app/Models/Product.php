@@ -152,13 +152,21 @@ class Product extends Model
             return $query;
         }
 
-        return $query->where(function (Builder $q) use ($term) {
-            $q->where('name', 'ilike', "%{$term}%")
-                ->orWhere('description', 'ilike', "%{$term}%")
-                ->orWhere('sku', 'ilike', "%{$term}%")
-                ->orWhereHas('category', fn (Builder $cat) => $cat
-                    ->where('name', 'ilike', "%{$term}%")
-                    ->orWhere('slug', 'ilike', "%{$term}%"));
+        $like = '%'.self::foldAccents($term).'%';
+        $nameFolded = self::accentFoldSql('products.name');
+        $descriptionFolded = self::accentFoldSql('products.description');
+        $skuFolded = self::accentFoldSql('products.sku');
+
+        return $query->where(function (Builder $q) use ($like, $nameFolded, $descriptionFolded, $skuFolded) {
+            $q->whereRaw("{$nameFolded} LIKE ?", [$like])
+                ->orWhereRaw("{$descriptionFolded} LIKE ?", [$like])
+                ->orWhereRaw("{$skuFolded} LIKE ?", [$like])
+                ->orWhereHas('category', function (Builder $cat) use ($like) {
+                    $catName = self::accentFoldSql('categories.name');
+                    $catSlug = self::accentFoldSql('categories.slug');
+                    $cat->whereRaw("{$catName} LIKE ?", [$like])
+                        ->orWhereRaw("{$catSlug} LIKE ?", [$like]);
+                });
         });
     }
 
@@ -174,24 +182,63 @@ class Product extends Model
             return $query;
         }
 
-        $likeOp = $query->getConnection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
+        $nameFolded = self::accentFoldSql('products.name');
+        $descriptionFolded = self::accentFoldSql('products.description');
+        $attrNameFolded = self::accentFoldSql('pa.name');
+        $attrValueFolded = self::accentFoldSql('pa.value');
         $conditions = [];
         $bindings = [];
 
         foreach ($brands as $brand) {
-            $like = '%'.$brand.'%';
-            $conditions[] = "(products.name {$likeOp} ? OR products.description {$likeOp} ? OR EXISTS (
+            $like = '%'.self::foldAccents($brand).'%';
+            $conditions[] = "({$nameFolded} LIKE ? OR {$descriptionFolded} LIKE ? OR EXISTS (
                 SELECT 1 FROM product_attributes pa
                 WHERE pa.product_id = products.id
-                  AND pa.name {$likeOp} ?
-                  AND pa.value {$likeOp} ?
+                  AND {$attrNameFolded} LIKE ?
+                  AND {$attrValueFolded} LIKE ?
             ))";
-            array_push($bindings, $like, $like, 'marca', $like);
+            array_push($bindings, $like, $like, self::foldAccents('marca'), $like);
         }
 
         return $query->orderByRaw(
             'CASE WHEN ('.implode(' OR ', $conditions).') THEN 0 ELSE 1 END',
             $bindings
         );
+    }
+
+    public static function foldAccents(string $value): string
+    {
+        $folded = strtr(mb_strtolower($value), self::accentMap());
+
+        return $folded;
+    }
+
+    /**
+     * SQL expression that lowercases and strips common Spanish accents.
+     */
+    protected static function accentFoldSql(string $column): string
+    {
+        $expr = "lower(coalesce({$column}, ''))";
+
+        foreach (self::accentMap() as $from => $to) {
+            $expr = "replace({$expr}, '{$from}', '{$to}')";
+        }
+
+        return $expr;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function accentMap(): array
+    {
+        return [
+            'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a', 'ã' => 'a',
+            'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
+            'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o', 'õ' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u',
+            'ñ' => 'n', 'ç' => 'c',
+        ];
     }
 }
