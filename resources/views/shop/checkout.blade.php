@@ -122,6 +122,21 @@
                             <label class="form-label">Depto</label>
                             <input type="text" name="apartment" class="form-control" value="{{ $defaults['apartment'] }}">
                         </div>
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <button type="button" id="btn-search-address" class="btn btn-outline-primary btn-sm" disabled>
+                                    <i class="bi bi-search"></i> Buscar en el mapa
+                                </button>
+                                <span class="small text-muted">Si editas la calle, búscala para mover el pin.</span>
+                            </div>
+                            <div id="address-sync-alert" class="alert alert-warning border-warning small mt-2 mb-0 d-none" role="status">
+                                La calle no coincide con el pin. Pulsa <strong>Buscar en el mapa</strong> o vuelve a marcar el pin.
+                            </div>
+                            <input type="hidden" name="address_synced" id="address_synced" value="0">
+                            @error('address_synced')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </div>
 
@@ -193,7 +208,7 @@
                     </div>
                     <div id="checkout-submit-hint" class="alert alert-warning border-warning small mb-3">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        El botón de pago se activará cuando ingreses todos los <strong>datos obligatorios</strong>, marques el <strong>pin en el mapa</strong> y se calcule el envío.
+                        El botón de pago se activará cuando completes región/comuna, marques el <strong>pin</strong>, y la <strong>calle coincida</strong> con el mapa.
                     </div>
                     <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
@@ -219,6 +234,7 @@ const savedComuna = @json($defaults['comuna']);
 const quoteUrl = @json(route('checkout.shipping.quote'));
 const geocodeUrl = @json(route('checkout.geocode'));
 const reverseGeocodeUrl = @json(route('checkout.reverse-geocode'));
+const geocodeAddressUrl = @json(route('checkout.geocode-address'));
 const initialLat = @json(filled($defaults['latitude'] ?? null) ? (float) $defaults['latitude'] : null);
 const initialLng = @json(filled($defaults['longitude'] ?? null) ? (float) $defaults['longitude'] : null);
 
@@ -233,6 +249,9 @@ const lngInput = document.getElementById('longitude');
 const streetInput = document.getElementById('street');
 const streetNumberInput = document.getElementById('street_number');
 const mapStatus = document.getElementById('checkout-map-status');
+const addressSyncedInput = document.getElementById('address_synced');
+const addressSyncAlert = document.getElementById('address-sync-alert');
+const btnSearchAddress = document.getElementById('btn-search-address');
 
 let shippingReady = false;
 let mapReady = false;
@@ -240,6 +259,8 @@ let map = null;
 let marker = null;
 let pinIcon = null;
 let centeringMap = false;
+let syncedAddressKey = '';
+let applyingAddressFromPin = false;
 
 const createAccountCheckbox = document.getElementById('create_account');
 const createAccountFields = document.getElementById('create-account-fields');
@@ -271,6 +292,39 @@ function pinIsSet() {
 
 function locationReady() {
     return Boolean(regionSelect.value && comunaSelect.value);
+}
+
+function addressKey() {
+    return [
+        regionSelect.value,
+        comunaSelect.value,
+        streetInput?.value ?? '',
+        streetNumberInput?.value ?? '',
+    ].map((v) => String(v).trim().toLowerCase()).join('|');
+}
+
+function markAddressSynced() {
+    syncedAddressKey = addressKey();
+    if (addressSyncedInput) addressSyncedInput.value = '1';
+    if (addressSyncAlert) addressSyncAlert.classList.add('d-none');
+}
+
+function markAddressUnsynced() {
+    syncedAddressKey = '';
+    if (addressSyncedInput) addressSyncedInput.value = '0';
+}
+
+function isAddressSynced() {
+    return pinIsSet()
+        && syncedAddressKey !== ''
+        && syncedAddressKey === addressKey()
+        && String(streetInput?.value || '').trim() !== '';
+}
+
+function updateSearchButtonState() {
+    if (!btnSearchAddress) return;
+    const canSearch = locationReady() && String(streetInput?.value || '').trim() !== '';
+    btnSearchAddress.disabled = !canSearch;
 }
 
 function setGuide(title, text, tone = 'warning') {
@@ -348,6 +402,7 @@ function updateAddressGuide() {
         clearGuidePulse();
         if (mapWrap) mapWrap.classList.add('checkout-step-pulse', 'checkout-map-pulse');
         setMapStatus('Toca el mapa para marcar tu ubicación en ' + comunaSelect.value + '.');
+        updateSearchButtonState();
         return;
     }
 
@@ -355,12 +410,24 @@ function updateAddressGuide() {
         setGuide('Paso 4: confirma la calle', 'Revisa o completa la calle y el número de la dirección.', 'info');
         pulseStep(streetWrap, streetInput);
         setMapStatus('Ubicación marcada. Completa la calle si falta.');
+        updateSearchButtonState();
         return;
     }
 
-    setGuide('Listo: dirección completa', 'Puedes ajustar el pin o la calle si lo necesitas. Luego completa el resto y paga.', 'success');
+    if (!isAddressSynced()) {
+        setGuide('La calle no coincide con el pin', 'Pulsa “Buscar en el mapa” para mover el pin, o vuelve a marcar el pin.', 'warning');
+        pulseStep(streetWrap, streetInput);
+        if (addressSyncAlert) addressSyncAlert.classList.remove('d-none');
+        setMapStatus('Calle editada: búscala en el mapa para sincronizar el pin.');
+        updateSearchButtonState();
+        return;
+    }
+
+    setGuide('Listo: dirección y pin coinciden', 'Puedes ajustar el pin o buscar de nuevo si cambias la calle.', 'success');
     clearGuidePulse();
-    setMapStatus('Ubicación marcada. Puedes arrastrar el pin para ajustar.');
+    if (addressSyncAlert) addressSyncAlert.classList.add('d-none');
+    setMapStatus('Dirección alineada con el pin. Puedes arrastrar el pin para ajustar.');
+    updateSearchButtonState();
 }
 
 function toggleCreateAccountFields() {
@@ -397,7 +464,7 @@ function requiredFieldsComplete() {
 }
 
 function updateCheckoutSubmitState() {
-    const ready = shippingReady && locationReady() && pinIsSet() && requiredFieldsComplete();
+    const ready = shippingReady && locationReady() && pinIsSet() && isAddressSynced() && requiredFieldsComplete();
     checkoutSubmit.disabled = !ready;
 
     if (checkoutSubmitHint) {
@@ -447,6 +514,9 @@ function initMap() {
     if (initialLat !== null && initialLng !== null && locationReady()) {
         setPin(initialLat, initialLng, false);
         map.setView([initialLat, initialLng], 16);
+        if (String(streetInput?.value || '').trim() !== '') {
+            markAddressSynced();
+        }
     }
 
     setTimeout(() => map.invalidateSize(), 200);
@@ -479,6 +549,11 @@ function setPin(lat, lng, reverseFill) {
 
     latInput.value = Number(lat).toFixed(7);
     lngInput.value = Number(lng).toFixed(7);
+
+    if (!reverseFill && String(streetInput?.value || '').trim() !== '') {
+        markAddressSynced();
+    }
+
     updateCheckoutSubmitState();
 
     if (reverseFill) {
@@ -493,6 +568,7 @@ function clearPin({ keepMapCenter = false } = {}) {
     }
     latInput.value = '';
     lngInput.value = '';
+    markAddressUnsynced();
     updateCheckoutSubmitState();
 }
 
@@ -540,17 +616,72 @@ async function reverseGeocode(lat, lng) {
             throw new Error(data.message || 'No se pudo leer la dirección del mapa.');
         }
 
+        applyingAddressFromPin = true;
         if (data.street && streetInput) {
             streetInput.value = data.street;
         }
         if (streetNumberInput && data.street_number) {
             streetNumberInput.value = data.street_number;
         }
-
+        applyingAddressFromPin = false;
+        markAddressSynced();
         updateCheckoutSubmitState();
     } catch (error) {
+        applyingAddressFromPin = false;
+        if (String(streetInput?.value || '').trim() !== '') {
+            markAddressSynced();
+        } else {
+            markAddressUnsynced();
+        }
         setMapStatus('Pin marcado. Completa calle y número manualmente si no se detectaron.', true);
         updateAddressGuide();
+    }
+}
+
+async function searchAddressOnMap() {
+    if (!locationReady() || String(streetInput?.value || '').trim() === '') {
+        updateAddressGuide();
+        return;
+    }
+
+    if (btnSearchAddress) {
+        btnSearchAddress.disabled = true;
+        btnSearchAddress.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Buscando…';
+    }
+
+    setMapStatus('Buscando la dirección en el mapa...');
+
+    try {
+        const params = new URLSearchParams({
+            region: regionSelect.value,
+            comuna: comunaSelect.value,
+            street: streetInput.value,
+            street_number: streetNumberInput?.value || '',
+        });
+        const response = await fetch(`${geocodeAddressUrl}?${params.toString()}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'No se encontró la dirección.');
+        }
+
+        setPin(data.lat, data.lng, false);
+        map.setView([data.lat, data.lng], 17);
+        markAddressSynced();
+        setMapStatus('Pin movido a la dirección escrita.');
+        updateCheckoutSubmitState();
+    } catch (error) {
+        markAddressUnsynced();
+        setMapStatus(error.message || 'No se pudo ubicar esa dirección.', true);
+        if (addressSyncAlert) addressSyncAlert.classList.remove('d-none');
+        updateAddressGuide();
+    } finally {
+        if (btnSearchAddress) {
+            btnSearchAddress.innerHTML = '<i class="bi bi-search"></i> Buscar en el mapa';
+            updateSearchButtonState();
+        }
     }
 }
 
@@ -666,6 +797,22 @@ if (checkoutForm) {
     checkoutForm.addEventListener('input', updateCheckoutSubmitState);
     checkoutForm.addEventListener('change', updateCheckoutSubmitState);
 }
+
+function onAddressTextChanged() {
+    if (applyingAddressFromPin) {
+        updateCheckoutSubmitState();
+        return;
+    }
+    if (pinIsSet()) {
+        markAddressUnsynced();
+        if (addressSyncAlert) addressSyncAlert.classList.remove('d-none');
+    }
+    updateCheckoutSubmitState();
+}
+
+if (streetInput) streetInput.addEventListener('input', onAddressTextChanged);
+if (streetNumberInput) streetNumberInput.addEventListener('input', onAddressTextChanged);
+if (btnSearchAddress) btnSearchAddress.addEventListener('click', searchAddressOnMap);
 
 initMap();
 if (regionSelect.value) {

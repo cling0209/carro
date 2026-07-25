@@ -51,6 +51,9 @@ Route::get('/checkout/geocode', [CheckoutController::class, 'geocode'])
 Route::get('/checkout/reverse-geocode', [CheckoutController::class, 'reverseGeocode'])
     ->middleware('throttle:30,1')
     ->name('checkout.reverse-geocode');
+Route::get('/checkout/geocode-address', [CheckoutController::class, 'geocodeAddress'])
+    ->middleware('throttle:30,1')
+    ->name('checkout.geocode-address');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 
 Route::match(['get', 'post'], '/checkout/webpay/return', [PaymentWebController::class, 'return'])

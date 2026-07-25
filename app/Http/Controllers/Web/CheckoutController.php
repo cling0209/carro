@@ -139,6 +139,37 @@ class CheckoutController extends Controller
         return response()->json($place);
     }
 
+    public function geocodeAddress(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'region' => ['required', 'string', 'max:80'],
+            'comuna' => ['required', 'string', 'max:80'],
+            'street' => ['required', 'string', 'max:180'],
+            'street_number' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $parts = array_filter([
+            trim($data['street'].' '.trim((string) ($data['street_number'] ?? ''))),
+            $data['comuna'],
+            $data['region'],
+            'Chile',
+        ]);
+
+        $place = $this->geocoder->searchPlace(implode(', ', $parts));
+
+        if (! $place) {
+            return response()->json([
+                'message' => 'No encontramos esa dirección en el mapa. Ajusta calle/número o marca el pin manualmente.',
+            ], 422);
+        }
+
+        return response()->json([
+            'lat' => $place['lat'],
+            'lng' => $place['lng'],
+            'display_name' => $place['display_name'],
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $rules = [
@@ -153,6 +184,7 @@ class CheckoutController extends Controller
             'apartment' => ['nullable', 'string', 'max:40'],
             'latitude' => ['required', 'numeric', 'between:-56,-17'],
             'longitude' => ['required', 'numeric', 'between:-76,-66'],
+            'address_synced' => ['required', 'accepted'],
             'create_account' => ['nullable', 'boolean'],
             'password' => ['nullable', 'required_if:create_account,1', 'confirmed', Password::min(8)],
         ];
@@ -164,6 +196,7 @@ class CheckoutController extends Controller
         $data = $request->validate($rules, [
             'latitude.required' => 'Marca tu ubicación en el mapa para continuar.',
             'longitude.required' => 'Marca tu ubicación en el mapa para continuar.',
+            'address_synced.accepted' => 'La calle debe coincidir con el pin. Usa “Buscar en el mapa” o vuelve a marcar el pin.',
         ]);
 
         if (! $this->geocoder->isInChile((float) $data['latitude'], (float) $data['longitude'])) {
