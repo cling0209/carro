@@ -38,7 +38,7 @@ return [
         "script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'",
         "style-src 'self' https://cdn.jsdelivr.net https://fonts.googleapis.com 'unsafe-inline'",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:",
-        'img-src \'self\' data: blob: '.implode(' ', array_map(
+        'img-src \'self\' data: blob: https://cdn.jsdelivr.net https://*.tile.openstreetmap.org https://tile.openstreetmap.org '.implode(' ', array_map(
             fn (string $host) => 'https://'.$host,
             $extraImageHosts,
         )),

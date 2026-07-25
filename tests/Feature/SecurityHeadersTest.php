@@ -15,6 +15,10 @@ class SecurityHeadersTest extends TestCase
         $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $response->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->assertHeader('Content-Security-Policy');
+
+        $csp = $response->headers->get('Content-Security-Policy');
+        $this->assertStringContainsString('cdn.jsdelivr.net', $csp);
+        $this->assertStringContainsString('tile.openstreetmap.org', $csp);
     }
 
     public function test_admin_login_is_not_cacheable(): void

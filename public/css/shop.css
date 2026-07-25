@@ -412,8 +412,16 @@ body {
     width: 100%;
     height: 280px;
     border-radius: 0.75rem;
-    border: 1px solid #dbe3ef;
+    border: 2px solid #93c5fd;
+    background: #e2e8f0;
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
     z-index: 1;
+}
+
+.checkout-map .leaflet-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 0.65rem;
 }
 
 @media (min-width: 768px) {
