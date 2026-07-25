@@ -545,38 +545,66 @@ function updateAddressGuide() {
         return;
     }
 
-    const editingStreet = document.activeElement === streetInput
-        || document.activeElement === streetNumberInput;
+    // Calle + número son el mismo paso: no saltar al mapa mientras se completa la dirección.
+    if (!pinIsSet()) {
+        const active = document.activeElement;
+        const inStreetBlock = active === streetInput
+            || active === streetNumberInput
+            || active === btnSearchAddress;
 
-    if (!String(streetInput.value || '').trim() || editingStreet) {
         setGuide(
             'Paso 7: escribe la dirección',
-            'Escribe la calle (y número). Luego pulsa “Buscar en el mapa”, o toca el mapa para marcar el pin.',
+            'Completa calle y número. Luego pulsa “Buscar en el mapa”, o toca el mapa para marcar el pin.',
+            'info'
+        );
+        markDoneSteps('street');
+        setMapStatus('Escribe la dirección y usa “Buscar en el mapa”, o toca el mapa para marcar el pin.');
+
+        if (inStreetBlock || !String(streetInput.value || '').trim()) {
+            // Mantener foco/vista en calle o número; no desplazar al mapa.
+            if (active === streetNumberInput) {
+                clearGuidePulse();
+                if (streetWrap) streetWrap.classList.add('checkout-step-pulse');
+                if (streetNumberInput) streetNumberInput.classList.add('checkout-field-pulse');
+                showStepHint('street');
+                lastGuidedStep = 'street';
+            } else {
+                pulseStep('street', streetInput);
+            }
+            return;
+        }
+
+        // Dirección escrita y ya salió del bloque: resaltar “Buscar en el mapa” sin bajar al mapa.
+        clearGuidePulse();
+        if (streetWrap) streetWrap.classList.add('checkout-step-pulse');
+        if (btnSearchAddress) btnSearchAddress.classList.add('checkout-field-pulse');
+        showStepHint('street');
+        lastGuidedStep = 'street';
+        return;
+    }
+
+    if (!String(streetInput.value || '').trim()) {
+        setGuide(
+            'Paso 7: escribe la dirección',
+            'Completa calle y número para alinearlas con el pin.',
             'info'
         );
         pulseStep('street', streetInput);
         markDoneSteps('street');
-        setMapStatus('Escribe la dirección y usa “Buscar en el mapa”, o toca el mapa para marcar el pin.');
-        return;
-    }
-
-    if (!pinIsSet()) {
-        setGuide(
-            'Paso 8: ubica el pin',
-            'Pulsa “Buscar en el mapa” con la dirección escrita, o toca el mapa en el punto exacto de entrega.',
-            'info'
-        );
-        pulseStep('map');
-        markDoneSteps('map');
-        setMapStatus(
-            'En ' + comunaSelect.value + ': pulsa “Buscar en el mapa” o toca el mapa para marcar el pin.'
-        );
         return;
     }
 
     if (!isAddressSynced()) {
         setGuide('Calle y pin no coinciden', 'Pulsa “Buscar en el mapa” para ubicar el pin en la dirección escrita, o vuelve a marcar el pin.', 'warning');
-        pulseStep('street', streetInput);
+        if (document.activeElement === streetNumberInput) {
+            clearGuidePulse();
+            if (streetWrap) streetWrap.classList.add('checkout-step-pulse');
+            streetNumberInput.classList.add('checkout-field-pulse');
+            showStepHint('street');
+            lastGuidedStep = 'street';
+        } else {
+            pulseStep('street', streetInput);
+        }
         if (addressSyncAlert) addressSyncAlert.classList.remove('d-none');
         setMapStatus('Calle lista: usa “Buscar en el mapa” para sincronizar el pin.');
         return;
@@ -988,9 +1016,19 @@ if (checkoutForm) {
 
 [customerNameInput, emailInput, recipientInput, phoneInput, streetInput, streetNumberInput].forEach((field) => {
     if (!field) return;
-    field.addEventListener('blur', () => {
-        updateAddressGuide();
-        updateCheckoutSubmitState();
+    field.addEventListener('blur', (event) => {
+        const next = event.relatedTarget;
+        // Tab calle → número: no actualizar la guía en el blur intermedio.
+        if (
+            (field === streetInput && next === streetNumberInput)
+            || (field === streetNumberInput && next === streetInput)
+        ) {
+            return;
+        }
+        setTimeout(() => {
+            updateAddressGuide();
+            updateCheckoutSubmitState();
+        }, 0);
     });
 });
 
