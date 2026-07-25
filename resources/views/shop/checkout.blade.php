@@ -442,10 +442,12 @@ function pulseStep(stepKey, field = null) {
     if (lastGuidedStep !== stepKey) {
         lastGuidedStep = stepKey;
         const focusEl = field || wrap;
-        if (focusEl && typeof focusEl.scrollIntoView === 'function') {
+        // No desplazar si el usuario ya está escribiendo en ese campo.
+        const alreadyTyping = field && document.activeElement === field;
+        if (!alreadyTyping && focusEl && typeof focusEl.scrollIntoView === 'function') {
             focusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        if (field && typeof field.focus === 'function' && !['region', 'comuna'].includes(stepKey)) {
+        if (!alreadyTyping && field && typeof field.focus === 'function' && !['region', 'comuna'].includes(stepKey)) {
             try { field.focus({ preventScroll: true }); } catch (e) { field.focus(); }
         }
     }
@@ -543,7 +545,10 @@ function updateAddressGuide() {
         return;
     }
 
-    if (!String(streetInput.value || '').trim()) {
+    const editingStreet = document.activeElement === streetInput
+        || document.activeElement === streetNumberInput;
+
+    if (!String(streetInput.value || '').trim() || editingStreet) {
         setGuide(
             'Paso 7: escribe la dirección',
             'Escribe la calle (y número). Luego pulsa “Buscar en el mapa”, o toca el mapa para marcar el pin.',
@@ -981,7 +986,7 @@ if (checkoutForm) {
     checkoutForm.addEventListener('change', updateCheckoutSubmitState);
 }
 
-[customerNameInput, emailInput, recipientInput, phoneInput].forEach((field) => {
+[customerNameInput, emailInput, recipientInput, phoneInput, streetInput, streetNumberInput].forEach((field) => {
     if (!field) return;
     field.addEventListener('blur', () => {
         updateAddressGuide();
