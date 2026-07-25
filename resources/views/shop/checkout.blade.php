@@ -78,7 +78,9 @@
                         <div class="col-12">
                             <label class="form-label">Ubicación en el mapa *</label>
                             <p class="form-text mt-0 mb-2">Marca el punto exacto donde quieres recibir el pedido. Sin pin no se puede pagar.</p>
-                            <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío"></div>
+                            <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío">
+                                <div class="checkout-map-placeholder">Cargando mapa…</div>
+                            </div>
                             <div id="checkout-map-status" class="small mt-2 text-muted">
                                 Selecciona región y comuna, luego toca el mapa para marcar tu ubicación.
                             </div>
@@ -186,13 +188,11 @@
 @endsection
 
 @push('head')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}?v=1.9.4">
 @endpush
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ asset('vendor/leaflet/leaflet.js') }}?v=1.9.4"></script>
 <script>
 const regions = @json($regions);
 const regionSelect = document.getElementById('region');
@@ -291,6 +291,13 @@ function initMap() {
         return;
     }
 
+    const iconBase = @json(asset('vendor/leaflet/images'));
+    L.Icon.Default.mergeOptions({
+        iconUrl: iconBase + '/marker-icon.png',
+        iconRetinaUrl: iconBase + '/marker-icon-2x.png',
+        shadowUrl: iconBase + '/marker-shadow.png',
+    });
+
     map = L.map('checkout-map', { scrollWheelZoom: false }).setView([-33.4489, -70.6693], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -306,8 +313,12 @@ function initMap() {
         map.setView([initialLat, initialLng], 16);
     }
 
-    setTimeout(() => map.invalidateSize(), 150);
+    setTimeout(() => map.invalidateSize(), 200);
+    setTimeout(() => map.invalidateSize(), 800);
     mapReady = true;
+    if (!pinIsSet()) {
+        setMapStatus('Toca el mapa para marcar tu ubicación (puedes elegir región y comuna antes).');
+    }
 }
 
 function setPin(lat, lng, reverseFill) {
