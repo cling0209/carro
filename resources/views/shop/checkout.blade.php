@@ -45,6 +45,15 @@
 
                 <div class="checkout-card card p-4 mb-4">
                     <h2 class="h5 fw-bold mb-3">Dirección de envío</h2>
+                    <div id="checkout-address-guide" class="checkout-guide alert alert-warning border-warning mb-3" role="status" aria-live="polite">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-lightbulb-fill checkout-guide__icon mt-1" aria-hidden="true"></i>
+                            <div>
+                                <div class="fw-bold" id="checkout-guide-title">Paso 1: elige la región</div>
+                                <div class="small mb-0" id="checkout-guide-text">Empieza seleccionando tu región para continuar.</div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Destinatario (quien recibe la compra) *</label>
@@ -58,8 +67,8 @@
                                    value="{{ $defaults['phone'] }}" placeholder="+56 9..." required>
                             @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Región *</label>
+                        <div class="col-md-6" id="region-field-wrap">
+                            <label class="form-label" for="region">1. Región *</label>
                             <select name="region" id="region" class="form-select @error('region') is-invalid @enderror" required>
                                 <option value="">Selecciona región</option>
                                 @foreach($regions as $region)
@@ -68,21 +77,30 @@
                             </select>
                             @error('region')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Comuna *</label>
-                            <select name="comuna" id="comuna" class="form-select @error('comuna') is-invalid @enderror" required>
-                                <option value="">Selecciona comuna</option>
+                        <div class="col-md-6" id="comuna-field-wrap">
+                            <label class="form-label" for="comuna">2. Comuna *</label>
+                            <select name="comuna" id="comuna" class="form-select @error('comuna') is-invalid @enderror" required disabled>
+                                <option value="">Primero selecciona región</option>
                             </select>
                             @error('comuna')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Ubicación en el mapa *</label>
+                        <div class="col-12" id="map-field-wrap">
+                            <label class="form-label">3. Ubicación en el mapa *</label>
                             <p class="form-text mt-0 mb-2">Marca el punto exacto donde quieres recibir el pedido. Sin pin no se puede pagar.</p>
-                            <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío">
-                                <div class="checkout-map-placeholder">Cargando mapa…</div>
+                            <div class="checkout-map-shell">
+                                <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío">
+                                    <div class="checkout-map-placeholder">Cargando mapa…</div>
+                                </div>
+                                <div id="checkout-map-lock" class="checkout-map-lock">
+                                    <div class="checkout-map-lock__card">
+                                        <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                                        <strong id="checkout-map-lock-title">Primero elige región y comuna</strong>
+                                        <span id="checkout-map-lock-text">Así el mapa se centra en tu zona.</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div id="checkout-map-status" class="small mt-2 text-muted">
-                                Selecciona región y comuna, luego toca el mapa para marcar tu ubicación.
+                            <div id="checkout-map-status" class="checkout-map-status small mt-2">
+                                Selecciona región y comuna para habilitar el mapa.
                             </div>
                             @error('latitude')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -90,14 +108,14 @@
                             <input type="hidden" name="latitude" id="latitude" value="{{ $defaults['latitude'] }}" required>
                             <input type="hidden" name="longitude" id="longitude" value="{{ $defaults['longitude'] }}" required>
                         </div>
-                        <div class="col-md-8">
-                            <label class="form-label">Calle *</label>
+                        <div class="col-md-8" id="street-field-wrap">
+                            <label class="form-label" for="street">4. Calle *</label>
                             <input type="text" name="street" id="street" class="form-control @error('street') is-invalid @enderror"
                                    value="{{ $defaults['street'] }}" required>
                             @error('street')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Número</label>
+                            <label class="form-label" for="street_number">Número</label>
                             <input type="text" name="street_number" id="street_number" class="form-control" value="{{ $defaults['street_number'] }}">
                         </div>
                         <div class="col-md-2">
@@ -236,8 +254,113 @@ function isRmRegion(regionName) {
     return regionName.toLowerCase().includes('metropolitana');
 }
 
+const guideTitle = document.getElementById('checkout-guide-title');
+const guideText = document.getElementById('checkout-guide-text');
+const guideBox = document.getElementById('checkout-address-guide');
+const mapLock = document.getElementById('checkout-map-lock');
+const mapLockTitle = document.getElementById('checkout-map-lock-title');
+const mapLockText = document.getElementById('checkout-map-lock-text');
+const regionWrap = document.getElementById('region-field-wrap');
+const comunaWrap = document.getElementById('comuna-field-wrap');
+const mapWrap = document.getElementById('map-field-wrap');
+const streetWrap = document.getElementById('street-field-wrap');
+
 function pinIsSet() {
     return String(latInput.value || '').trim() !== '' && String(lngInput.value || '').trim() !== '';
+}
+
+function locationReady() {
+    return Boolean(regionSelect.value && comunaSelect.value);
+}
+
+function setGuide(title, text, tone = 'warning') {
+    if (guideTitle) guideTitle.textContent = title;
+    if (guideText) guideText.textContent = text;
+    if (!guideBox) return;
+
+    guideBox.classList.remove('alert-warning', 'alert-info', 'alert-success', 'border-warning', 'border-info', 'border-success');
+    if (tone === 'success') {
+        guideBox.classList.add('alert-success', 'border-success');
+    } else if (tone === 'info') {
+        guideBox.classList.add('alert-info', 'border-info');
+    } else {
+        guideBox.classList.add('alert-warning', 'border-warning');
+    }
+}
+
+function clearGuidePulse() {
+    [regionWrap, comunaWrap, mapWrap, streetWrap].forEach((el) => {
+        if (el) el.classList.remove('checkout-step-pulse');
+    });
+    if (regionSelect) regionSelect.classList.remove('checkout-field-pulse');
+    if (comunaSelect) comunaSelect.classList.remove('checkout-field-pulse');
+    if (streetInput) streetInput.classList.remove('checkout-field-pulse');
+    if (mapWrap) mapWrap.classList.remove('checkout-map-pulse');
+}
+
+function pulseStep(wrap, field = null) {
+    clearGuidePulse();
+    if (wrap) wrap.classList.add('checkout-step-pulse');
+    if (field) field.classList.add('checkout-field-pulse');
+}
+
+function updateMapLock() {
+    if (!mapLock) return;
+
+    const unlocked = locationReady();
+    mapLock.classList.toggle('d-none', unlocked);
+    mapLock.classList.toggle('is-locked', !unlocked);
+
+    if (!regionSelect.value) {
+        if (mapLockTitle) mapLockTitle.textContent = 'Paso 1: elige la región';
+        if (mapLockText) mapLockText.textContent = 'Después podrás elegir la comuna y marcar el mapa.';
+    } else if (!comunaSelect.value) {
+        if (mapLockTitle) mapLockTitle.textContent = 'Paso 2: elige la comuna';
+        if (mapLockText) mapLockText.textContent = 'Con la comuna lista se habilita el mapa.';
+    }
+}
+
+function updateAddressGuide() {
+    updateMapLock();
+
+    if (!regionSelect.value) {
+        comunaSelect.disabled = true;
+        if (!comunaSelect.value) {
+            comunaSelect.innerHTML = '<option value="">Primero selecciona región</option>';
+        }
+        setGuide('Paso 1: elige la región', 'Empieza por la región. Luego te pediremos la comuna.', 'warning');
+        pulseStep(regionWrap, regionSelect);
+        setMapStatus('Primero selecciona la región.');
+        return;
+    }
+
+    comunaSelect.disabled = false;
+
+    if (!comunaSelect.value) {
+        setGuide('Paso 2: elige la comuna', 'Ya tienes región. Ahora selecciona la comuna para continuar.', 'warning');
+        pulseStep(comunaWrap, comunaSelect);
+        setMapStatus('Ahora selecciona la comuna.');
+        return;
+    }
+
+    if (!pinIsSet()) {
+        setGuide('Paso 3: marca el pin en el mapa', 'Toca el mapa en el punto exacto de entrega. Sin pin no se puede pagar.', 'info');
+        clearGuidePulse();
+        if (mapWrap) mapWrap.classList.add('checkout-step-pulse', 'checkout-map-pulse');
+        setMapStatus('Toca el mapa para marcar tu ubicación en ' + comunaSelect.value + '.');
+        return;
+    }
+
+    if (!String(streetInput.value || '').trim()) {
+        setGuide('Paso 4: confirma la calle', 'Revisa o completa la calle y el número de la dirección.', 'info');
+        pulseStep(streetWrap, streetInput);
+        setMapStatus('Ubicación marcada. Completa la calle si falta.');
+        return;
+    }
+
+    setGuide('Listo: dirección completa', 'Puedes ajustar el pin o la calle si lo necesitas. Luego completa el resto y paga.', 'success');
+    clearGuidePulse();
+    setMapStatus('Ubicación marcada. Puedes arrastrar el pin para ajustar.');
 }
 
 function toggleCreateAccountFields() {
@@ -257,6 +380,10 @@ function requiredFieldsComplete() {
             return true;
         }
 
+        if (field.disabled) {
+            return false;
+        }
+
         if (field.type === 'hidden') {
             return String(field.value ?? '').trim() !== '';
         }
@@ -270,12 +397,14 @@ function requiredFieldsComplete() {
 }
 
 function updateCheckoutSubmitState() {
-    const ready = shippingReady && pinIsSet() && requiredFieldsComplete();
+    const ready = shippingReady && locationReady() && pinIsSet() && requiredFieldsComplete();
     checkoutSubmit.disabled = !ready;
 
     if (checkoutSubmitHint) {
         checkoutSubmitHint.classList.toggle('d-none', ready);
     }
+
+    updateAddressGuide();
 }
 
 function setMapStatus(text, isError = false) {
@@ -284,6 +413,7 @@ function setMapStatus(text, isError = false) {
     mapStatus.classList.toggle('text-danger', isError);
     mapStatus.classList.toggle('text-success', !isError && pinIsSet());
     mapStatus.classList.toggle('text-muted', !isError && !pinIsSet());
+    mapStatus.classList.toggle('checkout-map-status--active', !isError && locationReady() && !pinIsSet());
 }
 
 function initMap() {
@@ -307,10 +437,14 @@ function initMap() {
     }).addTo(map);
 
     map.on('click', (event) => {
+        if (!locationReady()) {
+            updateAddressGuide();
+            return;
+        }
         setPin(event.latlng.lat, event.latlng.lng, true);
     });
 
-    if (initialLat !== null && initialLng !== null) {
+    if (initialLat !== null && initialLng !== null && locationReady()) {
         setPin(initialLat, initialLng, false);
         map.setView([initialLat, initialLng], 16);
     }
@@ -318,12 +452,14 @@ function initMap() {
     setTimeout(() => map.invalidateSize(), 200);
     setTimeout(() => map.invalidateSize(), 800);
     mapReady = true;
-    if (!pinIsSet()) {
-        setMapStatus('Toca el mapa para marcar tu ubicación (puedes elegir región y comuna antes).');
-    }
 }
 
 function setPin(lat, lng, reverseFill) {
+    if (!locationReady()) {
+        updateAddressGuide();
+        return;
+    }
+
     const position = [lat, lng];
 
     if (!marker) {
@@ -343,7 +479,6 @@ function setPin(lat, lng, reverseFill) {
 
     latInput.value = Number(lat).toFixed(7);
     lngInput.value = Number(lng).toFixed(7);
-    setMapStatus('Ubicación marcada. Puedes arrastrar el pin para ajustar.');
     updateCheckoutSubmitState();
 
     if (reverseFill) {
@@ -358,9 +493,6 @@ function clearPin({ keepMapCenter = false } = {}) {
     }
     latInput.value = '';
     lngInput.value = '';
-    if (!keepMapCenter) {
-        setMapStatus('Selecciona región y comuna, luego toca el mapa para marcar tu ubicación.');
-    }
     updateCheckoutSubmitState();
 }
 
@@ -387,9 +519,8 @@ async function centerMapOnComuna() {
         }
 
         map.setView([data.lat, data.lng], 14);
-        if (!pinIsSet()) {
-            setMapStatus('Toca el mapa para marcar el punto de entrega en ' + comuna + '.');
-        }
+        setTimeout(() => map.invalidateSize(), 100);
+        updateAddressGuide();
     } catch (error) {
         setMapStatus(error.message || 'No se pudo centrar el mapa.', true);
     } finally {
@@ -416,23 +547,30 @@ async function reverseGeocode(lat, lng) {
             streetNumberInput.value = data.street_number;
         }
 
-        setMapStatus('Ubicación marcada. Revisa calle y número, y ajusta el pin si hace falta.');
         updateCheckoutSubmitState();
     } catch (error) {
         setMapStatus('Pin marcado. Completa calle y número manualmente si no se detectaron.', true);
+        updateAddressGuide();
     }
 }
 
 function loadComunas() {
     const regionName = regionSelect.value;
     const previousComuna = comunaSelect.value || savedComuna;
-    comunaSelect.innerHTML = '<option value="">Selecciona comuna</option>';
+    comunaSelect.innerHTML = regionName
+        ? '<option value="">Selecciona comuna</option>'
+        : '<option value="">Primero selecciona región</option>';
+
     const region = regions.find(r => r.region === regionName);
     if (!region) {
+        comunaSelect.disabled = true;
         clearPin();
         quoteShipping();
+        updateAddressGuide();
         return;
     }
+
+    comunaSelect.disabled = false;
     region.comunas.forEach(c => {
         const name = typeof c === 'string' ? c : (c.nombre || '');
         if (!name) return;
@@ -442,7 +580,9 @@ function loadComunas() {
         if (name === previousComuna) opt.selected = true;
         comunaSelect.appendChild(opt);
     });
+
     quoteShipping();
+
     if (comunaSelect.value) {
         if (!pinIsSet() || !initialLat) {
             clearPin({ keepMapCenter: true });
@@ -451,6 +591,8 @@ function loadComunas() {
     } else {
         clearPin();
     }
+
+    updateAddressGuide();
 }
 
 async function quoteShipping() {
@@ -466,7 +608,7 @@ async function quoteShipping() {
         return;
     }
 
-    if (!isRmRegion(region) && !comuna) {
+    if (!comuna) {
         summaryShipping.textContent = 'Selecciona comuna';
         summaryTotal.textContent = '—';
         shippingReady = false;
@@ -480,8 +622,7 @@ async function quoteShipping() {
     summaryTotal.textContent = '—';
 
     try {
-        const params = new URLSearchParams({ region });
-        if (comuna) params.set('comuna', comuna);
+        const params = new URLSearchParams({ region, comuna });
         const response = await fetch(`${quoteUrl}?${params.toString()}`, {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
@@ -518,6 +659,7 @@ comunaSelect.addEventListener('change', () => {
     clearPin({ keepMapCenter: true });
     quoteShipping();
     centerMapOnComuna();
+    updateAddressGuide();
 });
 
 if (checkoutForm) {
@@ -526,7 +668,11 @@ if (checkoutForm) {
 }
 
 initMap();
-if (regionSelect.value) loadComunas();
+if (regionSelect.value) {
+    loadComunas();
+} else {
+    updateAddressGuide();
+}
 updateCheckoutSubmitState();
 </script>
 <script src="{{ asset('js/password-toggle.js') }}" defer></script>
