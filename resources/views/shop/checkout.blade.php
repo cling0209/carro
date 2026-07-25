@@ -94,9 +94,48 @@
                             <div class="checkout-step-hint" data-step-hint="comuna">Ahora elige la comuna.</div>
                             @error('comuna')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
+                        <div class="col-md-8" id="street-field-wrap">
+                            <label class="form-label" for="street">7. Calle *</label>
+                            <input type="text" name="street" id="street" class="form-control @error('street') is-invalid @enderror"
+                                   value="{{ $defaults['street'] }}" required>
+                            <div class="checkout-step-hint" data-step-hint="street">Escribe la calle y luego pulsa <strong>Buscar en el mapa</strong> (o marca el pin tocando el mapa).</div>
+                            @error('street')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-2" id="street-number-wrap">
+                            <label class="form-label" for="street_number">Número</label>
+                            <input type="text" name="street_number" id="street_number" class="form-control" value="{{ $defaults['street_number'] }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Depto</label>
+                            <input type="text" name="apartment" class="form-control" value="{{ $defaults['apartment'] }}">
+                        </div>
+                        <div class="col-12" id="search-address-wrap">
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <button type="button" id="btn-search-address" class="btn btn-primary btn-sm" disabled>
+                                    <i class="bi bi-search"></i> Buscar en el mapa
+                                </button>
+                                <span id="search-address-help" class="small text-primary fw-semibold">
+                                    Escribe la dirección arriba y pulsa <strong>Buscar en el mapa</strong> para ubicar el pin automáticamente.
+                                </span>
+                            </div>
+                            <div id="address-searching-msg" class="checkout-searching-msg small mt-2 d-none" role="status" aria-live="polite">
+                                Buscando la dirección en el mapa…
+                            </div>
+                            <div id="address-sync-alert" class="alert alert-warning border-warning small mt-2 mb-0 d-none" role="status">
+                                La calle no coincide con el pin. Pulsa <strong>Buscar en el mapa</strong> o vuelve a marcar el pin.
+                            </div>
+                            <input type="hidden" name="address_synced" id="address_synced" value="0">
+                            @error('address_synced')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
                         <div class="col-12" id="map-field-wrap">
-                            <label class="form-label">7. Ubicación en el mapa *</label>
-                            <div class="checkout-step-hint" data-step-hint="map">Toca el mapa para marcar el pin, o escribe la dirección abajo y pulsa <strong>Buscar en el mapa</strong>.</div>
+                            <label class="form-label">8. Ubicación en el mapa *</label>
+                            <p class="small text-muted mb-1" id="map-alt-help">
+                                Opción A: escribe la calle y pulsa <strong>Buscar en el mapa</strong>.
+                                Opción B: toca el mapa y marca el pin exacto.
+                            </p>
+                            <div class="checkout-step-hint" data-step-hint="map">Escribe la dirección y pulsa <strong>Buscar en el mapa</strong>, o toca el mapa para marcar el pin.</div>
                             <div class="checkout-map-shell mt-1">
                                 <div id="checkout-map" class="checkout-map" role="application" aria-label="Mapa de ubicación de envío">
                                     <div class="checkout-map-placeholder">Cargando mapa…</div>
@@ -117,41 +156,6 @@
                             @enderror
                             <input type="hidden" name="latitude" id="latitude" value="{{ $defaults['latitude'] }}" required>
                             <input type="hidden" name="longitude" id="longitude" value="{{ $defaults['longitude'] }}" required>
-                        </div>
-                        <div class="col-md-8" id="street-field-wrap">
-                            <label class="form-label" for="street">8. Calle *</label>
-                            <input type="text" name="street" id="street" class="form-control @error('street') is-invalid @enderror"
-                                   value="{{ $defaults['street'] }}" required>
-                            <div class="checkout-step-hint" data-step-hint="street">Escribe la calle y, si quieres, usa <strong>Buscar en el mapa</strong> para mover el pin a esa dirección.</div>
-                            @error('street')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-2" id="street-number-wrap">
-                            <label class="form-label" for="street_number">Número</label>
-                            <input type="text" name="street_number" id="street_number" class="form-control" value="{{ $defaults['street_number'] }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Depto</label>
-                            <input type="text" name="apartment" class="form-control" value="{{ $defaults['apartment'] }}">
-                        </div>
-                        <div class="col-12">
-                            <div class="d-flex flex-wrap gap-2 align-items-center">
-                                <button type="button" id="btn-search-address" class="btn btn-outline-primary btn-sm" disabled>
-                                    <i class="bi bi-search"></i> Buscar en el mapa
-                                </button>
-                                <span id="search-address-help" class="small text-muted">
-                                    Después de agregar la dirección, también puedes pulsar <strong>Buscar en el mapa</strong> para ubicar el pin.
-                                </span>
-                            </div>
-                            <div id="address-searching-msg" class="checkout-searching-msg small mt-2 d-none" role="status" aria-live="polite">
-                                Buscando la dirección en el mapa…
-                            </div>
-                            <div id="address-sync-alert" class="alert alert-warning border-warning small mt-2 mb-0 d-none" role="status">
-                                La calle no coincide con el pin. Pulsa <strong>Buscar en el mapa</strong> o vuelve a marcar el pin.
-                            </div>
-                            <input type="hidden" name="address_synced" id="address_synced" value="0">
-                            @error('address_synced')
-                                <div class="text-danger small mt-1">{{ $message }}</div>
-                            @enderror
                         </div>
                     </div>
                 </div>
@@ -224,7 +228,7 @@
                     </div>
                     <div id="checkout-submit-hint" class="alert alert-warning border-warning small mb-3">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        Te guiamos paso a paso: nombre, correo, destinatario, celular, región, comuna, pin y calle.
+                        Te guiamos paso a paso: nombre, correo, destinatario, celular, región, comuna, calle y pin (Buscar en el mapa o tocar el mapa).
                     </div>
                     <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
@@ -448,7 +452,7 @@ function pulseStep(stepKey, field = null) {
 }
 
 function markDoneSteps(upToExclusive) {
-    const order = ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'map', 'street'];
+    const order = ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'street', 'map'];
     for (const key of order) {
         if (key === upToExclusive) break;
         const wrap = stepWraps[key];
@@ -472,13 +476,13 @@ function updateMapLock() {
 
     if (!contactReady()) {
         if (mapLockTitle) mapLockTitle.textContent = 'Completa nombre, correo, destinatario y celular';
-        if (mapLockText) mapLockText.textContent = 'Después eliges región, comuna y marcas el pin.';
+        if (mapLockText) mapLockText.textContent = 'Después eliges región, comuna, escribes la dirección y ubicas el pin.';
     } else if (!regionSelect.value) {
         if (mapLockTitle) mapLockTitle.textContent = 'Paso 5: elige la región';
-        if (mapLockText) mapLockText.textContent = 'Después podrás elegir la comuna y marcar el mapa.';
+        if (mapLockText) mapLockText.textContent = 'Después podrás elegir la comuna y ubicar el pin.';
     } else if (!comunaSelect.value) {
         if (mapLockTitle) mapLockTitle.textContent = 'Paso 6: elige la comuna';
-        if (mapLockText) mapLockText.textContent = 'Con la comuna lista se habilita el mapa.';
+        if (mapLockText) mapLockText.textContent = 'Con la comuna lista podrás escribir la dirección y buscarla en el mapa.';
     }
 }
 
@@ -539,25 +543,29 @@ function updateAddressGuide() {
         return;
     }
 
+    if (!String(streetInput.value || '').trim()) {
+        setGuide(
+            'Paso 7: escribe la dirección',
+            'Escribe la calle (y número). Luego pulsa “Buscar en el mapa”, o toca el mapa para marcar el pin.',
+            'info'
+        );
+        pulseStep('street', streetInput);
+        markDoneSteps('street');
+        setMapStatus('Escribe la dirección y usa “Buscar en el mapa”, o toca el mapa para marcar el pin.');
+        return;
+    }
+
     if (!pinIsSet()) {
         setGuide(
-            'Paso 7: ubica la entrega',
-            'Toca el mapa en el punto exacto, o escribe la calle abajo y pulsa “Buscar en el mapa”.',
+            'Paso 8: ubica el pin',
+            'Pulsa “Buscar en el mapa” con la dirección escrita, o toca el mapa en el punto exacto de entrega.',
             'info'
         );
         pulseStep('map');
         markDoneSteps('map');
         setMapStatus(
-            'En ' + comunaSelect.value + ': toca el mapa o escribe la dirección y usa “Buscar en el mapa”.'
+            'En ' + comunaSelect.value + ': pulsa “Buscar en el mapa” o toca el mapa para marcar el pin.'
         );
-        return;
-    }
-
-    if (!String(streetInput.value || '').trim()) {
-        setGuide('Paso 8: calle', 'Escribe la calle. Después también puedes usar “Buscar en el mapa” para mover el pin.', 'info');
-        pulseStep('street', streetInput);
-        markDoneSteps('street');
-        setMapStatus('Ubicación marcada. Completa la calle y, si quieres, búscala en el mapa.');
         return;
     }
 
@@ -572,7 +580,7 @@ function updateAddressGuide() {
     setGuide('Listo: datos completos', 'Nombre, celular, zona y pin están listos. Si cambias la calle, vuelve a usar “Buscar en el mapa”.', 'success');
     clearGuidePulse();
     markDoneSteps(null);
-    ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'map', 'street'].forEach((key) => {
+    ['customer_name', 'email', 'recipient_name', 'phone', 'region', 'comuna', 'street', 'map'].forEach((key) => {
         const wrap = stepWraps[key];
         if (wrap) wrap.classList.add('checkout-step-done');
     });
