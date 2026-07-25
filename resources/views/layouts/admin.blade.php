@@ -19,49 +19,58 @@
 <body class="admin-body">
 <x-page-loader />
 @if(auth()->check() && auth()->user()->isAdmin())
-<nav class="navbar navbar-dark admin-navbar">
+<nav class="navbar navbar-expand-lg navbar-dark admin-navbar">
     <div class="container-fluid">
         <div class="d-flex align-items-center gap-2">
             <x-shop-logo variant="light" :href="route('admin.products.index')" class="py-0" />
-            <span class="navbar-brand fw-bold mb-0 text-white opacity-75">· Administración</span>
+            <span class="navbar-brand fw-bold mb-0 text-white opacity-75 d-none d-sm-inline">· Administración</span>
         </div>
-        <div class="d-flex align-items-center gap-3">
-            <a href="{{ route('admin.products.index') }}" class="nav-link-admin {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
-                <i class="bi bi-box-seam"></i> Productos
-            </a>
-            <a href="{{ route('admin.categories.index') }}" class="nav-link-admin {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
-                <i class="bi bi-tags"></i> Categorías
-            </a>
-            <a href="{{ route('admin.orders.index') }}" class="nav-link-admin {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
-                <i class="bi bi-receipt"></i> Ventas
-            </a>
-            <a href="{{ route('admin.shipping.index') }}" class="nav-link-admin {{ request()->routeIs('admin.shipping.*') ? 'active' : '' }}">
-                <i class="bi bi-truck"></i> Envíos
-            </a>
-            <a href="{{ route('admin.customers.index') }}" class="nav-link-admin {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
-                <i class="bi bi-person-lines-fill"></i> <span class="d-none d-xl-inline">Clientes</span>
-            </a>
-            <a href="{{ route('admin.users.index') }}" class="nav-link-admin {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
-                <i class="bi bi-people"></i> <span class="d-none d-xl-inline">Admins</span>
-            </a>
-            <a href="{{ route('home') }}" class="nav-link-admin" target="_blank">
-                <i class="bi bi-shop"></i> Tienda
-            </a>
-            <a href="{{ route('admin.account.password') }}" class="nav-link-admin {{ request()->routeIs('admin.account.*') ? 'active' : '' }}">
-                <i class="bi bi-key"></i> <span class="d-none d-lg-inline">Clave</span>
-            </a>
-            <span class="text-white-50 small d-none d-md-inline">{{ auth()->user()->name }}</span>
-            <form action="{{ route('admin.logout') }}" method="post" class="d-inline">
-                @csrf
-                <button type="submit" class="btn btn-outline-light btn-sm">Salir</button>
-            </form>
+        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
+                data-bs-target="#adminNavbar" aria-controls="adminNavbar" aria-expanded="false"
+                aria-label="Abrir menú">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="adminNavbar">
+            <div class="admin-nav-links ms-lg-auto">
+                <a href="{{ route('admin.products.index') }}" class="nav-link-admin {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
+                    <i class="bi bi-box-seam"></i> Productos
+                </a>
+                <a href="{{ route('admin.categories.index') }}" class="nav-link-admin {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
+                    <i class="bi bi-tags"></i> Categorías
+                </a>
+                <a href="{{ route('admin.orders.index') }}" class="nav-link-admin {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                    <i class="bi bi-receipt"></i> Ventas
+                </a>
+                <a href="{{ route('admin.shipping.index') }}" class="nav-link-admin {{ request()->routeIs('admin.shipping.*') ? 'active' : '' }}">
+                    <i class="bi bi-truck"></i> Envíos
+                </a>
+                <a href="{{ route('admin.customers.index') }}" class="nav-link-admin {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
+                    <i class="bi bi-person-lines-fill"></i> Clientes
+                </a>
+                <a href="{{ route('admin.users.index') }}" class="nav-link-admin {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                    <i class="bi bi-people"></i> Admins
+                </a>
+                <a href="{{ route('home') }}" class="nav-link-admin" target="_blank">
+                    <i class="bi bi-shop"></i> Tienda
+                </a>
+                <a href="{{ route('admin.account.password') }}" class="nav-link-admin {{ request()->routeIs('admin.account.*') ? 'active' : '' }}">
+                    <i class="bi bi-key"></i> Clave
+                </a>
+                <div class="admin-nav-meta">
+                    <span class="text-white-50 small d-none d-lg-inline">{{ auth()->user()->name }}</span>
+                    <form action="{{ route('admin.logout') }}" method="post" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-light btn-sm">Salir</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </nav>
 @endif
 
 @if(session('success'))
-    <div class="container-fluid mt-3">
+    <div class="container-fluid mt-3 px-3">
         <div class="alert alert-success alert-dismissible fade show mb-0">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -69,7 +78,7 @@
     </div>
 @endif
 @if(session('error'))
-    <div class="container-fluid mt-3">
+    <div class="container-fluid mt-3 px-3">
         <div class="alert alert-danger alert-dismissible fade show mb-0">
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
