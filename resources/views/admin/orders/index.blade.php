@@ -9,9 +9,14 @@
             <h1 class="h3 fw-bold mb-1">Ventas realizadas</h1>
             <p class="text-muted mb-0">Pedidos y pagos en la tienda. Por defecto se muestra la última semana.</p>
         </div>
-        <a href="{{ route('admin.orders.export', request()->query()) }}" class="btn btn-outline-success">
-            <i class="bi bi-download"></i> Descargar CSV
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('admin.warehouse.index') }}" class="btn btn-outline-primary" target="_blank">
+                <i class="bi bi-display"></i> Tablero bodega
+            </a>
+            <a href="{{ route('admin.orders.export', request()->query()) }}" class="btn btn-outline-success">
+                <i class="bi bi-download"></i> Descargar CSV
+            </a>
+        </div>
     </div>
 
     <div class="card admin-card mb-4">

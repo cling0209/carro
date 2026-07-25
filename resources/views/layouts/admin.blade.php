@@ -41,6 +41,9 @@
                 <a href="{{ route('admin.orders.index') }}" class="nav-link-admin {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                     <i class="bi bi-receipt"></i> Ventas
                 </a>
+                <a href="{{ route('admin.warehouse.index') }}" class="nav-link-admin {{ request()->routeIs('admin.warehouse.*') ? 'active' : '' }}" target="_blank">
+                    <i class="bi bi-display"></i> Bodega
+                </a>
                 <a href="{{ route('admin.shipping.index') }}" class="nav-link-admin {{ request()->routeIs('admin.shipping.*') ? 'active' : '' }}">
                     <i class="bi bi-truck"></i> Envíos
                 </a>

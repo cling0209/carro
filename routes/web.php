@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController
 use App\Http\Controllers\Web\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Web\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Web\Admin\ShippingController as AdminShippingController;
+use App\Http\Controllers\Web\Admin\WarehouseBoardController as AdminWarehouseBoardController;
 use App\Http\Controllers\Web\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Web\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Web\CartWebController;
@@ -126,6 +127,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('ventas', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('ventas/exportar', [AdminOrderController::class, 'export'])->name('orders.export');
         Route::get('ventas/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+
+        Route::get('bodega', [AdminWarehouseBoardController::class, 'index'])->name('warehouse.index');
+        Route::get('bodega/pedidos', [AdminWarehouseBoardController::class, 'feed'])->name('warehouse.feed');
+        Route::patch('bodega/pedidos/{order}', [AdminWarehouseBoardController::class, 'updateStatus'])->name('warehouse.update');
 
         Route::get('envios', [AdminShippingController::class, 'index'])->name('shipping.index');
         Route::get('envios/carga-masiva', [AdminShippingController::class, 'importForm'])->name('shipping.import');
