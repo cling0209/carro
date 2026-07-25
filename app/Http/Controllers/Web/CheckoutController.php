@@ -45,7 +45,8 @@ class CheckoutController extends Controller
             : [];
 
         $user = $request->user();
-        $saved = $this->addressService->checkoutDefaults($user);
+        $prefill = $this->addressService->checkoutDefaults($user);
+        $saved = $prefill['defaults'];
         $defaults = [];
 
         foreach ([
@@ -65,6 +66,7 @@ class CheckoutController extends Controller
             'regions' => $regions,
             'cartCount' => $formatted['item_count'],
             'defaults' => $defaults,
+            'prefillSource' => $prefill['source'],
             'isLoggedIn' => $user !== null,
             'userName' => $user?->name,
         ]);

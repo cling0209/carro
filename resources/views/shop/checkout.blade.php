@@ -8,7 +8,14 @@
 
     @if($isLoggedIn)
         <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-            <span>Hola, <strong>{{ $userName }}</strong>. Tus datos están precargados para esta compra.</span>
+            <span>
+                Hola, <strong>{{ $userName }}</strong>.
+                @if(($prefillSource ?? null) === 'last_order')
+                    Cargamos los datos de tu última compra; puedes modificarlos si algo cambió.
+                @else
+                    Tus datos están precargados; puedes modificarlos antes de pagar.
+                @endif
+            </span>
             <form method="post" action="{{ route('account.logout') }}" class="mb-0">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-outline-success">Cerrar sesión</button>

@@ -17,26 +17,41 @@ class CustomerAddressService
     }
 
     /**
-     * @return array<string, string|null>
+     * Defaults del checkout: prioriza la última compra del usuario (todos los campos)
+     * para que pueda confirmar o modificar sin volver a escribir todo.
+     *
+     * @return array{defaults: array<string, string|float|null>, source: 'last_order'|'address'|'profile'|null}
      */
     public function checkoutDefaults(?User $user): array
     {
         if (! $user) {
-            return [];
+            return ['defaults' => [], 'source' => null];
         }
 
-        $address = $this->defaultForUser($user);
+        $order = Order::query()
+            ->where('user_id', $user->id)
+            ->whereNotIn('status', ['cancelled', 'pending_payment', 'payment_failed'])
+            ->latest()
+            ->first();
 
-        if (! $address) {
+        if (! $order) {
+            // Sin compra confirmada: usar cualquier pedido reciente con datos útiles.
             $order = Order::query()
                 ->where('user_id', $user->id)
                 ->latest()
                 ->first();
+        }
 
-            if ($order) {
-                return [
-                    'customer_name' => $order->customer_name,
-                    'email' => $order->customer_email,
+        if ($order) {
+            return [
+                'source' => 'last_order',
+                'defaults' => [
+                    'customer_name' => $order->customer_name ?: $user->name,
+                    'email' => $order->customer_email ?: $user->email,
+                    'document_type' => $order->document_type ?: 'boleta',
+                    'billing_rut' => $order->billing_rut,
+                    'billing_business_name' => $order->billing_business_name,
+                    'billing_activity' => $order->billing_activity,
                     'recipient_name' => $order->shipping_recipient_name,
                     'phone' => $order->shipping_phone,
                     'region' => $order->shipping_region,
@@ -46,27 +61,37 @@ class CustomerAddressService
                     'apartment' => $order->shipping_apartment,
                     'latitude' => $order->shipping_latitude,
                     'longitude' => $order->shipping_longitude,
-                ];
-            }
+                ],
+            ];
+        }
 
+        $address = $this->defaultForUser($user);
+
+        if ($address) {
             return [
-                'customer_name' => $user->name,
-                'email' => $user->email,
+                'source' => 'address',
+                'defaults' => [
+                    'customer_name' => $user->name,
+                    'email' => $user->email,
+                    'recipient_name' => $address->recipient_name,
+                    'phone' => $address->phone,
+                    'region' => $address->region,
+                    'comuna' => $address->comuna,
+                    'street' => $address->street,
+                    'street_number' => $address->street_number,
+                    'apartment' => $address->apartment,
+                    'latitude' => $address->latitude,
+                    'longitude' => $address->longitude,
+                ],
             ];
         }
 
         return [
-            'customer_name' => $user->name,
-            'email' => $user->email,
-            'recipient_name' => $address->recipient_name,
-            'phone' => $address->phone,
-            'region' => $address->region,
-            'comuna' => $address->comuna,
-            'street' => $address->street,
-            'street_number' => $address->street_number,
-            'apartment' => $address->apartment,
-            'latitude' => $address->latitude,
-            'longitude' => $address->longitude,
+            'source' => 'profile',
+            'defaults' => [
+                'customer_name' => $user->name,
+                'email' => $user->email,
+            ],
         ];
     }
 
