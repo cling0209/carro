@@ -12,7 +12,7 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"
           integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
-    <link href="{{ asset('css/shop.css') }}?v=checkout-map-8" rel="stylesheet">
+    <link href="{{ asset('css/shop.css') }}?v=search-suggest-1" rel="stylesheet">
     <link href="{{ asset('css/page-loader.css') }}" rel="stylesheet">
     @stack('head')
 </head>
@@ -30,8 +30,23 @@
                 <li class="nav-item"><a class="nav-link" href="{{ route('catalog') }}">Catálogo</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('about') }}">Quiénes somos</a></li>
             </ul>
-            <form class="d-flex me-3 flex-grow-1 flex-lg-grow-0" action="{{ route('catalog') }}" method="get" style="max-width: 320px;">
-                <input class="form-control form-control-sm rounded-pill" type="search" name="q" placeholder="Buscar productos..." value="{{ request('q') }}">
+            <form id="shop-search-form"
+                  class="shop-search d-flex me-3 flex-grow-1 flex-lg-grow-0"
+                  action="{{ route('catalog') }}"
+                  method="get"
+                  role="search"
+                  data-suggest-url="{{ route('catalog.suggest') }}">
+                <input id="shop-search-input"
+                       class="form-control form-control-sm rounded-pill shop-search__input"
+                       type="search"
+                       name="q"
+                       placeholder="Buscar productos..."
+                       value="{{ request('q') }}"
+                       autocomplete="off"
+                       aria-autocomplete="list"
+                       aria-controls="shop-search-panel"
+                       aria-expanded="false">
+                <div id="shop-search-panel" class="shop-search__panel" role="listbox" hidden></div>
             </form>
             @auth
                 <span class="text-muted small me-2 d-none d-md-inline">{{ auth()->user()->name }}</span>
@@ -113,6 +128,7 @@
 <script src="{{ asset('js/page-loader.js') }}?v=export" defer></script>
 <script src="{{ asset('js/product-image.js') }}" defer></script>
 <script src="{{ asset('js/password-toggle.js') }}" defer></script>
+<script src="{{ asset('js/shop-search.js') }}?v=1" defer></script>
 @stack('scripts')
 </body>
 </html>

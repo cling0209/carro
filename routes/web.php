@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [ShopController::class, 'home'])->name('home');
 Route::get('/catalogo', [ShopController::class, 'catalog'])->name('catalog');
+Route::get('/catalogo/sugerencias', [ShopController::class, 'searchSuggest'])
+    ->middleware('throttle:60,1')
+    ->name('catalog.suggest');
 Route::get('/quienes-somos', [ShopController::class, 'about'])->name('about');
 Route::get('/producto/{slug}', [ShopController::class, 'show'])->name('product.show');
 

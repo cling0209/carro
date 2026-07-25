@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\CartService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -56,6 +57,33 @@ class ShopController extends Controller
             'search' => $search,
             'activeCategory' => $category,
             'cartCount' => $this->cartCount($request),
+        ]);
+    }
+
+    public function searchSuggest(Request $request): JsonResponse
+    {
+        $search = $request->string('q')->trim()->toString();
+
+        if (mb_strlen($search) < 2) {
+            return response()->json(['data' => []]);
+        }
+
+        $products = Product::active()
+            ->search($search)
+            ->orderByPreferredBrands()
+            ->orderByDesc('is_featured')
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name', 'slug', 'price']);
+
+        return response()->json([
+            'data' => $products->map(fn (Product $product) => [
+                'name' => $product->name,
+                'slug' => $product->slug,
+                'price' => (int) $product->price,
+                'price_label' => clp($product->price),
+                'url' => route('product.show', $product->slug),
+            ])->values(),
         ]);
     }
 
