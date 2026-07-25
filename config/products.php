@@ -27,4 +27,20 @@ return [
         'auto_create_categories' => filter_var(env('PRODUCT_IMPORT_AUTO_CREATE_CATEGORIES', true), FILTER_VALIDATE_BOOL),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Marcas preferidas en búsqueda
+    |--------------------------------------------------------------------------
+    |
+    | En resultados del buscador, productos que mencionen estas marcas
+    | (nombre, descripción o atributo "Marca") aparecen primero.
+    | Separar varias con coma en PRODUCT_PREFERRED_BRANDS.
+    |
+    */
+
+    'preferred_brands' => array_values(array_filter(array_map(
+        static fn (string $brand): string => trim($brand),
+        explode(',', (string) env('PRODUCT_PREFERRED_BRANDS', 'Reysol'))
+    ))),
+
 ];

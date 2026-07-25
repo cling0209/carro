@@ -79,3 +79,71 @@ if (! function_exists('payment_transaction_status_label')) {
         };
     }
 }
+
+if (! function_exists('document_type_label')) {
+    function document_type_label(?string $type): string
+    {
+        return match ($type) {
+            'boleta' => 'Boleta',
+            'factura' => 'Factura',
+            default => $type ?? '—',
+        };
+    }
+}
+
+if (! function_exists('chilean_rut_normalize')) {
+    /** Solo dígitos + DV (K), sin puntos ni guión. */
+    function chilean_rut_normalize(?string $rut): string
+    {
+        return strtoupper(preg_replace('/[^0-9kK]/', '', (string) $rut) ?? '');
+    }
+}
+
+if (! function_exists('chilean_rut_format')) {
+    /** Formato 12.345.678-9 */
+    function chilean_rut_format(?string $rut): string
+    {
+        $clean = chilean_rut_normalize($rut);
+        if (strlen($clean) < 2) {
+            return (string) $rut;
+        }
+
+        $dv = substr($clean, -1);
+        $number = substr($clean, 0, -1);
+
+        return number_format((int) $number, 0, '', '.').'-'.$dv;
+    }
+}
+
+if (! function_exists('chilean_rut_is_valid')) {
+    function chilean_rut_is_valid(?string $rut): bool
+    {
+        $clean = chilean_rut_normalize($rut);
+        if (strlen($clean) < 2 || strlen($clean) > 9) {
+            return false;
+        }
+
+        $dv = substr($clean, -1);
+        $number = substr($clean, 0, -1);
+
+        if (! ctype_digit($number)) {
+            return false;
+        }
+
+        $sum = 0;
+        $multiplier = 2;
+        for ($i = strlen($number) - 1; $i >= 0; $i--) {
+            $sum += (int) $number[$i] * $multiplier;
+            $multiplier = $multiplier === 7 ? 2 : $multiplier + 1;
+        }
+
+        $remainder = 11 - ($sum % 11);
+        $expected = match ($remainder) {
+            11 => '0',
+            10 => 'K',
+            default => (string) $remainder,
+        };
+
+        return $dv === $expected;
+    }
+}

@@ -89,6 +89,10 @@ class OrderAdminService
                 'Estado pedido',
                 'Estado pago',
                 'Método pago',
+                'Documento',
+                'RUT',
+                'Razón social',
+                'Giro',
                 'Región',
                 'Comuna',
             ], ';');
@@ -109,6 +113,10 @@ class OrderAdminService
                             order_status_label($order->status),
                             payment_status_label($order->payment_status),
                             $order->payment_method ?? '',
+                            document_type_label($order->document_type),
+                            $order->billing_rut ?? '',
+                            $order->billing_business_name ?? '',
+                            $order->billing_activity ?? '',
                             $order->shipping_region,
                             $order->shipping_comuna,
                         ], ';');

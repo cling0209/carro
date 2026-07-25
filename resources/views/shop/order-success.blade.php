@@ -44,6 +44,12 @@
                 <span>Total pagado</span>
                 <span class="text-primary">{{ clp($order->total) }}</span>
             </div>
+            @if($order->document_type)
+                <div class="small text-muted mt-2 pt-2 border-top">
+                    Documento: {{ document_type_label($order->document_type) }}
+                    @if($order->billing_rut) · RUT {{ $order->billing_rut }}@endif
+                </div>
+            @endif
         </div>
         <p class="small text-muted">Te enviamos un correo de confirmación a {{ $order->customer_email }}.</p>
         <a href="{{ route('catalog') }}" class="btn btn-primary rounded-pill">Seguir comprando</a>

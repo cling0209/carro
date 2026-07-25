@@ -22,6 +22,7 @@ class Order extends Model
         'shipping_comuna', 'shipping_street', 'shipping_street_number',
         'shipping_apartment', 'shipping_latitude', 'shipping_longitude',
         'customer_email', 'customer_name',
+        'document_type', 'billing_rut', 'billing_business_name', 'billing_activity',
     ];
 
     protected function casts(): array

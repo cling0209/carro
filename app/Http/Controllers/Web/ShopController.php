@@ -36,12 +36,14 @@ class ShopController extends Controller
     public function catalog(Request $request): View
     {
         $query = Product::active()->with(['images', 'category']);
+        $search = $request->string('q')->trim()->toString();
+        $category = $request->string('category')->trim()->toString();
 
-        if ($search = $request->string('q')->trim()->toString()) {
-            $query->search($search);
+        if ($search !== '') {
+            $query->search($search)->orderByPreferredBrands();
         }
 
-        if ($category = $request->string('category')->trim()->toString()) {
+        if ($category !== '') {
             $query->whereHas('category', fn ($q) => $q->where('slug', $category));
         }
 
@@ -51,8 +53,8 @@ class ShopController extends Controller
         return view('shop.catalog', [
             'products' => $products,
             'categories' => $categories,
-            'search' => $search ?? '',
-            'activeCategory' => $category ?? '',
+            'search' => $search,
+            'activeCategory' => $category,
             'cartCount' => $this->cartCount($request),
         ]);
     }

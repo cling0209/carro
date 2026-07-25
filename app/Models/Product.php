@@ -161,4 +161,37 @@ class Product extends Model
                     ->orWhere('slug', 'ilike', "%{$term}%"));
         });
     }
+
+    /**
+     * Prioriza productos de marcas preferidas (p. ej. Reysol) en resultados de búsqueda.
+     */
+    public function scopeOrderByPreferredBrands(Builder $query): Builder
+    {
+        /** @var list<string> $brands */
+        $brands = config('products.preferred_brands', []);
+
+        if ($brands === []) {
+            return $query;
+        }
+
+        $likeOp = $query->getConnection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
+        $conditions = [];
+        $bindings = [];
+
+        foreach ($brands as $brand) {
+            $like = '%'.$brand.'%';
+            $conditions[] = "(products.name {$likeOp} ? OR products.description {$likeOp} ? OR EXISTS (
+                SELECT 1 FROM product_attributes pa
+                WHERE pa.product_id = products.id
+                  AND pa.name {$likeOp} ?
+                  AND pa.value {$likeOp} ?
+            ))";
+            array_push($bindings, $like, $like, 'marca', $like);
+        }
+
+        return $query->orderByRaw(
+            'CASE WHEN ('.implode(' OR ', $conditions).') THEN 0 ELSE 1 END',
+            $bindings
+        );
+    }
 }

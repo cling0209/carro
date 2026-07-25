@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\ChileanRut;
 use App\Services\CartService;
 use App\Services\CustomerAddressService;
 use App\Services\NominatimGeocoder;
@@ -15,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
@@ -49,10 +51,12 @@ class CheckoutController extends Controller
         foreach ([
             'customer_name', 'email', 'recipient_name', 'phone',
             'region', 'comuna', 'street', 'street_number', 'apartment',
+            'billing_rut', 'billing_business_name', 'billing_activity',
         ] as $field) {
             $defaults[$field] = old($field, $saved[$field] ?? '');
         }
 
+        $defaults['document_type'] = old('document_type', $saved['document_type'] ?? 'boleta');
         $defaults['latitude'] = old('latitude', $saved['latitude'] ?? null);
         $defaults['longitude'] = old('longitude', $saved['longitude'] ?? null);
 
@@ -175,6 +179,10 @@ class CheckoutController extends Controller
         $rules = [
             'customer_name' => ['required', 'string', 'min:4', 'max:120'],
             'email' => ['required', 'email', 'max:180'],
+            'document_type' => ['required', Rule::in(['boleta', 'factura'])],
+            'billing_rut' => ['required', 'string', 'max:20', new ChileanRut],
+            'billing_business_name' => ['nullable', 'required_if:document_type,factura', 'string', 'max:180'],
+            'billing_activity' => ['nullable', 'required_if:document_type,factura', 'string', 'max:180'],
             'recipient_name' => ['required', 'string', 'min:4', 'max:120'],
             'phone' => ['required', 'string', 'max:30', 'regex:/^(\+?56)?\s?9[\s-]?\d{4}[\s-]?\d{4}$/'],
             'region' => ['required', 'string', 'max:80'],
@@ -197,10 +205,19 @@ class CheckoutController extends Controller
             'customer_name.min' => 'El nombre debe tener más de 3 caracteres.',
             'recipient_name.min' => 'El destinatario debe tener más de 3 caracteres.',
             'phone.regex' => 'El celular debe ser formato Chile: +56 9 XXXX XXXX.',
+            'billing_rut.required' => 'Ingresa el RUT para la boleta o factura.',
+            'billing_business_name.required_if' => 'La razón social es obligatoria para factura.',
+            'billing_activity.required_if' => 'El giro es obligatorio para factura.',
             'latitude.required' => 'Marca tu ubicación en el mapa para continuar.',
             'longitude.required' => 'Marca tu ubicación en el mapa para continuar.',
             'address_synced.accepted' => 'La calle debe coincidir con el pin. Usa “Buscar en el mapa” o vuelve a marcar el pin.',
         ]);
+
+        $data['billing_rut'] = chilean_rut_format($data['billing_rut']);
+        if (($data['document_type'] ?? '') !== 'factura') {
+            $data['billing_business_name'] = null;
+            $data['billing_activity'] = null;
+        }
 
         if (! $this->geocoder->isInChile((float) $data['latitude'], (float) $data['longitude'])) {
             return redirect()->back()->withInput()->with('error', 'La ubicación debe estar dentro de Chile.');

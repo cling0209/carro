@@ -20,9 +20,13 @@ class ProductController extends Controller
     #[OA\Response(response: 200, description: 'OK')]
     public function index(Request $request): JsonResponse
     {
+        $search = trim((string) $request->query('q', ''));
         $query = Product::active()
-            ->with(['images', 'category', 'attributes'])
-            ->search($request->query('q'));
+            ->with(['images', 'category', 'attributes']);
+
+        if ($search !== '') {
+            $query->search($search)->orderByPreferredBrands();
+        }
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->integer('category_id'));

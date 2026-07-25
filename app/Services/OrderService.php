@@ -74,6 +74,16 @@ class OrderService
                 'shipping_longitude' => $shipping['longitude'] ?? null,
                 'customer_email' => $shipping['email'],
                 'customer_name' => $shipping['customer_name'] ?? $shipping['recipient_name'],
+                'document_type' => $shipping['document_type'] ?? 'boleta',
+                'billing_rut' => isset($shipping['billing_rut'])
+                    ? chilean_rut_format($shipping['billing_rut'])
+                    : null,
+                'billing_business_name' => ($shipping['document_type'] ?? 'boleta') === 'factura'
+                    ? ($shipping['billing_business_name'] ?? null)
+                    : null,
+                'billing_activity' => ($shipping['document_type'] ?? 'boleta') === 'factura'
+                    ? ($shipping['billing_activity'] ?? null)
+                    : null,
             ]);
 
             foreach ($cart->items as $item) {

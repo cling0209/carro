@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiResponse;
 use App\Models\Order;
+use App\Rules\ChileanRut;
 use App\Services\CartService;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
 
 #[OA\Tag(name: 'Orders')]
@@ -30,12 +32,22 @@ class OrderController extends Controller
             'customer_name' => ['nullable', 'string', 'max:120'],
             'email' => ['required', 'email'],
             'phone' => ['required', 'string', 'max:20'],
+            'document_type' => ['required', Rule::in(['boleta', 'factura'])],
+            'billing_rut' => ['required', 'string', 'max:20', new ChileanRut],
+            'billing_business_name' => ['nullable', 'required_if:document_type,factura', 'string', 'max:180'],
+            'billing_activity' => ['nullable', 'required_if:document_type,factura', 'string', 'max:180'],
             'region' => ['required', 'string', 'max:80'],
             'comuna' => ['required', 'string', 'max:80'],
             'street' => ['required', 'string', 'max:200'],
             'street_number' => ['nullable', 'string', 'max:20'],
             'apartment' => ['nullable', 'string', 'max:40'],
         ]);
+
+        $shipping['billing_rut'] = chilean_rut_format($shipping['billing_rut']);
+        if ($shipping['document_type'] !== 'factura') {
+            $shipping['billing_business_name'] = null;
+            $shipping['billing_activity'] = null;
+        }
 
         try {
             $cart = $this->cartService->resolve($request);

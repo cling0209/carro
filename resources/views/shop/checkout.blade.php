@@ -47,6 +47,53 @@
                     </div>
                 </div>
 
+                <div class="checkout-card card p-4 mb-4" id="billing-document-card">
+                    <h2 class="h5 fw-bold mb-3">Documento tributario</h2>
+                    <p class="small text-muted mb-3">Elige si necesitas boleta o factura. Ambos requieren RUT chileno válido.</p>
+                    <div class="row g-3">
+                        <div class="col-12" id="document-type-wrap">
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="document_type" id="document_type_boleta"
+                                           value="boleta" @checked(($defaults['document_type'] ?? 'boleta') === 'boleta') required>
+                                    <label class="form-check-label fw-semibold" for="document_type_boleta">Boleta</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="document_type" id="document_type_factura"
+                                           value="factura" @checked(($defaults['document_type'] ?? '') === 'factura')>
+                                    <label class="form-check-label fw-semibold" for="document_type_factura">Factura</label>
+                                </div>
+                            </div>
+                            @error('document_type')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6" id="billing-rut-wrap">
+                            <label class="form-label" for="billing_rut">RUT *</label>
+                            <input type="text" name="billing_rut" id="billing_rut"
+                                   class="form-control @error('billing_rut') is-invalid @enderror"
+                                   value="{{ $defaults['billing_rut'] }}"
+                                   placeholder="12.345.678-9" required autocomplete="off" inputmode="text">
+                            <div class="form-text">Formato: 12.345.678-9</div>
+                            @error('billing_rut')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6" id="billing-business-name-wrap">
+                            <label class="form-label" for="billing_business_name">Razón social *</label>
+                            <input type="text" name="billing_business_name" id="billing_business_name"
+                                   class="form-control @error('billing_business_name') is-invalid @enderror"
+                                   value="{{ $defaults['billing_business_name'] }}"
+                                   autocomplete="organization" maxlength="180">
+                            @error('billing_business_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-12" id="billing-activity-wrap">
+                            <label class="form-label" for="billing_activity">Giro *</label>
+                            <input type="text" name="billing_activity" id="billing_activity"
+                                   class="form-control @error('billing_activity') is-invalid @enderror"
+                                   value="{{ $defaults['billing_activity'] }}"
+                                   placeholder="Ej. Comercio al por menor" maxlength="180">
+                            @error('billing_activity')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                    </div>
+                </div>
+
                 <div class="checkout-card card p-4 mb-4">
                     <h2 class="h5 fw-bold mb-3">Dirección de envío</h2>
                     <div id="checkout-address-guide" class="checkout-guide alert alert-warning border-warning mb-3" role="status" aria-live="polite">
@@ -228,7 +275,7 @@
                     </div>
                     <div id="checkout-submit-hint" class="alert alert-warning border-warning small mb-3">
                         <i class="bi bi-info-circle-fill me-1"></i>
-                        Te guiamos paso a paso: nombre, correo, destinatario, celular, región, comuna, calle y pin (Buscar en el mapa o tocar el mapa).
+                        Completa contacto, documento (boleta/factura), dirección y pin en el mapa para pagar.
                     </div>
                     <button type="submit" class="btn btn-webpay-pay btn-lg rounded-pill w-100" id="checkout-submit" disabled>
                         Pagar con Webpay <i class="bi bi-lock-fill"></i>
@@ -301,6 +348,69 @@ const customerNameInput = document.getElementById('customer_name');
 const emailInput = document.getElementById('email');
 const recipientInput = document.getElementById('recipient_name');
 const phoneInput = document.getElementById('phone');
+const billingRutInput = document.getElementById('billing_rut');
+const billingBusinessNameInput = document.getElementById('billing_business_name');
+const billingActivityInput = document.getElementById('billing_activity');
+const documentTypeBoleta = document.getElementById('document_type_boleta');
+const documentTypeFactura = document.getElementById('document_type_factura');
+const billingBusinessNameWrap = document.getElementById('billing-business-name-wrap');
+const billingActivityWrap = document.getElementById('billing-activity-wrap');
+
+function selectedDocumentType() {
+    if (documentTypeFactura?.checked) return 'factura';
+    return 'boleta';
+}
+
+function chileanRutNormalize(value) {
+    return String(value || '').replace(/[^0-9kK]/g, '').toUpperCase();
+}
+
+function chileanRutIsValid(value) {
+    const clean = chileanRutNormalize(value);
+    if (clean.length < 2 || clean.length > 9) return false;
+    const dv = clean.slice(-1);
+    const number = clean.slice(0, -1);
+    if (!/^\d+$/.test(number)) return false;
+    let sum = 0;
+    let multiplier = 2;
+    for (let i = number.length - 1; i >= 0; i -= 1) {
+        sum += Number(number[i]) * multiplier;
+        multiplier = multiplier === 7 ? 2 : multiplier + 1;
+    }
+    const remainder = 11 - (sum % 11);
+    const expected = remainder === 11 ? '0' : (remainder === 10 ? 'K' : String(remainder));
+    return dv === expected;
+}
+
+function chileanRutFormat(value) {
+    const clean = chileanRutNormalize(value);
+    if (clean.length < 2) return String(value || '');
+    const dv = clean.slice(-1);
+    const number = clean.slice(0, -1);
+    return Number(number).toLocaleString('es-CL') + '-' + dv;
+}
+
+function toggleBillingDocumentFields() {
+    const isFactura = selectedDocumentType() === 'factura';
+    if (billingBusinessNameWrap) billingBusinessNameWrap.classList.toggle('d-none', !isFactura);
+    if (billingActivityWrap) billingActivityWrap.classList.toggle('d-none', !isFactura);
+    if (billingBusinessNameInput) {
+        billingBusinessNameInput.required = isFactura;
+    }
+    if (billingActivityInput) {
+        billingActivityInput.required = isFactura;
+    }
+    updateCheckoutSubmitState();
+}
+
+function billingDocumentReady() {
+    if (!chileanRutIsValid(billingRutInput?.value)) return false;
+    if (selectedDocumentType() === 'factura') {
+        return String(billingBusinessNameInput?.value || '').trim().length >= 2
+            && String(billingActivityInput?.value || '').trim().length >= 2;
+    }
+    return true;
+}
 
 const guideTitle = document.getElementById('checkout-guide-title');
 const guideText = document.getElementById('checkout-guide-text');
@@ -658,6 +768,7 @@ function requiredFieldsComplete() {
 function updateCheckoutSubmitState() {
     const ready = shippingReady
         && contactReady()
+        && billingDocumentReady()
         && locationReady()
         && pinIsSet()
         && isAddressSynced()
@@ -996,6 +1107,21 @@ async function quoteShipping() {
 if (createAccountCheckbox) {
     createAccountCheckbox.addEventListener('change', toggleCreateAccountFields);
     toggleCreateAccountFields();
+}
+
+[documentTypeBoleta, documentTypeFactura].forEach((el) => {
+    if (el) el.addEventListener('change', toggleBillingDocumentFields);
+});
+toggleBillingDocumentFields();
+
+if (billingRutInput) {
+    billingRutInput.addEventListener('blur', () => {
+        const clean = chileanRutNormalize(billingRutInput.value);
+        if (clean.length >= 2) {
+            billingRutInput.value = chileanRutFormat(clean);
+        }
+        updateCheckoutSubmitState();
+    });
 }
 
 regionSelect.addEventListener('change', () => {

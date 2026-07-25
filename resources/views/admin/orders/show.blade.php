@@ -86,6 +86,24 @@
             </div>
 
             <div class="card admin-card mb-4">
+                <div class="card-header bg-white fw-semibold">Documento tributario</div>
+                <div class="card-body small">
+                    <p class="mb-1"><strong>{{ document_type_label($order->document_type) }}</strong></p>
+                    @if($order->billing_rut)
+                        <p class="mb-1">RUT: {{ $order->billing_rut }}</p>
+                    @endif
+                    @if($order->document_type === 'factura')
+                        @if($order->billing_business_name)
+                            <p class="mb-1">Razón social: {{ $order->billing_business_name }}</p>
+                        @endif
+                        @if($order->billing_activity)
+                            <p class="mb-0">Giro: {{ $order->billing_activity }}</p>
+                        @endif
+                    @endif
+                </div>
+            </div>
+
+            <div class="card admin-card mb-4">
                 <div class="card-header bg-white fw-semibold">Envío</div>
                 <div class="card-body small">
                     <p class="mb-1">{{ $order->shipping_recipient_name }}</p>

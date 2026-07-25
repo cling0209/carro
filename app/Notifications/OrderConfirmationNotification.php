@@ -59,8 +59,23 @@ class OrderConfirmationNotification extends Notification
             ->line($order->shipping_recipient_name)
             ->line($order->shipping_phone)
             ->line($address)
-            ->line($order->shipping_comuna.', '.$order->shipping_region)
-            ->action('Seguir comprando', route('catalog'))
+            ->line($order->shipping_comuna.', '.$order->shipping_region);
+
+        $docLine = '**Documento:** '.document_type_label($order->document_type);
+        if ($order->billing_rut) {
+            $docLine .= ' · RUT '.$order->billing_rut;
+        }
+        $message->line($docLine);
+        if ($order->document_type === 'factura') {
+            if ($order->billing_business_name) {
+                $message->line('Razón social: '.$order->billing_business_name);
+            }
+            if ($order->billing_activity) {
+                $message->line('Giro: '.$order->billing_activity);
+            }
+        }
+
+        $message->action('Seguir comprando', route('catalog'))
             ->line('Gracias por comprar en '.$appName.'.');
 
         return $message;
