@@ -3,6 +3,11 @@
 @section('title', $product->exists ? 'Editar producto' : 'Nuevo producto')
 
 @section('content')
+@php
+    $storageImagenConfigurado = $storageImagenConfigurado ?? false;
+    $skuPreview = old('sku', $product->sku) ?: 'SKU';
+    $filenamePreview = $product->image_filename ?: ($skuPreview.'.jpg');
+@endphp
 <div class="container-fluid py-4">
     <div class="mb-4">
         <a href="{{ route('admin.products.index') }}" class="text-decoration-none small">
@@ -16,7 +21,8 @@
             <div class="card admin-card">
                 <div class="card-body p-4">
                     <form method="post"
-                          action="{{ $product->exists ? route('admin.products.update', $product) : route('admin.products.store') }}">
+                          action="{{ $product->exists ? route('admin.products.update', $product) : route('admin.products.store') }}"
+                          enctype="multipart/form-data">
                         @csrf
                         @if($product->exists) @method('PUT') @endif
 
@@ -35,7 +41,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">SKU (código) *</label>
-                                <input type="text" name="sku" class="form-control @error('sku') is-invalid @enderror"
+                                <input type="text" name="sku" id="sku" class="form-control @error('sku') is-invalid @enderror"
                                        value="{{ old('sku', $product->sku) }}" required>
                                 @error('sku')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
@@ -56,15 +62,23 @@
                                        value="{{ old('familia', $product->familia) }}"
                                        placeholder="Ej. LIB">
                                 @error('familia')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                <div class="form-text">Carpeta en la URL externa de Romulo.</div>
+                                <div class="form-text">Carpeta en el almacenamiento de imágenes.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Nombre de archivo imagen</label>
-                                <input type="text" name="image_filename" class="form-control @error('image_filename') is-invalid @enderror"
-                                       value="{{ old('image_filename', $product->image_filename) }}"
-                                       placeholder="Ej. 90503_medium.jpg">
-                                @error('image_filename')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                <div class="form-text">Última parte de la URL de la imagen.</div>
+                                <input type="text" id="image_filename_display" class="form-control" value="{{ $filenamePreview }}" readonly disabled>
+                                <div class="form-text">Siempre <code id="image_filename_hint">{{ $skuPreview }}.jpg</code> al subir (no editable).</div>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Subir imagen</label>
+                                <input type="file" name="imagen" accept="image/jpeg,image/png,image/webp,image/gif"
+                                       class="form-control @error('imagen') is-invalid @enderror">
+                                @error('imagen')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                @if(! $storageImagenConfigurado)
+                                    <div class="form-text text-warning">R2 no configurado: complete credenciales en .env para poder subir.</div>
+                                @else
+                                    <div class="form-text">JPG/PNG/WebP/GIF → se convierte a JPG cuadrado {{ config('products.image_listing_size') }}px.</div>
+                                @endif
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Precio de venta *</label>
@@ -117,9 +131,12 @@
                             </div>
                         </div>
 
-                        <div class="mt-4 d-flex gap-2">
+                        <div class="mt-4 d-flex gap-2 flex-wrap">
                             <button type="submit" class="btn btn-primary">Guardar</button>
                             <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                            @if($product->exists)
+                                <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-outline-primary">Solo imagen</a>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -129,7 +146,7 @@
             <div class="card admin-card">
                 <div class="card-body">
                     <h2 class="h6 fw-bold">Vista previa imagen</h2>
-                    <p class="small text-muted">Según base URL + familia + nombre de archivo del producto.</p>
+                    <p class="small text-muted">Según base URL + familia + <code>{sku}.jpg</code>.</p>
                     @if($product->exists)
                         <x-product-image :product="$product" variant="admin-preview" />
                         <code class="d-block small mt-2 text-break admin-image-url">{{ product_image($product) ?: '— sin URL —' }}</code>
@@ -142,3 +159,30 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var skuInput = document.getElementById('sku');
+    var hint = document.getElementById('image_filename_hint');
+    var display = document.getElementById('image_filename_display');
+    if (!skuInput || !hint) return;
+
+    function syncFilenameHint() {
+        var sku = (skuInput.value || 'SKU').trim() || 'SKU';
+        var safe = sku.replace(/[^a-zA-Z0-9._-]+/g, '_') || 'SKU';
+        var name = safe + '.jpg';
+        hint.textContent = name;
+        if (display && !display.dataset.locked) {
+            display.value = name;
+        }
+    }
+
+    @if($product->exists && $product->image_filename)
+    if (display) display.dataset.locked = '1';
+    @endif
+
+    skuInput.addEventListener('input', syncFilenameHint);
+})();
+</script>
+@endpush

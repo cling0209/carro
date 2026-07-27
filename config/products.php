@@ -4,23 +4,39 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Imágenes de productos (URL externa)
+    | Imágenes de productos (URL externa / R2)
     |--------------------------------------------------------------------------
     |
     | URL = {image_base_url}/{familia}/{image_filename}
-    | familia e image_filename se definen por producto en admin o carga masiva.
-    |
-    | Ejemplo:
-    | https://www.romulo.cl/allproducts/imagenes/productos/LIB/90503.jpg
+    | Al subir desde admin, el archivo siempre se guarda como {sku}.jpg
+    | (PNG/WebP/GIF se convierten a JPG).
     |
     */
 
-    'image_base_url' => env('PRODUCT_IMAGE_BASE_URL'),
+    /*
+    | Prioridad lectura: PRODUCT_IMAGE_BASE_URL → R2_PUBLIC_URL + prefijo
+    */
+    'image_base_url' => env('PRODUCT_IMAGE_BASE_URL') ?: (
+        filled($r2Public = env('R2_PUBLIC_URL'))
+            ? rtrim($r2Public, '/').'/'.trim(env('R2_IMAGE_PREFIX', 'productos'), '/')
+            : null
+    ),
 
     'image_fallback_url' => env(
         'PRODUCT_IMAGE_FALLBACK_URL',
         '/images/no-image.svg'
     ),
+
+    'storage_disk' => env('PRODUCT_STORAGE_DISK', 'r2'),
+
+    'r2_prefix' => env('R2_IMAGE_PREFIX', 'productos'),
+
+    /*
+    | Al subir imagen: se redimensiona a un cuadrado con fondo blanco (contain, sin ampliar).
+    */
+    'image_listing_size' => (int) env('PRODUCT_IMAGE_LISTING_SIZE', 400),
+
+    'image_jpeg_quality' => (int) env('PRODUCT_IMAGE_JPEG_QUALITY', 85),
 
     'import' => [
         'background' => filter_var(env('PRODUCT_IMPORT_BACKGROUND', true), FILTER_VALIDATE_BOOL),

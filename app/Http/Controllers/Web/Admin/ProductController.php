@@ -13,18 +13,25 @@ use App\Services\ProductImportLockService;
 use App\Services\ProductImportProgressService;
 use App\Services\ProductImportRunService;
 use App\Services\ProductImportService;
+use App\Services\ProductImageStorageService;
 use App\Services\ProductImportStagingService;
 use App\Support\ProductImportColumnMapping;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductController extends Controller
 {
+    public function __construct(
+        protected ProductImageStorageService $imageStorage,
+    ) {}
+
     public function index(Request $request): View
     {
         $products = Product::query()
@@ -45,12 +52,14 @@ class ProductController extends Controller
         return view('admin.products.form', [
             'product' => new Product(['is_active' => true, 'stock' => 0]),
             'categories' => Category::query()->orderBy('name')->get(),
+            'storageImagenConfigurado' => $this->imageStorage->isConfigured(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
+        $data = $this->applyUploadedImage($request, $data);
 
         $trashed = Product::onlyTrashed()->where('sku', $data['sku'])->first();
 
@@ -79,12 +88,14 @@ class ProductController extends Controller
         return view('admin.products.form', [
             'product' => $product,
             'categories' => Category::query()->orderBy('name')->get(),
+            'storageImagenConfigurado' => $this->imageStorage->isConfigured(),
         ]);
     }
 
     public function update(Request $request, Product $product): RedirectResponse
     {
         $data = $this->validated($request, $product->id);
+        $data = $this->applyUploadedImage($request, $data, $product);
 
         if (isset($data['slug'])) {
             $data['slug'] = $this->uniqueSlug($data['slug'], $product->id);
@@ -95,6 +106,46 @@ class ProductController extends Controller
         return redirect()
             ->route('admin.products.index')
             ->with('success', 'Producto actualizado.');
+    }
+
+    public function editImage(Product $product): View
+    {
+        return view('admin.products.imagen', [
+            'product' => $product,
+            'storageImagenConfigurado' => $this->imageStorage->isConfigured(),
+        ]);
+    }
+
+    public function updateImage(Request $request, Product $product): RedirectResponse
+    {
+        $request->validate([
+            'imagen' => ['required', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
+        ]);
+
+        if (! $this->imageStorage->isConfigured()) {
+            throw ValidationException::withMessages([
+                'imagen' => 'Configure R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET y R2_PUBLIC_URL (o PRODUCT_IMAGE_BASE_URL) en .env.',
+            ]);
+        }
+
+        $familia = trim((string) $product->familia);
+        if ($familia === '') {
+            throw ValidationException::withMessages([
+                'imagen' => 'Defina la familia (carpeta) del producto antes de subir la imagen.',
+            ]);
+        }
+
+        $filename = $this->imageStorage->upload(
+            $request->file('imagen'),
+            $familia,
+            (string) $product->sku,
+        );
+
+        $product->update(['image_filename' => $filename]);
+
+        return redirect()
+            ->route('admin.products.image.edit', $product)
+            ->with('success', 'Imagen actualizada ('.$filename.').');
     }
 
     public function destroy(Product $product): RedirectResponse
@@ -523,11 +574,52 @@ class ProductController extends Controller
             'stock' => ['required', 'integer', 'min:0'],
             'weight_kg' => ['nullable', 'numeric', 'min:0'],
             'familia' => ['nullable', 'string', 'max:120'],
-            'image_filename' => ['nullable', 'string', 'max:255'],
+            'imagen' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
         ]);
+
+        unset($data['imagen']);
 
         $data['is_active'] = $request->boolean('is_active');
         $data['is_featured'] = $request->boolean('is_featured');
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function applyUploadedImage(Request $request, array $data, ?Product $product = null): array
+    {
+        /** @var UploadedFile|null $file */
+        $file = $request->file('imagen');
+
+        if (! $file) {
+            return $data;
+        }
+
+        if (! $this->imageStorage->isConfigured()) {
+            throw ValidationException::withMessages([
+                'imagen' => 'Configure R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET y R2_PUBLIC_URL (o PRODUCT_IMAGE_BASE_URL) en .env.',
+            ]);
+        }
+
+        $familia = trim((string) ($data['familia'] ?? $product?->familia ?? ''));
+        if ($familia === '') {
+            throw ValidationException::withMessages([
+                'imagen' => 'Defina la familia (carpeta) antes de subir la imagen.',
+            ]);
+        }
+
+        $sku = trim((string) ($data['sku'] ?? $product?->sku ?? ''));
+        if ($sku === '') {
+            throw ValidationException::withMessages([
+                'imagen' => 'Defina el SKU antes de subir la imagen.',
+            ]);
+        }
+
+        $data['familia'] = $familia;
+        $data['image_filename'] = $this->imageStorage->upload($file, $familia, $sku);
 
         return $data;
     }

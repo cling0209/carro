@@ -96,6 +96,9 @@
                             <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" aria-label="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-sm btn-outline-secondary" aria-label="Imagen">
+                                <i class="bi bi-image"></i>
+                            </a>
                             <form action="{{ route('admin.products.destroy', $product) }}" method="post"
                                   onsubmit="return confirm('¿Eliminar este producto?')">
                                 @csrf
@@ -162,14 +165,17 @@
                                 @endif
                             </td>
                             <td class="text-end text-nowrap">
-                                <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" title="Editar">
                                     <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-sm btn-outline-secondary" title="Imagen">
+                                    <i class="bi bi-image"></i>
                                 </a>
                                 <form action="{{ route('admin.products.destroy', $product) }}" method="post" class="d-inline"
                                       onsubmit="return confirm('¿Eliminar este producto?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
