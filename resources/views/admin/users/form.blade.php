@@ -12,6 +12,7 @@
         <p class="text-muted mb-0">
             Si el correo ya existe como cliente, la cuenta se promoverá al perfil elegido.
             <strong>Administrador</strong> ve todo el panel;
+            <strong>Ejecutivo</strong> solo puede actualizar imágenes de productos;
             <strong>Bodega</strong> solo el tablero de pedidos.
             Al guardar, se enviará un correo de bienvenida.
         </p>
@@ -41,6 +42,7 @@
                                 <label class="form-label" for="role">Perfil *</label>
                                 <select name="role" id="role" class="form-select @error('role') is-invalid @enderror" required>
                                     <option value="admin" @selected(old('role', 'admin') === 'admin')>Administrador (acceso completo)</option>
+                                    <option value="ejecutivo" @selected(old('role') === 'ejecutivo')>Ejecutivo (solo imágenes de productos)</option>
                                     <option value="bodega" @selected(old('role') === 'bodega')>Bodega (solo tablero)</option>
                                 </select>
                                 @error('role')<div class="invalid-feedback">{{ $message }}</div>@enderror

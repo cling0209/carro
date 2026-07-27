@@ -60,7 +60,7 @@
 
                         <div class="mt-4 d-flex gap-2">
                             <button type="submit" class="btn btn-primary btn-sm" @disabled(empty($storageImagenConfigurado) || empty($product->familia))>Guardar imagen</button>
-                            <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-outline-secondary btn-sm">Editar producto</a>
+                            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary btn-sm">Volver al listado</a>
                         </div>
                     </form>
                 </div>

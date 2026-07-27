@@ -7,7 +7,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h1 class="h3 fw-bold mb-1">Usuarios del panel</h1>
-            <p class="text-muted mb-0">Administradores y personal de bodega con acceso al panel.</p>
+            <p class="text-muted mb-0">Administradores, ejecutivos y personal de bodega con acceso al panel.</p>
         </div>
         <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
             <i class="bi bi-person-plus"></i> Nuevo usuario
@@ -55,6 +55,8 @@
                             <td>
                                 @if($admin->isWarehouse())
                                     <span class="badge text-bg-secondary">Bodega</span>
+                                @elseif($admin->isEjecutivo())
+                                    <span class="badge text-bg-info">Ejecutivo</span>
                                 @else
                                     <span class="badge text-bg-dark">Administrador</span>
                                 @endif

@@ -20,14 +20,17 @@
 <x-page-loader />
 @if(auth()->check() && auth()->user()->canAccessAdminPanel())
 @php
-    $isFullAdmin = auth()->user()->isAdmin();
+    $user = auth()->user();
+    $isFullAdmin = $user->isAdmin();
+    $isEjecutivo = $user->isEjecutivo();
+    $isWarehouse = $user->isWarehouse();
 @endphp
 <nav class="navbar navbar-expand-lg navbar-dark admin-navbar">
     <div class="container-fluid">
         <div class="d-flex align-items-center gap-2">
-            <x-shop-logo variant="light" :href="route(auth()->user()->adminHomeRoute())" class="py-0" />
+            <x-shop-logo variant="light" :href="route($user->adminHomeRoute())" class="py-0" />
             <span class="navbar-brand fw-bold mb-0 text-white opacity-75 d-none d-sm-inline">
-                · {{ $isFullAdmin ? 'Administración' : 'Bodega' }}
+                · {{ $isFullAdmin ? 'Administración' : ($isEjecutivo ? 'Ejecutivo' : 'Bodega') }}
             </span>
         </div>
         <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
@@ -37,10 +40,12 @@
         </button>
         <div class="collapse navbar-collapse" id="adminNavbar">
             <div class="admin-nav-links ms-lg-auto">
-                @if($isFullAdmin)
+                @if($isFullAdmin || $isEjecutivo)
                 <a href="{{ route('admin.products.index') }}" class="nav-link-admin {{ request()->routeIs('admin.products.*') ? 'active' : '' }}">
                     <i class="bi bi-box-seam"></i> Productos
                 </a>
+                @endif
+                @if($isFullAdmin)
                 <a href="{{ route('admin.categories.index') }}" class="nav-link-admin {{ request()->routeIs('admin.categories.*') ? 'active' : '' }}">
                     <i class="bi bi-tags"></i> Categorías
                 </a>
@@ -48,9 +53,11 @@
                     <i class="bi bi-receipt"></i> Ventas
                 </a>
                 @endif
+                @if($isFullAdmin || $isWarehouse)
                 <a href="{{ route('admin.warehouse.index') }}" class="nav-link-admin {{ request()->routeIs('admin.warehouse.*') ? 'active' : '' }}" @if($isFullAdmin) target="_blank" @endif>
                     <i class="bi bi-display"></i> Bodega
                 </a>
+                @endif
                 @if($isFullAdmin)
                 <a href="{{ route('admin.shipping.index') }}" class="nav-link-admin {{ request()->routeIs('admin.shipping.*') ? 'active' : '' }}">
                     <i class="bi bi-truck"></i> Envíos
@@ -69,7 +76,7 @@
                     <i class="bi bi-key"></i> Clave
                 </a>
                 <div class="admin-nav-meta">
-                    <span class="text-white-50 small d-none d-lg-inline">{{ auth()->user()->name }}</span>
+                    <span class="text-white-50 small d-none d-lg-inline">{{ $user->name }}</span>
                     <form action="{{ route('admin.logout') }}" method="post" class="d-inline">
                         @csrf
                         <button type="submit" class="btn btn-outline-light btn-sm">Salir</button>

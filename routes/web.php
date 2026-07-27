@@ -97,6 +97,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             return redirect()->route(auth()->user()->adminHomeRoute());
         })->name('home');
 
+        Route::middleware('admin.catalog')->group(function () {
+            Route::get('productos', [AdminProductController::class, 'index'])->name('products.index');
+            Route::get('productos/{product}/imagen', [AdminProductController::class, 'editImage'])->name('products.image.edit');
+            Route::put('productos/{product}/imagen', [AdminProductController::class, 'updateImage'])->name('products.image.update');
+        });
+
         Route::middleware('admin.full')->group(function () {
             Route::get('usuarios', [AdminUserController::class, 'index'])->name('users.index');
             Route::get('usuarios/nuevo', [AdminUserController::class, 'create'])->name('users.create');
@@ -106,7 +112,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('clientes', [AdminCustomerController::class, 'index'])->name('customers.index');
             Route::delete('clientes/{user}', [AdminCustomerController::class, 'destroy'])->name('customers.destroy');
 
-            Route::get('productos', [AdminProductController::class, 'index'])->name('products.index');
             Route::get('productos/carga-masiva', [AdminProductController::class, 'importForm'])->name('products.import');
             Route::get('productos/carga-masiva/estado', [AdminProductController::class, 'importStatus'])->name('products.import.status');
             Route::post('productos/carga-masiva/liberar', [AdminProductController::class, 'releaseImportLock'])->name('products.import.unlock');
@@ -128,8 +133,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('productos', [AdminProductController::class, 'store'])->name('products.store');
             Route::get('productos/{product}/editar', [AdminProductController::class, 'edit'])->name('products.edit');
             Route::put('productos/{product}', [AdminProductController::class, 'update'])->name('products.update');
-            Route::get('productos/{product}/imagen', [AdminProductController::class, 'editImage'])->name('products.image.edit');
-            Route::put('productos/{product}/imagen', [AdminProductController::class, 'updateImage'])->name('products.image.update');
             Route::delete('productos/{product}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
             Route::get('categorias', [AdminCategoryController::class, 'index'])->name('categories.index');

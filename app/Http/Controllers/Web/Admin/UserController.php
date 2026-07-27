@@ -18,7 +18,7 @@ class UserController extends Controller
     public function index(Request $request): View
     {
         $admins = User::query()
-            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_BODEGA])
+            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_EJECUTIVO, User::ROLE_BODEGA])
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = '%'.$request->string('q')->trim().'%';
 
@@ -27,7 +27,7 @@ class UserController extends Controller
                         ->orWhere('email', 'ilike', $term);
                 });
             })
-            ->orderByRaw("CASE WHEN role = 'admin' THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN role = 'admin' THEN 0 WHEN role = 'ejecutivo' THEN 1 ELSE 2 END")
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -47,7 +47,7 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255'],
-            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_BODEGA])],
+            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_EJECUTIVO, User::ROLE_BODEGA])],
             'password' => $this->passwordRules(),
         ], $this->passwordMessages());
 
@@ -59,7 +59,11 @@ class UserController extends Controller
                 ->with('error', 'Ya existe un usuario de panel con ese correo.');
         }
 
-        $roleLabel = $data['role'] === User::ROLE_BODEGA ? 'bodega' : 'administrador';
+        $roleLabel = match ($data['role']) {
+            User::ROLE_BODEGA => 'bodega',
+            User::ROLE_EJECUTIVO => 'ejecutivo',
+            default => 'administrador',
+        };
 
         if ($existing) {
             $existing->update([
@@ -81,12 +85,13 @@ class UserController extends Controller
             'role' => $data['role'],
         ]);
 
-        return $this->redirectAfterAdminSaved(
-            $user,
-            $data['role'] === User::ROLE_BODEGA
-                ? 'Usuario de bodega creado correctamente.'
-                : 'Administrador creado correctamente.'
-        );
+        $success = match ($data['role']) {
+            User::ROLE_BODEGA => 'Usuario de bodega creado correctamente.',
+            User::ROLE_EJECUTIVO => 'Usuario ejecutivo creado correctamente.',
+            default => 'Administrador creado correctamente.',
+        };
+
+        return $this->redirectAfterAdminSaved($user, $success);
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
@@ -108,13 +113,16 @@ class UserController extends Controller
         }
 
         $wasWarehouse = $user->isWarehouse();
+        $wasEjecutivo = $user->isEjecutivo();
         $user->update(['role' => User::ROLE_CUSTOMER]);
 
         return redirect()
             ->route('admin.users.index')
-            ->with('success', $wasWarehouse
-                ? 'El usuario ya no tiene acceso de bodega.'
-                : 'El usuario ya no tiene permisos de administrador.');
+            ->with('success', match (true) {
+                $wasWarehouse => 'El usuario ya no tiene acceso de bodega.',
+                $wasEjecutivo => 'El usuario ya no tiene acceso de ejecutivo.',
+                default => 'El usuario ya no tiene permisos de administrador.',
+            });
     }
 
     protected function redirectAfterAdminSaved(User $user, string $message): RedirectResponse

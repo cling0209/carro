@@ -15,11 +15,23 @@ class WarehouseBoardController extends Controller
 
     public function index(): View
     {
+        abort_unless(
+            auth()->user()?->isAdmin() || auth()->user()?->isWarehouse(),
+            403,
+            'Acceso no autorizado.',
+        );
+
         return view('admin.warehouse.board');
     }
 
     public function feed(): JsonResponse
     {
+        abort_unless(
+            auth()->user()?->isAdmin() || auth()->user()?->isWarehouse(),
+            403,
+            'Acceso no autorizado.',
+        );
+
         $orders = Order::query()
             ->with(['items' => fn ($q) => $q->orderBy('id')])
             ->whereIn('status', self::BOARD_STATUSES)
@@ -39,6 +51,12 @@ class WarehouseBoardController extends Controller
 
     public function updateStatus(Request $request, Order $order): JsonResponse
     {
+        abort_unless(
+            $request->user()?->isAdmin() || $request->user()?->isWarehouse(),
+            403,
+            'Acceso no autorizado.',
+        );
+
         $data = $request->validate([
             'status' => ['required', 'string', 'in:processing,shipped'],
         ]);

@@ -3,12 +3,24 @@
 @section('title', 'Productos')
 
 @section('content')
+@php
+    $puedeModificar = $puedeModificar ?? auth()->user()?->canManageProducts();
+    $puedeEditarImagen = $puedeEditarImagen ?? auth()->user()?->canEditProductImage();
+    $mostrarAcciones = $puedeModificar || $puedeEditarImagen;
+@endphp
 <div class="container-fluid py-3 py-md-4 px-3">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3 mb-md-4">
         <div>
             <h1 class="h4 fw-bold mb-1">Mantenedor de productos</h1>
-            <p class="text-muted mb-0 small">Alta, edición y baja del catálogo.</p>
+            <p class="text-muted mb-0 small">
+                @if($puedeModificar)
+                    Alta, edición y baja del catálogo.
+                @else
+                    Actualización de imágenes del catálogo.
+                @endif
+            </p>
         </div>
+        @if($puedeModificar)
         <div class="d-flex flex-wrap gap-2 admin-page-actions">
             <a href="{{ route('admin.products.export') }}" class="btn btn-outline-success btn-sm">
                 <i class="bi bi-download"></i>
@@ -24,6 +36,7 @@
                 <i class="bi bi-plus-lg"></i> Nuevo producto
             </a>
         </div>
+        @endif
     </div>
 
     @if(session('import_errors'))
@@ -92,22 +105,27 @@
                                 @endif
                             </div>
                         </div>
+                        @if($mostrarAcciones)
                         <div class="d-flex flex-column gap-1 flex-shrink-0">
-                            <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" aria-label="Editar">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-sm btn-outline-secondary" aria-label="Imagen">
-                                <i class="bi bi-image"></i>
-                            </a>
-                            <form action="{{ route('admin.products.destroy', $product) }}" method="post"
-                                  onsubmit="return confirm('¿Eliminar este producto?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Eliminar">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            @if($puedeModificar)
+                                <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" aria-label="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form action="{{ route('admin.products.destroy', $product) }}" method="post"
+                                      onsubmit="return confirm('¿Eliminar este producto?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            @else
+                                <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-sm btn-outline-primary" aria-label="Imagen">
+                                    <i class="bi bi-image"></i>
+                                </a>
+                            @endif
                         </div>
+                        @endif
                     </div>
                 </div>
             @empty
@@ -132,7 +150,7 @@
                         <th>Precio</th>
                         <th>Stock</th>
                         <th>Estado</th>
-                        <th></th>
+                        @if($mostrarAcciones)<th></th>@endif
                     </tr>
                 </thead>
                 <tbody>
@@ -164,26 +182,31 @@
                                     <span class="badge text-bg-primary">Destacado</span>
                                 @endif
                             </td>
+                            @if($mostrarAcciones)
                             <td class="text-end text-nowrap">
-                                <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-sm btn-outline-secondary" title="Imagen">
-                                    <i class="bi bi-image"></i>
-                                </a>
-                                <form action="{{ route('admin.products.destroy', $product) }}" method="post" class="d-inline"
-                                      onsubmit="return confirm('¿Eliminar este producto?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                @if($puedeModificar)
+                                    <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ route('admin.products.destroy', $product) }}" method="post" class="d-inline"
+                                          onsubmit="return confirm('¿Eliminar este producto?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-sm btn-outline-primary" title="Imagen">
+                                        <i class="bi bi-image"></i> Imagen
+                                    </a>
+                                @endif
                             </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-5">No hay productos.</td>
+                            <td colspan="{{ $mostrarAcciones ? 8 : 7 }}" class="text-center text-muted py-5">No hay productos.</td>
                         </tr>
                     @endforelse
                 </tbody>

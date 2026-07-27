@@ -19,6 +19,8 @@ class User extends Authenticatable
 {
     public const ROLE_ADMIN = 'admin';
 
+    public const ROLE_EJECUTIVO = 'ejecutivo';
+
     public const ROLE_BODEGA = 'bodega';
 
     public const ROLE_CUSTOMER = 'customer';
@@ -31,29 +33,49 @@ class User extends Authenticatable
         return $this->role === self::ROLE_ADMIN;
     }
 
+    public function isEjecutivo(): bool
+    {
+        return $this->role === self::ROLE_EJECUTIVO;
+    }
+
     public function isWarehouse(): bool
     {
         return $this->role === self::ROLE_BODEGA;
     }
 
-    /** Acceso al panel (admin completo o solo bodega). */
+    /** Acceso al panel (admin, ejecutivo o bodega). */
     public function canAccessAdminPanel(): bool
     {
-        return $this->isAdmin() || $this->isWarehouse();
+        return $this->isAdmin() || $this->isEjecutivo() || $this->isWarehouse();
+    }
+
+    /** CRUD completo de productos (alta/edición/baja/import). */
+    public function canManageProducts(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    /** Solo actualizar imagen de producto (flujo dedicado). */
+    public function canEditProductImage(): bool
+    {
+        return $this->isEjecutivo();
     }
 
     /** Ruta de inicio tras login al panel. */
     public function adminHomeRoute(): string
     {
-        return $this->isWarehouse()
-            ? 'admin.warehouse.index'
-            : 'admin.products.index';
+        if ($this->isWarehouse()) {
+            return 'admin.warehouse.index';
+        }
+
+        return 'admin.products.index';
     }
 
     public function roleLabel(): string
     {
         return match ($this->role) {
             self::ROLE_ADMIN => 'Administrador',
+            self::ROLE_EJECUTIVO => 'Ejecutivo',
             self::ROLE_BODEGA => 'Bodega',
             default => 'Cliente',
         };

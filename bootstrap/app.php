@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
             'admin.full' => \App\Http\Middleware\EnsureFullAdmin::class,
+            'admin.catalog' => \App\Http\Middleware\EnsureCatalogAccess::class,
         ]);
         $middleware->web(prepend: [
             \App\Http\Middleware\SecurityHeaders::class,

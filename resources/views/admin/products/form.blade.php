@@ -134,9 +134,6 @@
                         <div class="mt-4 d-flex gap-2 flex-wrap">
                             <button type="submit" class="btn btn-primary">Guardar</button>
                             <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">Cancelar</a>
-                            @if($product->exists)
-                                <a href="{{ route('admin.products.image.edit', $product) }}" class="btn btn-outline-primary">Solo imagen</a>
-                            @endif
                         </div>
                     </form>
                 </div>

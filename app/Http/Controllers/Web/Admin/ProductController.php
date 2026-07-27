@@ -43,8 +43,14 @@ class ProductController extends Controller
             ->withQueryString();
 
         $categories = Category::query()->orderBy('name')->get();
+        $user = $request->user();
 
-        return view('admin.products.index', compact('products', 'categories'));
+        return view('admin.products.index', [
+            'products' => $products,
+            'categories' => $categories,
+            'puedeModificar' => $user?->canManageProducts() ?? false,
+            'puedeEditarImagen' => $user?->canEditProductImage() ?? false,
+        ]);
     }
 
     public function create(): View
@@ -108,8 +114,10 @@ class ProductController extends Controller
             ->with('success', 'Producto actualizado.');
     }
 
-    public function editImage(Product $product): View
+    public function editImage(Request $request, Product $product): View
     {
+        abort_unless($request->user()?->canEditProductImage(), 403, 'Acceso no autorizado.');
+
         return view('admin.products.imagen', [
             'product' => $product,
             'storageImagenConfigurado' => $this->imageStorage->isConfigured(),
@@ -118,6 +126,8 @@ class ProductController extends Controller
 
     public function updateImage(Request $request, Product $product): RedirectResponse
     {
+        abort_unless($request->user()?->canEditProductImage(), 403, 'Acceso no autorizado.');
+
         $request->validate([
             'imagen' => ['required', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:5120'],
         ]);
