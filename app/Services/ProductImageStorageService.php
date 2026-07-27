@@ -40,11 +40,17 @@ class ProductImageStorageService
      */
     public function upload(UploadedFile $file, string $familia, string $sku): string
     {
+        if (! $this->processor->isAvailable()) {
+            throw ValidationException::withMessages([
+                'imagen' => 'El servidor no puede procesar JPEG (falta soporte GD/JPEG). Reconstruya la imagen Docker.',
+            ]);
+        }
+
         $processed = $this->processor->processUploadedFile($file);
 
         if ($processed === null) {
             throw ValidationException::withMessages([
-                'imagen' => 'No se pudo procesar la imagen. Use JPG, PNG, WebP o GIF.',
+                'imagen' => 'No se pudo leer la imagen. Use un archivo JPG, PNG, WebP o GIF válido.',
             ]);
         }
 
