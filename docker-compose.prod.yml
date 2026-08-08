@@ -1,0 +1,36 @@
+# Producción Hetzner: Postgres + app (Dockerfile raíz)
+# Uso: docker compose -f docker-compose.prod.yml up -d --build
+# Env: copiar carro.env → .env.prod (DB_PASSWORD debe coincidir con postgres abajo)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env.prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U carro -d tienda"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: tienda
+      DB_USERNAME: carro
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
