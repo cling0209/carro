@@ -86,6 +86,20 @@ Deploy manual en el servidor:
 /opt/carro/scripts/deploy-prod.sh
 ```
 
+### Error `dubious ownership in repository at '/opt/carro'`
+
+Ocurre si el repo se clonó con un usuario distinto al que usa GitHub Actions (`VPS_USER`), por ejemplo clonaste como `root` pero el secret apunta a otro usuario.
+
+**Opción A — en el VPS (recomendado, una vez):**
+
+```bash
+# Reemplaza DEPLOY_USER por el valor de VPS_USER en GitHub
+sudo chown -R DEPLOY_USER:DEPLOY_USER /opt/carro
+git config --global --add safe.directory /opt/carro
+```
+
+**Opción B:** el workflow ya ejecuta `git config --global --add safe.directory /opt/carro` antes del `git fetch`. Haz push del workflow actualizado o ejecuta ese comando manualmente en el VPS.
+
 ## 3. Variables de producción
 
 Plantilla: **`.env.hetzner.example`**. En el servidor: **`/opt/carro/.env.prod`** (no commitear).

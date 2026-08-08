@@ -1,6 +1,7 @@
 #!/bin/bash
 # Ejecutar en el VPS: /opt/carro/scripts/deploy-prod.sh
 set -euo pipefail
+git config --global --add safe.directory /opt/carro
 cd /opt/carro
 git fetch origin main
 git reset --hard origin/main
