@@ -41,6 +41,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key_path: .ssh/deploy_key
           port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 30m
           script_stop: true
           script: |
             set -euo pipefail
@@ -50,5 +51,14 @@ jobs:
             git reset --hard origin/main
             docker compose -f docker-compose.prod.yml up -d --build app
             docker image prune -f
-            curl -sf http://127.0.0.1:8000/up > /dev/null
-            echo "Deploy OK"
+            echo "Esperando health check..."
+            for i in $(seq 1 60); do
+              if curl -sf http://127.0.0.1:8000/up > /dev/null; then
+                echo "Deploy OK"
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "::error::App no respondio en /up tras 5 minutos"
+            docker compose -f docker-compose.prod.yml logs app --tail 50
+            exit 1
