@@ -763,6 +763,27 @@ body {
     margin-top: 0.1rem;
 }
 
+.about-cta-pulse {
+    animation: about-cta-soft-blink 2.4s ease-in-out infinite;
+}
+
+@keyframes about-cta-soft-blink {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+    }
+    50% {
+        opacity: 0.9;
+        box-shadow: 0 6px 24px rgba(37, 99, 235, 0.5), 0 0 0 6px rgba(37, 99, 235, 0.1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .about-cta-pulse {
+        animation: none;
+    }
+}
+
 .shop-search {
     position: relative;
     width: 100%;
