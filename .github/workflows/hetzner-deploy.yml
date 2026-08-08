@@ -14,7 +14,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Check VPS secrets
+      - name: Prepare SSH key
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -24,14 +24,13 @@ jobs:
             echo "::error::Faltan secrets VPS_HOST, VPS_USER o VPS_SSH_KEY. Ver HETZNER.md"
             exit 1
           fi
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+          mkdir -p .ssh
+          chmod 700 .ssh
+          printf '%s\n' "$VPS_SSH_KEY" > .ssh/deploy_key
+          chmod 600 .ssh/deploy_key
+          if ! ssh-keygen -y -f .ssh/deploy_key > /dev/null 2>&1; then
             echo "::error::VPS_SSH_KEY no es una clave privada valida (ssh: no key found)."
-            echo "::error::Usa el archivo PRIVADO (hetzner_deploy), no el .pub. Debe empezar con -----BEGIN OPENSSH PRIVATE KEY-----"
-            echo "::error::Ver seccion 'Error ssh: no key found' en HETZNER.md"
+            echo "::error::Usa id_ed25519 (privada), no known_hosts ni el .pub."
             exit 1
           fi
 
@@ -40,7 +39,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key_path: ~/.ssh/deploy_key
+          key_path: .ssh/deploy_key
           port: ${{ secrets.VPS_PORT || 22 }}
           script_stop: true
           script: |
