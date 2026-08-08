@@ -61,6 +61,7 @@ docker compose exec app php artisan test
 
 | Plataforma | Documentación |
 |------------|---------------|
+| **Hetzner VPS** (Docker + CI/CD) | **[HETZNER.md](HETZNER.md)** — producción actual `tienda.romulo.cl` |
 | **Render** + Neon + Resend (`@romulo.cl`) | **[RENDER.md](RENDER.md)** — plan free OK |
 | **Koyeb** + Neon | **[KOYEB.md](KOYEB.md)** |
 
