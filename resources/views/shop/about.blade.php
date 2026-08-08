@@ -119,7 +119,7 @@
 
     <div class="text-center py-2">
         <p class="text-secondary mb-4">Conoce nuestro catálogo y compra con la confianza de siempre.</p>
-        <a href="{{ route('catalog') }}" class="btn btn-primary btn-lg rounded-pill px-5 about-cta-pulse text-dark">
+        <a href="{{ route('catalog') }}" class="btn btn-primary btn-lg rounded-pill px-5 about-cta-pulse">
             Ver catálogo <i class="bi bi-arrow-right ms-1"></i>
         </a>
     </div>
