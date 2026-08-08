@@ -72,7 +72,38 @@ En el VPS (`~/.ssh/authorized_keys` del usuario deploy):
 # contenido de hetzner_deploy.pub
 ```
 
-En GitHub secret `VPS_SSH_KEY`: contenido de `hetzner_deploy` (privada).
+En GitHub secret `VPS_SSH_KEY`: contenido de `hetzner_deploy` (privada), **sin comillas** y con saltos de linea intactos.
+
+En PowerShell (Windows), copiar al portapapeles:
+
+```powershell
+Get-Content -Raw hetzner_deploy | Set-Clipboard
+```
+
+Luego pegar en GitHub → Settings → Secrets → `VPS_SSH_KEY` → Update.
+
+### Error `ssh: no key found` / `unable to authenticate`
+
+Significa que el secret `VPS_SSH_KEY` **no es una clave privada valida**. Causas habituales:
+
+| Causa | Solucion |
+|-------|----------|
+| Pegaste `hetzner_deploy.pub` (publica) | Usa `hetzner_deploy` (sin `.pub`) |
+| La clave quedo en una sola linea | Vuelve a pegar con `Get-Content -Raw` o copia desde el editor mostrando saltos de linea |
+| Tiene passphrase | Genera otra sin passphrase: `ssh-keygen ... -N ""` |
+| Clave distinta a la del VPS | La `.pub` correspondiente debe estar en `~/.ssh/authorized_keys` del usuario `VPS_USER` |
+
+Verificar en tu PC que la clave es valida:
+
+```bash
+ssh-keygen -y -f hetzner_deploy
+```
+
+Si imprime una linea `ssh-ed25519 AAAA...`, la privada esta bien. Probar conexion:
+
+```bash
+ssh -i hetzner_deploy VPS_USER@VPS_HOST
+```
 
 ### Verificar
 
